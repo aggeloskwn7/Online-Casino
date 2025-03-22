@@ -33,16 +33,16 @@ export function setupAuth(app: Express) {
   
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "crypto-casino-secret-key",
-    resave: false, // don't save session if unmodified
-    saveUninitialized: false, // don't create session until something stored
+    resave: true, // Force the session to be saved back to the store
+    saveUninitialized: true, // Save uninitialized sessions
     store: storage.sessionStore,
     name: 'casino.sid', // use a unique name for our session cookie
     rolling: true, // refresh session expiry with each request
     cookie: {
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       httpOnly: true,
-      sameSite: 'lax',
-      secure: false, // Set to true in production with HTTPS
+      sameSite: 'none', // Allow cross-site cookies
+      secure: false, // Allow non-HTTPS cookies in development
       path: '/'
     }
   };

@@ -28,13 +28,27 @@ export class MemStorage implements IStorage {
     this.transactions = new Map();
     this.currentId = 1;
     this.currentTransactionId = 1;
-    // More robust session store config
+    // Configure memory store with better debugging
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000, // 24 hours (prune expired entries)
       ttl: 24 * 60 * 60 * 1000, // 24 hours (session time to live)
       stale: false,             // Don't return stale sessions
-      noDisposeOnSet: false     // Dispose on set for better gc
+      noDisposeOnSet: false,    // Dispose on set for better gc
+      debug: true
     });
+    
+    // Log when the session store is accessed
+    const originalSet = this.sessionStore.set;
+    this.sessionStore.set = function(sid: string, session: any, cb?: any) {
+      console.log(`Session Store SET: ${sid.substring(0, 6)}...`);
+      return originalSet.call(this, sid, session, cb);
+    };
+    
+    const originalGet = this.sessionStore.get;
+    this.sessionStore.get = function(sid: string, cb: any) {
+      console.log(`Session Store GET: ${sid.substring(0, 6)}...`);
+      return originalGet.call(this, sid, cb);
+    };
   }
 
   async getUser(id: number): Promise<User | undefined> {
