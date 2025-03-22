@@ -33,14 +33,17 @@ export function setupAuth(app: Express) {
   
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "crypto-casino-secret-key",
-    resave: true,
-    saveUninitialized: true,
+    resave: false, // don't save session if unmodified
+    saveUninitialized: false, // don't create session until something stored
     store: storage.sessionStore,
+    name: 'casino.sid', // use a unique name for our session cookie
+    rolling: true, // refresh session expiry with each request
     cookie: {
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       httpOnly: true,
       sameSite: 'lax',
-      secure: false // Set to true in production with HTTPS
+      secure: false, // Set to true in production with HTTPS
+      path: '/'
     }
   };
 
@@ -115,7 +118,7 @@ export function setupAuth(app: Express) {
   app.post("/api/login", (req, res, next) => {
     console.log("Login attempt:", req.body.username);
     
-    passport.authenticate("local", (err: any, user: User | false, info: any) => {
+    passport.authenticate("local", (err: any, user: SelectUser | false, info: any) => {
       if (err) {
         console.error("Login error:", err);
         return next(err);
@@ -142,14 +145,36 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/logout", (req, res, next) => {
+    console.log("Logout attempt: isAuthenticated():", req.isAuthenticated(),
+                "User:", req.user?.username,
+                "Session ID:", req.sessionID);
+                
+    if (!req.isAuthenticated()) {
+      console.log("Logout called without active session");
+      return res.sendStatus(200); // Still return success to client
+    }
+    
     req.logout((err) => {
-      if (err) return next(err);
+      if (err) {
+        console.error("Logout error:", err);
+        return next(err);
+      }
+      console.log("User logged out successfully");
       res.sendStatus(200);
     });
   });
 
   app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+    console.log("User API check: isAuthenticated():", req.isAuthenticated(),
+                "Session ID:", req.sessionID,
+                "Cookies:", req.headers.cookie);
+    
+    if (!req.isAuthenticated()) {
+      console.log("User API Unauthorized - No valid session");
+      return res.sendStatus(401);
+    }
+    
+    console.log("User API Authorized - User:", req.user?.username);
     
     // Return the user without the password
     const { password, ...safeUser } = req.user as SelectUser;

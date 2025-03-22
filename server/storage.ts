@@ -28,8 +28,12 @@ export class MemStorage implements IStorage {
     this.transactions = new Map();
     this.currentId = 1;
     this.currentTransactionId = 1;
+    // More robust session store config
     this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000
+      checkPeriod: 86400000, // 24 hours (prune expired entries)
+      ttl: 24 * 60 * 60 * 1000, // 24 hours (session time to live)
+      stale: false,             // Don't return stale sessions
+      noDisposeOnSet: false     // Dispose on set for better gc
     });
   }
 
