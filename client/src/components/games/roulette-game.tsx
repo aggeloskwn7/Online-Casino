@@ -53,17 +53,20 @@ export default function RouletteGame() {
     // First row with 0
     rows.push(
       <div key="zero-row" className="flex">
-        <button
-          className={`w-12 h-12 border border-[#333333] text-center flex items-center justify-center text-xl font-bold m-0.5 ${
+        <motion.button
+          className={`w-12 h-12 border border-[#333333] text-center flex items-center justify-center text-xl font-bold m-0.5 shadow-md ${
             selectedNumbers.includes(0)
-              ? 'bg-[#5465FF] text-white'
-              : 'bg-[#008000] text-white hover:bg-[#006600]'
+              ? 'bg-gradient-to-b from-[#6677FF] to-[#5465FF] text-white'
+              : 'bg-gradient-to-b from-[#00A000] to-[#008000] text-white hover:bg-[#006600]'
           }`}
           onClick={() => handleNumberSelect(0)}
           disabled={isSpinning}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
         >
           0
-        </button>
+        </motion.button>
         <div className="flex flex-col ml-1">
           <button 
             className="w-8 h-6 border border-[#333333] text-center flex items-center justify-center text-xs font-bold m-0.5 bg-[#333333] text-white hover:bg-[#444444]"
@@ -249,7 +252,7 @@ export default function RouletteGame() {
       <div className="relative w-full h-40 flex items-center justify-center overflow-hidden">
         <div 
           ref={wheelRef}
-          className="absolute w-36 h-36 rounded-full bg-gradient-to-r from-[#222222] to-[#111111] border-4 border-[#444444] flex items-center justify-center transform transition-transform duration-4000 ease-out"
+          className="absolute w-44 h-44 rounded-full bg-gradient-to-r from-[#1A1A1A] to-[#0A0A0A] border-4 border-[#5465FF] flex items-center justify-center transform transition-transform duration-4000 ease-out shadow-[0_0_20px_rgba(84,101,255,0.5)]"
           style={{ transform: `rotate(${rotationAngle}deg)` }}
         >
           {ROULETTE_NUMBERS.map((number, index) => {
@@ -278,21 +281,36 @@ export default function RouletteGame() {
               </div>
             );
           })}
-          <div className="w-16 h-16 rounded-full bg-[#333333] flex items-center justify-center z-10">
-            {lastResult && (
-              <div 
-                className={`w-12 h-12 rounded-full flex items-center justify-center text-white text-xl font-bold ${
+          <div className="w-20 h-20 rounded-full bg-gradient-to-b from-[#333333] to-[#222222] flex items-center justify-center z-10 shadow-[inset_0_0_10px_rgba(0,0,0,0.6)] border border-[#5465FF]">
+            {lastResult ? (
+              <motion.div 
+                className={`w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold ${
                   lastResult.color === 'red' ? 'bg-[#C92A2A]' : 
                   lastResult.color === 'black' ? 'bg-[#121212]' :
                   'bg-[#008000]'
                 }`}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ 
+                  type: "spring",
+                  stiffness: 400,
+                  damping: 15,
+                  delay: 4.1 // Slightly after the wheel stops
+                }}
               >
                 {lastResult.spin}
+              </motion.div>
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-[#181818] flex items-center justify-center text-gray-500 text-xl font-bold">
+                ?
               </div>
             )}
           </div>
         </div>
-        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-b-[20px] border-b-white z-20"></div>
+        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center">
+          <div className="w-5 h-5 bg-[#5465FF] rotate-45 mb-[-2.5px] shadow-[0_0_8px_rgba(84,101,255,0.8)]"></div>
+          <div className="w-3 h-10 bg-[#5465FF] shadow-[0_0_8px_rgba(84,101,255,0.8)]"></div>
+        </div>
       </div>
     );
   };

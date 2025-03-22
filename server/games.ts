@@ -631,14 +631,24 @@ export async function playRoulette(req: Request, res: Response) {
         break;
     }
     
-    // Add additional random factor to make winning much harder
-    // 20% chance of forcing a loss regardless of the actual result
-    if (isWin && Math.random() < 0.2) {
+    // Add additional random factor to balance winning chances
+    // 12% chance of forcing a loss on what would be a win
+    // This creates a more balanced house edge without being too punishing
+    if (isWin && Math.random() < 0.12) {
       isWin = false;
     }
     
+    // Very small chance (1%) of a "lucky win" on what would be a loss
+    // This adds excitement and occasional surprising wins
+    let luckyMultiplier = 0;
+    if (!isWin && Math.random() < 0.01) {
+      isWin = true;
+      // Set a random multiplier between 2x and 5x for these surprise wins
+      luckyMultiplier = 2 + Math.floor(Math.random() * 3);
+    }
+    
     // Calculate payout
-    const multiplier = isWin ? ROULETTE_PAYOUTS[betType] : 0;
+    const multiplier = luckyMultiplier > 0 ? luckyMultiplier : (isWin ? ROULETTE_PAYOUTS[betType] : 0);
     
     // Add small random variation to payouts to make it feel more realistic (within 0.5%)
     const variation = 1 + (Math.random() * 0.01 - 0.005);
