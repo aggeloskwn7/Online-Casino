@@ -840,7 +840,7 @@ export default function RouletteGame() {
         </div>
       </div>
       
-      {/* Add Bet and Spin Buttons */}
+      {/* Inside Bet and Spin Buttons */}
       <div className="grid grid-cols-2 gap-3 mb-5">
         <motion.button
           className="w-full bg-gradient-to-r from-[#333333] to-[#444444] hover:bg-gradient-to-r hover:from-[#3c3c3c] hover:to-[#505050] text-white font-bold py-3 px-6 rounded-lg shadow-lg transition duration-200 text-base"
@@ -851,7 +851,7 @@ export default function RouletteGame() {
           transition={{ type: "spring", stiffness: 400, damping: 10 }}
         >
           <div className="flex items-center justify-center">
-            <span className="mr-2">ADD BET</span>
+            <span className="mr-2">PLACE NUMBER BET</span>
             <span className="text-sm">+</span>
           </div>
         </motion.button>
