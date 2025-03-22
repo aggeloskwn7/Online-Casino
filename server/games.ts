@@ -17,18 +17,18 @@ declare global {
 const SLOT_SYMBOLS = ["🍒", "🍋", "🍊", "🍇", "🔔", "💎", "7️⃣", "🍀", "⭐", "🎰"];
 
 // Symbol weights (higher weight = more common)
-// Casino-style distribution with extremely rare high-value symbols
+// Extremely tough casino-style distribution with very rare high-value symbols
 const SYMBOL_WEIGHTS = [
-  1000, // 🍒 - Very common (10x more common than in previous version)
-  500,  // 🍋
-  250,  // 🍊
-  100,  // 🍇
-  30,   // 🔔
-  10,   // 💎
-  3,    // 7️⃣
+  5000, // 🍒 - Super common (50x more common than in previous version)
+  2000, // 🍋
+  1000, // 🍊
+  400,  // 🍇
+  100,  // 🔔
+  20,   // 💎
+  5,    // 7️⃣
   1,    // 🍀
-  0.5,  // ⭐
-  0.1   // 🎰 - Extremely rare (10x rarer than in previous version)
+  0.2,  // ⭐
+  0.05  // 🎰 - Extremely rare (50x rarer than in previous version)
 ];
 
 // Slot machine symbol multipliers (for matching 3 in a row)
@@ -155,10 +155,10 @@ export async function playSlots(req: Request, res: Response) {
         isWin = true;
         winningLines.push([row1, col1, row2, col2, row3, col3]);
       }
-      // Check for pairs (2 matching symbols)
-      else if ((symbol1 === symbol2 && symbol1 !== symbol3) || 
+      // Greatly reduce chances of winning with pairs (only 10% chance of counting)
+      else if (Math.random() < 0.1 && ((symbol1 === symbol2 && symbol1 !== symbol3) || 
                (symbol2 === symbol3 && symbol1 !== symbol2) ||
-               (symbol1 === symbol3 && symbol1 !== symbol2)) {
+               (symbol1 === symbol3 && symbol1 !== symbol2))) {
         // Much smaller win for pairs
         multiplier += PATTERN_MULTIPLIERS.pair;
         isWin = true;
@@ -260,10 +260,10 @@ export async function playDice(req: Request, res: Response) {
     // Determine if it's a win (roll under target)
     const isWin = result <= target;
     
-    // Calculate multiplier and payout with realistic casino odds
+    // Calculate multiplier and payout with tougher casino odds
     // Multiplier formula: (100 - house_edge) / target
-    // House edge is 1.5% for more realistic casino-style advantage
-    const houseEdge = 1.5; 
+    // Increased house edge to 5% for much tougher odds
+    const houseEdge = 5.0; 
     const multiplier = isWin ? Number(((100 - houseEdge) / target).toFixed(4)) : 0;
     
     // Add small random variation to payouts to make it feel more realistic
@@ -335,18 +335,24 @@ export async function startCrash(req: Request, res: Response) {
       return res.status(400).json({ message: "Insufficient balance" });
     }
     
-    // Generate crash point using a more realistic exponential distribution
+    // Generate crash point using an even tougher exponential distribution
     // This creates a curve similar to real crypto crash games with rare high multipliers
-    // Formula: 0.99 / (1 - random^2)
-    // - House edge built in (0.99)
-    // - Results pattern: ~50% crash below 2x, ~10% above 10x, ~1% above 100x
+    // Formula: 0.95 / (1 - random^2.5)
+    // - House edge increased to 5% (down from 0.99 to 0.95)
+    // - Exponent increased from 2 to 2.5 for more frequent early crashes
+    // - Results pattern: ~60% crash below 2x, ~5% above 10x, ~0.5% above 100x
     const random = Math.random();
     // Ensure random is not 1 to avoid division by zero
     const safeRandom = random === 1 ? 0.999999 : random;
     
     // Calculate crash point with bounded result (max: 1000.00)
-    const rawCrashPoint = 0.99 / (1 - Math.pow(safeRandom, 2));
-    const crashPoint = Number(Math.min(1000, rawCrashPoint).toFixed(2));
+    const rawCrashPoint = 0.95 / (1 - Math.pow(safeRandom, 2.5));
+    let crashPoint = Number(Math.min(1000, rawCrashPoint).toFixed(2));
+    
+    // Additional 20% chance for an immediate crash (1.00x) for even more frequent losses
+    if (Math.random() < 0.2) {
+      crashPoint = 1.00;
+    }
     
     // Subtract the bet amount from user balance immediately
     await storage.updateUserBalance(userId, Number(user.balance) - amount);
