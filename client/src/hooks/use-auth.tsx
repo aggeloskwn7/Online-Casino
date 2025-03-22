@@ -1,20 +1,26 @@
-import { createContext, ReactNode, useContext } from "react";
+import { createContext, ReactNode, useContext, useEffect } from "react";
 import {
   useQuery,
   useMutation,
   UseMutationResult,
 } from "@tanstack/react-query";
 import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema";
-import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
+import { getQueryFn, apiRequest, queryClient, setAuthToken, removeAuthToken } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+
+// Extended response type with token
+interface AuthResponse {
+  user: SelectUser;
+  token: string;
+}
 
 type AuthContextType = {
   user: SelectUser | null;
   isLoading: boolean;
   error: Error | null;
-  loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
+  loginMutation: UseMutationResult<AuthResponse, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
-  registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
+  registerMutation: UseMutationResult<AuthResponse, Error, InsertUser>;
 };
 
 type LoginData = Pick<InsertUser, "username" | "password">;
@@ -36,11 +42,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await apiRequest("POST", "/api/login", credentials);
       return await res.json();
     },
-    onSuccess: (user: SelectUser) => {
-      queryClient.setQueryData(["/api/user"], user);
+    onSuccess: (data: AuthResponse) => {
+      // Store the token
+      setAuthToken(data.token);
+      
+      // Update the user in the cache
+      queryClient.setQueryData(["/api/user"], data.user);
+      
       toast({
         title: "Login successful",
-        description: `Welcome back, ${user.username}!`,
+        description: `Welcome back, ${data.user.username}!`,
       });
     },
     onError: (error: Error) => {
@@ -57,11 +68,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await apiRequest("POST", "/api/register", credentials);
       return await res.json();
     },
-    onSuccess: (user: SelectUser) => {
-      queryClient.setQueryData(["/api/user"], user);
+    onSuccess: (data: AuthResponse) => {
+      // Store the token
+      setAuthToken(data.token);
+      
+      // Update the user in the cache
+      queryClient.setQueryData(["/api/user"], data.user);
+      
       toast({
         title: "Registration successful",
-        description: `Welcome to Crypto Casino, ${user.username}!`,
+        description: `Welcome to Crypto Casino, ${data.user.username}!`,
       });
     },
     onError: (error: Error) => {
@@ -75,10 +91,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", "/api/logout");
+      // No need for the server logout endpoint with JWT
+      // Just remove the token client-side
+      removeAuthToken();
     },
     onSuccess: () => {
+      // Clear the user data from cache
       queryClient.setQueryData(["/api/user"], null);
+      
       toast({
         title: "Logged out",
         description: "You have been successfully logged out",

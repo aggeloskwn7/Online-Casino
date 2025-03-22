@@ -92,7 +92,8 @@ export function setupAuth(app: Express) {
       });
     } catch (error) {
       console.error("Registration error:", error);
-      res.status(500).json({ message: "Registration failed", error: error.message });
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Registration failed", error: errorMessage });
     }
   });
 
@@ -121,7 +122,8 @@ export function setupAuth(app: Express) {
       });
     } catch (error) {
       console.error("Login error:", error);
-      res.status(500).json({ message: "Login failed", error: error.message });
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Login failed", error: errorMessage });
     }
   });
 
