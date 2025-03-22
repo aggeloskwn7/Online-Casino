@@ -34,22 +34,13 @@ export default function DiceGame() {
       return await res.json();
     },
     onSuccess: (data: DiceRoll) => {
-      // Update user data (balance)
-      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
-      
       // Set the result
       setLastResult(data);
       
       // Animate dice roll
       animateDiceRoll(data.result);
       
-      // Play sound based on win/lose
-      if (data.isWin) {
-        play('win');
-      } else {
-        play('lose');
-      }
-      
+      // Balance update will happen after animation completes
       // No toast notifications to avoid spoiling the result
     },
     onError: (error) => {
@@ -84,6 +75,17 @@ export default function DiceGame() {
         
         // Show win message after rolling completes with a short delay
         setTimeout(() => {
+          // Update user data (balance) only now after animation is complete
+          // This prevents spoiling the win/loss by seeing balance change early
+          queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+          
+          // Play sound based on win/lose
+          if (lastResult?.isWin) {
+            play('win');
+          } else {
+            play('lose');
+          }
+          
           setShowWinMessage(true);
         }, 300);
       }

@@ -33,9 +33,6 @@ export default function SlotsGame() {
       return await res.json();
     },
     onSuccess: (data: SlotsPayout) => {
-      // Update user data (balance)
-      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
-      
       // Set the result
       setLastResult(data);
       
@@ -57,14 +54,8 @@ export default function SlotsGame() {
         setHighlightedCells([]);
       }
       
-      // Play sound based on win/lose
-      if (data.isWin) {
-        play('win');
-      } else {
-        play('lose');
-      }
-      
-      // No toast notifications to avoid spoiling the result
+      // Only refresh balance after animation completes
+      // This prevents spoiling the win/loss before animation ends
     },
     onError: (error) => {
       toast({
@@ -119,6 +110,17 @@ export default function SlotsGame() {
         
         // Show win message after spinning completes with a short delay
         setTimeout(() => {
+          // Update user data (balance) only now after animation is complete
+          // This prevents spoiling the win/loss by seeing balance change early
+          queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+          
+          // Play sound based on win/lose
+          if (lastResult?.isWin) {
+            play('win');
+          } else {
+            play('lose');
+          }
+          
           setShowWinMessage(true);
         }, 300);
       }
