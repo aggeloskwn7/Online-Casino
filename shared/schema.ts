@@ -41,10 +41,11 @@ export const betSchema = z.object({
 });
 
 export const slotsPayoutSchema = z.object({
-  symbols: z.array(z.string()),
+  symbols: z.array(z.array(z.string())), // 2D array for 3x3 grid
   multiplier: z.number(),
   payout: z.number(),
   isWin: z.boolean(),
+  winningLines: z.array(z.array(z.number())).optional(), // Winning line coordinates
 });
 
 export const diceRollSchema = z.object({

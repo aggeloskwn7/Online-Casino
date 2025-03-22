@@ -12,23 +12,44 @@ declare global {
   }
 }
 
-// Slot machine symbols
+// Slot machine symbols with different frequencies
+// Higher index = less frequent = higher value
 const SLOT_SYMBOLS = ["🍒", "🍋", "🍊", "🍇", "🔔", "💎", "7️⃣", "🍀", "⭐", "🎰"];
 
-// Slot machine payouts based on combinations
-const SLOT_PAYOUTS = {
-  "🍒🍒🍒": 3,
-  "🍋🍋🍋": 5,
-  "🍊🍊🍊": 8,
-  "🍇🍇🍇": 10,
-  "🔔🔔🔔": 15,
-  "💎💎💎": 20,
-  "7️⃣7️⃣7️⃣": 50,
-  "🍀🍀🍀": 25,
-  "⭐⭐⭐": 30,
-  "🎰🎰🎰": 100,
-  // Any pairs
-  "pair": 1.5,
+// Symbol weights (higher weight = more common)
+const SYMBOL_WEIGHTS = [
+  100, // 🍒 - Very common
+  80,  // 🍋
+  60,  // 🍊
+  40,  // 🍇
+  20,  // 🔔
+  10,  // 💎
+  5,   // 7️⃣
+  3,   // 🍀
+  2,   // ⭐
+  1    // 🎰 - Super rare
+];
+
+// Slot machine symbol multipliers (for matching 3 in a row)
+const SYMBOL_MULTIPLIERS = {
+  "🍒": 1.5,   // Very small win for most common symbol
+  "🍋": 2,
+  "🍊": 3,
+  "🍇": 5,
+  "🔔": 8,
+  "💎": 12,
+  "7️⃣": 25,
+  "🍀": 50,
+  "⭐": 100,
+  "🎰": 500    // Massive jackpot for rarest symbol
+};
+
+// Additional multipliers for different patterns
+const PATTERN_MULTIPLIERS = {
+  "pair": 0.5,        // Any 2 matching symbols in a line (return half the bet)
+  "diagonal": 1.25,   // Multiplier boost for diagonal lines
+  "middle_row": 1.1,  // Small boost for middle row
+  "full_grid": 10     // Extremely rare: all 9 symbols the same
 };
 
 /**
@@ -56,29 +77,113 @@ export async function playSlots(req: Request, res: Response) {
       return res.status(400).json({ message: "Insufficient balance" });
     }
     
-    // Generate random symbols
+    // Helper function to get a weighted random symbol
+    const getWeightedRandomSymbol = () => {
+      // Calculate total weight
+      const totalWeight = SYMBOL_WEIGHTS.reduce((sum, weight) => sum + weight, 0);
+      // Get a random value between 0 and total weight
+      let random = Math.random() * totalWeight;
+      
+      // Find the symbol based on weights
+      for (let i = 0; i < SYMBOL_WEIGHTS.length; i++) {
+        random -= SYMBOL_WEIGHTS[i];
+        if (random <= 0) {
+          return SLOT_SYMBOLS[i];
+        }
+      }
+      // Fallback (should never happen)
+      return SLOT_SYMBOLS[0];
+    };
+    
+    // Generate a 3x3 grid of random symbols using weighted random
     const symbols = Array(3).fill(null).map(() => 
-      SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)]
+      Array(3).fill(null).map(() => getWeightedRandomSymbol())
     );
     
-    // Determine if it's a win and calculate payout
-    const symbolsKey = symbols.join("");
+    // Check for winning combinations
     let multiplier = 0;
     let isWin = false;
+    let winningLines: number[][] = [];
     
-    // Check for three of a kind
-    if (SLOT_PAYOUTS[symbolsKey as keyof typeof SLOT_PAYOUTS]) {
-      multiplier = SLOT_PAYOUTS[symbolsKey as keyof typeof SLOT_PAYOUTS];
+    // Define the 8 possible winning lines (3 horizontal, 3 vertical, 2 diagonal)
+    const winLines = [
+      // Horizontal lines
+      [[0,0], [0,1], [0,2]],
+      [[1,0], [1,1], [1,2]],
+      [[2,0], [2,1], [2,2]],
+      // Vertical lines
+      [[0,0], [1,0], [2,0]],
+      [[0,1], [1,1], [2,1]],
+      [[0,2], [1,2], [2,2]],
+      // Diagonal lines
+      [[0,0], [1,1], [2,2]],
+      [[0,2], [1,1], [2,0]]
+    ];
+    
+    // Check each line for wins
+    for (const line of winLines) {
+      const [row1, col1] = line[0];
+      const [row2, col2] = line[1];
+      const [row3, col3] = line[2];
+      
+      const symbol1 = symbols[row1][col1];
+      const symbol2 = symbols[row2][col2];
+      const symbol3 = symbols[row3][col3];
+      
+      // Check for 3 of a kind
+      if (symbol1 === symbol2 && symbol2 === symbol3) {
+        // Get the base multiplier for this symbol
+        const baseMultiplier = SYMBOL_MULTIPLIERS[symbol1 as keyof typeof SYMBOL_MULTIPLIERS];
+        
+        // Add additional multiplier based on line type
+        let lineMultiplier = baseMultiplier;
+        
+        // Check if it's a diagonal line
+        if ((row1 === 0 && col1 === 0 && row3 === 2 && col3 === 2) || 
+            (row1 === 0 && col1 === 2 && row3 === 2 && col3 === 0)) {
+          lineMultiplier *= PATTERN_MULTIPLIERS.diagonal;
+        }
+        
+        // Check if it's the middle row (higher payout)
+        if (row1 === 1 && row2 === 1 && row3 === 1) {
+          lineMultiplier *= PATTERN_MULTIPLIERS.middle_row;
+        }
+        
+        multiplier += lineMultiplier;
+        isWin = true;
+        winningLines.push([row1, col1, row2, col2, row3, col3]);
+      }
+      // Check for pairs (2 matching symbols)
+      else if ((symbol1 === symbol2 && symbol1 !== symbol3) || 
+               (symbol2 === symbol3 && symbol1 !== symbol2) ||
+               (symbol1 === symbol3 && symbol1 !== symbol2)) {
+        // Much smaller win for pairs
+        multiplier += PATTERN_MULTIPLIERS.pair;
+        isWin = true;
+        // Don't add to winning lines for pairs - only show for 3 of a kind
+      }
+    }
+    
+    // Check for super rare full grid win (all 9 symbols the same)
+    const firstSymbol = symbols[0][0];
+    let allSame = true;
+    
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 3; j++) {
+        if (symbols[i][j] !== firstSymbol) {
+          allSame = false;
+          break;
+        }
+      }
+      if (!allSame) break;
+    }
+    
+    if (allSame) {
+      // Massive multiplier for full grid of the same symbol
+      // Base symbol multiplier * full grid bonus
+      multiplier = SYMBOL_MULTIPLIERS[firstSymbol as keyof typeof SYMBOL_MULTIPLIERS] * PATTERN_MULTIPLIERS.full_grid;
       isWin = true;
-    } 
-    // Check for pairs (at least 2 same symbols)
-    else if (
-      symbols[0] === symbols[1] || 
-      symbols[1] === symbols[2] || 
-      symbols[0] === symbols[2]
-    ) {
-      multiplier = SLOT_PAYOUTS.pair;
-      isWin = true;
+      // Don't add specific winning lines for full grid - it's obvious
     }
     
     const payout = amount * multiplier;
@@ -102,7 +207,8 @@ export async function playSlots(req: Request, res: Response) {
       symbols,
       multiplier,
       payout,
-      isWin
+      isWin,
+      winningLines: winningLines.length > 0 ? winningLines : undefined
     });
     
     res.status(200).json(result);

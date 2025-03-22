@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { useSound } from '@/hooks/use-sound';
@@ -15,9 +15,14 @@ export default function SlotsGame() {
   const { toast } = useToast();
   const { play } = useSound();
   const [betAmount, setBetAmount] = useState(100);
-  const [symbols, setSymbols] = useState<string[]>(['🍒', '🍋', '🍒']);
+  const [symbols, setSymbols] = useState<string[][]>([
+    ['🍒', '🍋', '🍊'],
+    ['🍇', '🔔', '💎'],
+    ['7️⃣', '🍀', '⭐']
+  ]);
   const [isSpinning, setIsSpinning] = useState(false);
   const [lastResult, setLastResult] = useState<SlotsPayout | null>(null);
+  const [highlightedCells, setHighlightedCells] = useState<[number, number][]>([]);
   
   // Play slots mutation
   const slotsMutation = useMutation({
@@ -34,6 +39,21 @@ export default function SlotsGame() {
       
       // Update the symbols with animation
       animateSlots(data.symbols);
+      
+      // Highlight winning lines if any
+      if (data.winningLines && data.winningLines.length > 0) {
+        // Extract the cell coordinates from winning lines to highlight
+        const cells: [number, number][] = [];
+        data.winningLines.forEach(line => {
+          // Each line contains 6 values: [row1, col1, row2, col2, row3, col3]
+          for (let i = 0; i < line.length; i += 2) {
+            cells.push([line[i], line[i+1]]);
+          }
+        });
+        setHighlightedCells(cells);
+      } else {
+        setHighlightedCells([]);
+      }
       
       // Play sound based on win/lose
       if (data.isWin) {
@@ -66,7 +86,7 @@ export default function SlotsGame() {
     },
   });
   
-  const animateSlots = (finalSymbols: string[]) => {
+  const animateSlots = (finalSymbols: string[][]) => {
     // Start with random symbols
     let spins = 0;
     const maxSpins = 20; // Number of animation frames
@@ -79,19 +99,28 @@ export default function SlotsGame() {
       if (spins < maxSpins) {
         // Random symbols during spinning
         const randomSymbols = Array(3).fill(null).map(() => 
-          SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)]
+          Array(3).fill(null).map(() => 
+            SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)]
+          )
         );
         setSymbols(randomSymbols);
         
         // Continue spinning
         setTimeout(spin, spinInterval);
       } else if (spins === maxSpins) {
-        // Set the first symbol to final
-        setSymbols([finalSymbols[0], symbols[1], symbols[2]]);
+        // Start setting final symbols row by row
+        setSymbols([
+          finalSymbols[0],
+          symbols[1],
+          symbols[2]
+        ]);
         setTimeout(spin, finalSpinInterval);
       } else if (spins === maxSpins + 1) {
-        // Set the second symbol to final
-        setSymbols([finalSymbols[0], finalSymbols[1], symbols[2]]);
+        setSymbols([
+          finalSymbols[0],
+          finalSymbols[1],
+          symbols[2]
+        ]);
         setTimeout(spin, finalSpinInterval);
       } else {
         // Set all symbols to final
@@ -117,6 +146,7 @@ export default function SlotsGame() {
     
     // Start spinning
     setIsSpinning(true);
+    setHighlightedCells([]); // Clear any highlighted cells
     play('slotSpin');
     
     // Make API call
@@ -132,12 +162,26 @@ export default function SlotsGame() {
     setBetAmount(newBet);
   };
   
+  // Function to check if a cell should be highlighted
+  const isCellHighlighted = (row: number, col: number): boolean => {
+    return highlightedCells.some(cell => cell[0] === row && cell[1] === col);
+  };
+  
   return (
     <div className="bg-[#2A2A2A] p-4 rounded-xl">
-      <div className="flex gap-2 mb-4">
-        {symbols.map((symbol, index) => (
-          <div key={index} className="flex-1 slot-reel bg-[#121212] rounded-lg">
-            <div className="slot-symbol">{symbol}</div>
+      <div className="grid grid-rows-3 gap-2 mb-4">
+        {symbols.map((row, rowIndex) => (
+          <div key={rowIndex} className="grid grid-cols-3 gap-2">
+            {row.map((symbol, colIndex) => (
+              <div 
+                key={`${rowIndex}-${colIndex}`} 
+                className={`aspect-square flex items-center justify-center slot-reel bg-[#121212] rounded-lg ${
+                  isCellHighlighted(rowIndex, colIndex) ? 'border-2 border-[#FFD700] animate-pulse' : ''
+                }`}
+              >
+                <div className="slot-symbol text-4xl">{symbol}</div>
+              </div>
+            ))}
           </div>
         ))}
       </div>
@@ -187,6 +231,7 @@ export default function SlotsGame() {
         <div className="mt-4 p-3 bg-[#121212] rounded-lg text-center">
           <div className="text-[#00E701] font-bold mb-1">YOU WON!</div>
           <div className="font-mono">{formatCurrency(lastResult.payout)}</div>
+          <div className="text-sm text-gray-400 mt-1">Multiplier: {lastResult.multiplier.toFixed(2)}x</div>
         </div>
       )}
     </div>
