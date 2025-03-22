@@ -17,18 +17,18 @@ declare global {
 const SLOT_SYMBOLS = ["🍒", "🍋", "🍊", "🍇", "🔔", "💎", "7️⃣", "🍀", "⭐", "🎰"];
 
 // Symbol weights (higher weight = more common)
-// ULTRA-tough casino-style distribution with extremely rare high-value symbols
+// ULTRA-tough casino-style distribution with INSANELY rare high-value symbols
 const SYMBOL_WEIGHTS = [
-  20000, // 🍒 - Extremely common (200x more common than original)
-  8000,  // 🍋
-  2500,  // 🍊
-  600,   // 🍇
-  80,    // 🔔
-  10,    // 💎
-  2,     // 7️⃣
-  0.5,   // 🍀
-  0.05,  // ⭐
-  0.01   // 🎰 - Ultra rare (500x rarer than original)
+  50000, // 🍒 - Ridiculously common (500x more common than original)
+  5000,  // 🍋
+  1000,  // 🍊
+  100,   // 🍇
+  10,    // 🔔
+  1,     // 💎
+  0.1,   // 7️⃣
+  0.01,  // 🍀
+  0.001, // ⭐
+  0.0001 // 🎰 - Virtually impossible (5000x rarer than original)
 ];
 
 // Slot machine symbol multipliers (for matching 3 in a row)
@@ -132,8 +132,9 @@ export async function playSlots(req: Request, res: Response) {
       const symbol2 = symbols[row2][col2];
       const symbol3 = symbols[row3][col3];
       
-      // Check for 3 of a kind
-      if (symbol1 === symbol2 && symbol2 === symbol3) {
+      // Check for 3 of a kind but with EXTREME luck factor
+      // Only 10% of legitimate 3-of-a-kind matches will actually pay out
+      if (symbol1 === symbol2 && symbol2 === symbol3 && Math.random() < 0.1) {
         // Get the base multiplier for this symbol
         const baseMultiplier = SYMBOL_MULTIPLIERS[symbol1 as keyof typeof SYMBOL_MULTIPLIERS];
         
@@ -167,6 +168,7 @@ export async function playSlots(req: Request, res: Response) {
     }
     
     // Check for super rare full grid win (all 9 symbols the same)
+    // But add an extreme random factor - only 5% chance of actually paying out even if grid matches
     const firstSymbol = symbols[0][0];
     let allSame = true;
     
@@ -180,7 +182,8 @@ export async function playSlots(req: Request, res: Response) {
       if (!allSame) break;
     }
     
-    if (allSame) {
+    // Even if all symbols match, only 5% chance of actually getting the win
+    if (allSame && Math.random() < 0.05) {
       // Massive multiplier for full grid of the same symbol
       // Base symbol multiplier * full grid bonus
       multiplier = SYMBOL_MULTIPLIERS[firstSymbol as keyof typeof SYMBOL_MULTIPLIERS] * PATTERN_MULTIPLIERS.full_grid;
