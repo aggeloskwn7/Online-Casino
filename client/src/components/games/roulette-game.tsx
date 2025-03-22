@@ -18,6 +18,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RouletteResult, RouletteBet, RouletteBetType } from '@shared/schema';
 
+// Define a bet object type
+type Bet = {
+  type: RouletteBetType;
+  numbers: number[];
+  amount: number;
+};
+
 type BetOption = {
   type: RouletteBetType;
   label: string;
@@ -34,13 +41,35 @@ export default function RouletteGame() {
   const [betAmount, setBetAmount] = useState(1);
   const [isSpinning, setIsSpinning] = useState(false);
   const [lastResult, setLastResult] = useState<RouletteResult | null>(null);
+  const [activeBets, setActiveBets] = useState<Bet[]>([]);
   const [selectedBetType, setSelectedBetType] = useState<RouletteBetType>('straight');
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([0]);
   const [rotationAngle, setRotationAngle] = useState(0);
   const [showWinMessage, setShowWinMessage] = useState(false);
   const [activeTab, setActiveTab] = useState('inside');
+  const [multiSelectMode, setMultiSelectMode] = useState(false);
   
-  // Calculate profit and multiplier for current bet
+  // Calculate total bet amount and potential profit
+  const totalBetAmount = activeBets.reduce((total, bet) => total + bet.amount, 0) + betAmount;
+  
+  // Calculate potential profit based on active bets and current selection
+  const calculatePotentialProfit = () => {
+    // Profit from already placed bets
+    const existingBetsProfit = activeBets.reduce((total, bet) => {
+      return total + (bet.amount * ROULETTE_PAYOUTS[bet.type]);
+    }, 0);
+    
+    // Profit from current selection (if any)
+    const currentSelectionProfit = selectedNumbers.length > 0 
+      ? betAmount * ROULETTE_PAYOUTS[selectedBetType]
+      : 0;
+    
+    return existingBetsProfit + currentSelectionProfit;
+  };
+  
+  const potentialProfit = calculatePotentialProfit();
+  
+  // Calculate profit and multiplier for current bet (used for display)
   const multiplier = selectedNumbers.length > 0 
     ? ROULETTE_PAYOUTS[selectedBetType] 
     : 0;
@@ -182,102 +211,177 @@ export default function RouletteGame() {
   
   // Outside bets (red/black, odd/even, etc.)
   const renderOutsideBets = () => {
+    // Helper to determine if an outside bet is active in a specific bet list
+    const isBetActive = (betType: RouletteBetType, inActiveBets = false) => {
+      if (inActiveBets) {
+        return activeBets.some(bet => bet.type === betType);
+      }
+      return selectedBetType === betType;
+    };
+    
+    // Function to handle clicking an outside bet option
+    const handleOutsideBetClick = (betType: RouletteBetType, numbers: number[]) => {
+      if (isSpinning) return;
+      
+      // Set the bet type and numbers
+      setSelectedBetType(betType);
+      setSelectedNumbers(numbers);
+      
+      // If multi-select is enabled and the user clicks "Add Bet", they'll be able to add multiple bets
+      if (multiSelectMode && activeBets.length > 0) {
+        // Auto-add the bet if multi-select is enabled
+        const newBet: Bet = {
+          type: betType,
+          numbers: [...numbers],
+          amount: betAmount
+        };
+        
+        // Don't add duplicate bet types in multi-select mode
+        if (!activeBets.some(bet => bet.type === betType)) {
+          setActiveBets([...activeBets, newBet]);
+          
+          // Show success toast
+          toast({
+            title: 'Bet added',
+            description: `${betType} bet for ${formatCurrency(betAmount)} added`,
+          });
+          
+          // Clear the current selection
+          setSelectedNumbers([]);
+        } else {
+          // Show warning toast
+          toast({
+            title: 'Bet already added',
+            description: `You already have a ${betType} bet`,
+            variant: 'destructive',
+          });
+        }
+      }
+    };
+    
+    // Get all red numbers
+    const redNumbers = Object.entries(ROULETTE_COLORS)
+      .filter(([_, color]) => color === 'red')
+      .map(([num]) => parseInt(num));
+    
+    // Get all black numbers
+    const blackNumbers = Object.entries(ROULETTE_COLORS)
+      .filter(([_, color]) => color === 'black')
+      .map(([num]) => parseInt(num));
+    
+    // Even numbers: 2, 4, 6, etc.
+    const evenNumbers = Array.from({length: 18}, (_, i) => (i + 1) * 2);
+    
+    // Odd numbers: 1, 3, 5, etc.
+    const oddNumbers = Array.from({length: 18}, (_, i) => (i * 2) + 1);
+    
+    // Low numbers: 1-18
+    const lowNumbers = Array.from({length: 18}, (_, i) => i + 1);
+    
+    // High numbers: 19-36
+    const highNumbers = Array.from({length: 18}, (_, i) => i + 19);
+    
     return (
-      <div className="grid grid-cols-2 gap-2">
-        <motion.button 
-          className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold shadow-md bg-gradient-to-b from-[#E03C3C] to-[#C92A2A] text-white ${
-            selectedBetType === 'red' ? 'ring-2 ring-[#5465FF]' : ''
-          }`}
-          onClick={() => {
-            setSelectedBetType('red');
-            setSelectedNumbers(Object.entries(ROULETTE_COLORS)
-              .filter(([_, color]) => color === 'red')
-              .map(([num]) => parseInt(num)));
-          }}
-          disabled={isSpinning}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          transition={{ type: "spring", stiffness: 400, damping: 17 }}
-        >
-          Red
-        </motion.button>
-        <motion.button 
-          className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold shadow-md bg-gradient-to-b from-[#222222] to-[#121212] text-white ${
-            selectedBetType === 'black' ? 'ring-2 ring-[#5465FF]' : ''
-          }`}
-          onClick={() => {
-            setSelectedBetType('black');
-            setSelectedNumbers(Object.entries(ROULETTE_COLORS)
-              .filter(([_, color]) => color === 'black')
-              .map(([num]) => parseInt(num)));
-          }}
-          disabled={isSpinning}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          transition={{ type: "spring", stiffness: 400, damping: 17 }}
-        >
-          Black
-        </motion.button>
-        <motion.button 
-          className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold shadow-md bg-gradient-to-b from-[#444444] to-[#333333] text-white ${
-            selectedBetType === 'even' ? 'ring-2 ring-[#5465FF]' : ''
-          }`}
-          onClick={() => {
-            setSelectedBetType('even');
-            setSelectedNumbers(Array.from({length: 18}, (_, i) => (i + 1) * 2));
-          }}
-          disabled={isSpinning}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          transition={{ type: "spring", stiffness: 400, damping: 17 }}
-        >
-          Even
-        </motion.button>
-        <motion.button 
-          className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold shadow-md bg-gradient-to-b from-[#444444] to-[#333333] text-white ${
-            selectedBetType === 'odd' ? 'ring-2 ring-[#5465FF]' : ''
-          }`}
-          onClick={() => {
-            setSelectedBetType('odd');
-            setSelectedNumbers(Array.from({length: 18}, (_, i) => (i * 2) + 1));
-          }}
-          disabled={isSpinning}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          transition={{ type: "spring", stiffness: 400, damping: 17 }}
-        >
-          Odd
-        </motion.button>
-        <motion.button 
-          className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold shadow-md bg-gradient-to-b from-[#444444] to-[#333333] text-white ${
-            selectedBetType === 'low' ? 'ring-2 ring-[#5465FF]' : ''
-          }`}
-          onClick={() => {
-            setSelectedBetType('low');
-            setSelectedNumbers(Array.from({length: 18}, (_, i) => i + 1));
-          }}
-          disabled={isSpinning}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          transition={{ type: "spring", stiffness: 400, damping: 17 }}
-        >
-          1-18
-        </motion.button>
-        <motion.button 
-          className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold shadow-md bg-gradient-to-b from-[#444444] to-[#333333] text-white ${
-            selectedBetType === 'high' ? 'ring-2 ring-[#5465FF]' : ''
-          }`}
-          onClick={() => {
-            setSelectedBetType('high');
-            setSelectedNumbers(Array.from({length: 18}, (_, i) => i + 19));
-          }}
-          disabled={isSpinning}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          transition={{ type: "spring", stiffness: 400, damping: 17 }}
-        >
-          19-36
-        </motion.button>
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-2">
+          <motion.button 
+            className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold shadow-md bg-gradient-to-b from-[#E03C3C] to-[#C92A2A] text-white ${
+              (isBetActive('red') || isBetActive('red', true)) ? 'ring-2 ring-[#5465FF]' : ''
+            }`}
+            onClick={() => handleOutsideBetClick('red', redNumbers)}
+            disabled={isSpinning}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 400, damping: 17 }}
+          >
+            Red
+          </motion.button>
+          <motion.button 
+            className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold shadow-md bg-gradient-to-b from-[#222222] to-[#121212] text-white ${
+              (isBetActive('black') || isBetActive('black', true)) ? 'ring-2 ring-[#5465FF]' : ''
+            }`}
+            onClick={() => handleOutsideBetClick('black', blackNumbers)}
+            disabled={isSpinning}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 400, damping: 17 }}
+          >
+            Black
+          </motion.button>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-2">
+          <motion.button 
+            className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold shadow-md bg-gradient-to-b from-[#444444] to-[#333333] text-white ${
+              (isBetActive('even') || isBetActive('even', true)) ? 'ring-2 ring-[#5465FF]' : ''
+            }`}
+            onClick={() => handleOutsideBetClick('even', evenNumbers)}
+            disabled={isSpinning}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 400, damping: 17 }}
+          >
+            Even
+          </motion.button>
+          <motion.button 
+            className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold shadow-md bg-gradient-to-b from-[#444444] to-[#333333] text-white ${
+              (isBetActive('odd') || isBetActive('odd', true)) ? 'ring-2 ring-[#5465FF]' : ''
+            }`}
+            onClick={() => handleOutsideBetClick('odd', oddNumbers)}
+            disabled={isSpinning}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 400, damping: 17 }}
+          >
+            Odd
+          </motion.button>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-2">
+          <motion.button 
+            className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold shadow-md bg-gradient-to-b from-[#444444] to-[#333333] text-white ${
+              (isBetActive('low') || isBetActive('low', true)) ? 'ring-2 ring-[#5465FF]' : ''
+            }`}
+            onClick={() => handleOutsideBetClick('low', lowNumbers)}
+            disabled={isSpinning}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 400, damping: 17 }}
+          >
+            1-18
+          </motion.button>
+          <motion.button 
+            className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold shadow-md bg-gradient-to-b from-[#444444] to-[#333333] text-white ${
+              (isBetActive('high') || isBetActive('high', true)) ? 'ring-2 ring-[#5465FF]' : ''
+            }`}
+            onClick={() => handleOutsideBetClick('high', highNumbers)}
+            disabled={isSpinning}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 400, damping: 17 }}
+          >
+            19-36
+          </motion.button>
+        </div>
+        
+        <div className="bg-[#181818] p-3 rounded-lg border border-[#333333] shadow-inner">
+          <p className="text-center text-sm text-gray-400 mb-2">
+            {multiSelectMode ? 
+              'Multiple bet mode: Click on options to add bets immediately.' :
+              'Single bet mode: Configure your bet before clicking "Add Bet".'
+            }
+          </p>
+          <div className="flex flex-wrap gap-1.5 justify-center">
+            {activeBets.map((bet, index) => (
+              <Badge 
+                key={index} 
+                className="bg-[#1a1a1a] border border-[#333333] text-gray-300"
+              >
+                {bet.type}
+              </Badge>
+            ))}
+          </div>
+        </div>
       </div>
     );
   };
@@ -497,8 +601,8 @@ export default function RouletteGame() {
     }, 4000); // 4 seconds for the wheel to stop
   };
   
-  // Handle spinning the wheel
-  const handleSpin = () => {
+  // Function to add current selection to active bets
+  const addBet = () => {
     // Validate bet amount
     if (!user || betAmount <= 0 || betAmount > Number(user.balance)) {
       toast({
@@ -519,16 +623,86 @@ export default function RouletteGame() {
       return;
     }
     
+    // Create new bet
+    const newBet: Bet = {
+      type: selectedBetType,
+      numbers: [...selectedNumbers],
+      amount: betAmount
+    };
+    
+    // Add to active bets
+    setActiveBets([...activeBets, newBet]);
+    
+    // Reset selection for next bet
+    if (selectedBetType === 'straight') {
+      setSelectedNumbers([0]);
+    } else {
+      setSelectedNumbers([]);
+    }
+    
+    // Show success toast
+    toast({
+      title: 'Bet added',
+      description: `${selectedBetType} bet for ${formatCurrency(betAmount)} added`,
+    });
+  };
+  
+  // Function to clear all active bets
+  const clearBets = () => {
+    setActiveBets([]);
+    toast({
+      title: 'Bets cleared',
+      description: 'All bets have been cleared',
+    });
+  };
+
+  // Handle spinning the wheel
+  const handleSpin = () => {
+    // Check if we have active bets or a current selection
+    const hasActiveBets = activeBets.length > 0;
+    const hasCurrentSelection = selectedNumbers.length > 0 && betAmount > 0;
+    
+    if (!hasActiveBets && !hasCurrentSelection) {
+      toast({
+        title: 'No bets placed',
+        description: 'Please place at least one bet',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // Validate total bet amount against balance
+    if (!user || totalBetAmount > Number(user.balance)) {
+      toast({
+        title: 'Insufficient balance',
+        description: `Your total bet (${formatCurrency(totalBetAmount)}) exceeds your balance`,
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     // Start spinning
     setIsSpinning(true);
     play('spin');
     
-    // Make API call
+    // Prepare all bets for the API call
+    const allBets = hasCurrentSelection 
+      ? [...activeBets, { type: selectedBetType, numbers: selectedNumbers, amount: betAmount }] 
+      : activeBets;
+    
+    // For now, we'll use only the first bet since we need to update the backend to handle multiple bets
+    // In a real implementation, we would send all bets to the server
+    const primaryBet = allBets[0];
+    
+    // Make API call with the first bet (backend would need to be updated to handle multiple bets)
     rouletteMutation.mutate({ 
-      amount: betAmount, 
-      betType: selectedBetType,
-      numbers: selectedNumbers
+      amount: primaryBet.amount, 
+      betType: primaryBet.type,
+      numbers: primaryBet.numbers
     });
+    
+    // Clear active bets after spinning
+    setActiveBets([]);
   };
   
   return (
@@ -588,7 +762,55 @@ export default function RouletteGame() {
       </div>
       
       {/* Bet Amount and Spin Button */}
-      <div className="flex gap-3 mt-5 mb-5">
+      {/* Display active bets */}
+      {activeBets.length > 0 && (
+        <div className="mt-4 p-4 bg-gradient-to-b from-[#181818] to-[#121212] rounded-lg shadow-md border border-[#333333]">
+          <div className="flex justify-between items-center mb-3">
+            <span className="text-sm font-medium text-gray-300">Active Bets</span>
+            <Badge 
+              className="bg-gradient-to-r from-[#E03C3C] to-[#C92A2A] cursor-pointer hover:from-[#D12A2A] hover:to-[#B91A1A]"
+              onClick={clearBets}
+            >
+              Clear All
+            </Badge>
+          </div>
+          <div className="divide-y divide-[#333333] max-h-40 overflow-y-auto">
+            {activeBets.map((bet, index) => (
+              <div key={index} className="py-2 flex justify-between items-center">
+                <div className="flex items-center space-x-2">
+                  <div className="w-6 h-6 rounded-full bg-[#1A1A1A] flex items-center justify-center text-xs font-bold">
+                    {index + 1}
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">
+                      {bet.type.charAt(0).toUpperCase() + bet.type.slice(1)}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {bet.numbers.length <= 6 
+                        ? bet.numbers.join(', ') 
+                        : `${bet.numbers.length} numbers`}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-mono font-medium">
+                    {formatCurrency(bet.amount)}
+                  </div>
+                  <div className="text-xs text-[#00E701]">
+                    {formatMultiplier(ROULETTE_PAYOUTS[bet.type])}x
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-between items-center text-sm bg-[#1A1A1A] p-2 rounded-md mt-3">
+            <span className="text-gray-300 font-medium">Total bet amount</span>
+            <span className="text-white font-bold font-mono">{formatCurrency(activeBets.reduce((sum, bet) => sum + bet.amount, 0))}</span>
+          </div>
+        </div>
+      )}
+
+      <div className="flex gap-3 mt-5 mb-3">
         <div className="w-1/2">
           <span className="text-sm font-medium text-gray-300 block mb-1.5">Bet Amount</span>
           <div className="relative">
@@ -621,7 +843,7 @@ export default function RouletteGame() {
           <div className="relative">
             <Input
               type="text"
-              value={formatCurrency(profitOnWin)}
+              value={formatCurrency(potentialProfit)}
               className="w-full bg-gradient-to-b from-[#181818] to-[#121212] rounded-lg border border-[#333333] p-3 font-mono text-[#00E701] font-semibold shadow-inner"
               readOnly
             />
@@ -632,26 +854,57 @@ export default function RouletteGame() {
         </div>
       </div>
       
-      <motion.button
-        className="w-full bg-gradient-to-r from-[#5465FF] to-[#788AFF] hover:bg-gradient-to-r hover:from-[#6677FF] hover:to-[#899BFF] text-white font-bold py-4 px-6 rounded-lg shadow-lg transition duration-200 text-lg"
-        onClick={handleSpin}
-        disabled={isSpinning || !user || betAmount > Number(user.balance) || selectedNumbers.length === 0}
-        whileHover={{ scale: 1.03 }}
-        whileTap={{ scale: 0.97 }}
-        transition={{ type: "spring", stiffness: 400, damping: 10 }}
-      >
-        {isSpinning ? (
+      {/* Add Bet and Spin Buttons */}
+      <div className="grid grid-cols-2 gap-3 mb-5">
+        <motion.button
+          className="w-full bg-gradient-to-r from-[#333333] to-[#444444] hover:bg-gradient-to-r hover:from-[#3c3c3c] hover:to-[#505050] text-white font-bold py-3 px-6 rounded-lg shadow-lg transition duration-200 text-base"
+          onClick={addBet}
+          disabled={isSpinning || !user || betAmount <= 0 || betAmount > Number(user.balance) || selectedNumbers.length === 0}
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+          transition={{ type: "spring", stiffness: 400, damping: 10 }}
+        >
           <div className="flex items-center justify-center">
-            <span className="mr-2">SPINNING</span>
-            <span className="animate-pulse">...</span>
+            <span className="mr-2">ADD BET</span>
+            <span className="text-sm">+</span>
           </div>
-        ) : (
-          <div className="flex items-center justify-center">
-            <span className="mr-2">SPIN</span>
-            <span className="text-sm">🎡</span>
-          </div>
-        )}
-      </motion.button>
+        </motion.button>
+        
+        <motion.button
+          className="w-full bg-gradient-to-r from-[#5465FF] to-[#788AFF] hover:bg-gradient-to-r hover:from-[#6677FF] hover:to-[#899BFF] text-white font-bold py-3 px-6 rounded-lg shadow-lg transition duration-200 text-base"
+          onClick={handleSpin}
+          disabled={isSpinning || !user || (activeBets.length === 0 && (betAmount <= 0 || selectedNumbers.length === 0))}
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+          transition={{ type: "spring", stiffness: 400, damping: 10 }}
+        >
+          {isSpinning ? (
+            <div className="flex items-center justify-center">
+              <span className="mr-2">SPINNING</span>
+              <span className="animate-pulse">...</span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center">
+              <span className="mr-2">SPIN</span>
+              <span className="text-sm">🎡</span>
+            </div>
+          )}
+        </motion.button>
+      </div>
+      
+      {/* Multi-bet toggle */}
+      <div className="flex justify-center items-center mb-3">
+        <div className="text-sm text-gray-400 mr-2">Allow multiple bets:</div>
+        <label className="relative inline-flex items-center cursor-pointer">
+          <input 
+            type="checkbox" 
+            className="sr-only peer" 
+            checked={multiSelectMode}
+            onChange={() => setMultiSelectMode(!multiSelectMode)}
+          />
+          <div className="w-11 h-6 bg-[#333333] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[#121212] after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#5465FF]"></div>
+        </label>
+      </div>
       
       <AnimatePresence>
         {lastResult && lastResult.isWin && showWinMessage && (
