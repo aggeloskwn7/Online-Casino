@@ -12,13 +12,28 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  console.log(`API request: ${method} ${url}`);
+  
+  // Create headers object with cache control
+  const headers: HeadersInit = {
+    "Cache-Control": "no-cache",
+    "Pragma": "no-cache"
+  };
+  
+  // Add content-type if there's data
+  if (data) {
+    headers["Content-Type"] = "application/json";
+  }
+  
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
 
+  console.log(`API response: ${method} ${url} - Status: ${res.status}`);
+  
   await throwIfResNotOk(res);
   return res;
 }
@@ -29,8 +44,13 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    console.log("Query request to:", queryKey[0]);
     const res = await fetch(queryKey[0] as string, {
       credentials: "include",
+      headers: {
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache"
+      }
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
