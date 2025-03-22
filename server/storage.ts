@@ -13,7 +13,7 @@ export interface IStorage {
   updateUserBalance(userId: number, newBalance: number): Promise<User>;
   getUserTransactions(userId: number, limit?: number): Promise<Transaction[]>;
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
-  sessionStore: session.SessionStore;
+  sessionStore: any; // Use 'any' to avoid type issues with SessionStore
 }
 
 export class MemStorage implements IStorage {
@@ -21,7 +21,7 @@ export class MemStorage implements IStorage {
   private transactions: Map<number, Transaction>;
   currentId: number;
   currentTransactionId: number;
-  sessionStore: session.SessionStore;
+  sessionStore: any; // Use 'any' to avoid type issues with SessionStore
 
   constructor() {
     this.users = new Map();
@@ -48,7 +48,7 @@ export class MemStorage implements IStorage {
     const user: User = { 
       ...insertUser, 
       id,
-      balance: 10000
+      balance: "10000" // String to match the schema type
     };
     this.users.set(id, user);
     return user;
@@ -60,7 +60,7 @@ export class MemStorage implements IStorage {
       throw new Error("User not found");
     }
     
-    const updatedUser = { ...user, balance: newBalance };
+    const updatedUser = { ...user, balance: String(newBalance) }; // Convert to string to match schema
     this.users.set(userId, updatedUser);
     return updatedUser;
   }

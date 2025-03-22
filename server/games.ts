@@ -27,7 +27,13 @@ const SLOT_PAYOUTS = {
  */
 export async function playSlots(req: Request, res: Response) {
   try {
-    if (!req.isAuthenticated()) {
+    console.log("Game API Authentication: isAuthenticated():", req.isAuthenticated(), 
+               "User ID:", req.user?.id, 
+               "Session ID:", req.sessionID,
+               "Cookies:", req.headers.cookie);
+               
+    if (!req.isAuthenticated() || !req.user) {
+      console.log("Game API Unauthorized - Session may be invalid");
       return res.status(401).json({ message: "Unauthorized" });
     }
 
@@ -111,7 +117,13 @@ export async function playSlots(req: Request, res: Response) {
  */
 export async function playDice(req: Request, res: Response) {
   try {
-    if (!req.isAuthenticated()) {
+    console.log("Dice API Authentication: isAuthenticated():", req.isAuthenticated(), 
+               "User ID:", req.user?.id, 
+               "Session ID:", req.sessionID,
+               "Cookies:", req.headers.cookie);
+               
+    if (!req.isAuthenticated() || !req.user) {
+      console.log("Dice API Unauthorized - Session may be invalid");
       return res.status(401).json({ message: "Unauthorized" });
     }
     

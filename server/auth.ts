@@ -29,6 +29,8 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 export function setupAuth(app: Express) {
+  console.log("Setting up authentication...");
+  
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "crypto-casino-secret-key",
     resave: true,
@@ -77,8 +79,11 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res, next) => {
     try {
+      console.log("Registration attempt:", req.body.username);
+      
       const existingUser = await storage.getUserByUsername(req.body.username);
       if (existingUser) {
+        console.log("Registration failed: Username already exists");
         return res.status(400).json({ message: "Username already exists" });
       }
 
@@ -86,25 +91,49 @@ export function setupAuth(app: Express) {
         ...req.body,
         password: await hashPassword(req.body.password),
       });
+      
+      console.log("User created successfully:", user.id, user.username);
 
       req.login(user, (err) => {
-        if (err) return next(err);
+        if (err) {
+          console.error("Session creation error after registration:", err);
+          return next(err);
+        }
+        
+        console.log("Auto login after registration successful. Session ID:", req.sessionID);
+        
         // Return the user without the password
         const { password, ...safeUser } = user;
         res.status(201).json(safeUser);
       });
     } catch (error) {
+      console.error("Registration error:", error);
       next(error);
     }
   });
 
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
-      if (err) return next(err);
-      if (!user) return res.status(401).json({ message: "Invalid credentials" });
+    console.log("Login attempt:", req.body.username);
+    
+    passport.authenticate("local", (err: any, user: User | false, info: any) => {
+      if (err) {
+        console.error("Login error:", err);
+        return next(err);
+      }
+      
+      if (!user) {
+        console.log("Login failed: Invalid credentials");
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
       
       req.login(user, (err) => {
-        if (err) return next(err);
+        if (err) {
+          console.error("Session login error:", err);
+          return next(err);
+        }
+        
+        console.log("Login successful for user:", user.username, "Session ID:", req.sessionID);
+        
         // Return the user without the password
         const { password, ...safeUser } = user;
         res.status(200).json(safeUser);
