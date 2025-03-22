@@ -17,18 +17,18 @@ declare global {
 const SLOT_SYMBOLS = ["🍒", "🍋", "🍊", "🍇", "🔔", "💎", "7️⃣", "🍀", "⭐", "🎰"];
 
 // Symbol weights (higher weight = more common)
-// Extremely tough casino-style distribution with very rare high-value symbols
+// ULTRA-tough casino-style distribution with extremely rare high-value symbols
 const SYMBOL_WEIGHTS = [
-  5000, // 🍒 - Super common (50x more common than in previous version)
-  2000, // 🍋
-  1000, // 🍊
-  400,  // 🍇
-  100,  // 🔔
-  20,   // 💎
-  5,    // 7️⃣
-  1,    // 🍀
-  0.2,  // ⭐
-  0.05  // 🎰 - Extremely rare (50x rarer than in previous version)
+  20000, // 🍒 - Extremely common (200x more common than original)
+  8000,  // 🍋
+  2500,  // 🍊
+  600,   // 🍇
+  80,    // 🔔
+  10,    // 💎
+  2,     // 7️⃣
+  0.5,   // 🍀
+  0.05,  // ⭐
+  0.01   // 🎰 - Ultra rare (500x rarer than original)
 ];
 
 // Slot machine symbol multipliers (for matching 3 in a row)
@@ -155,8 +155,8 @@ export async function playSlots(req: Request, res: Response) {
         isWin = true;
         winningLines.push([row1, col1, row2, col2, row3, col3]);
       }
-      // Greatly reduce chances of winning with pairs (only 10% chance of counting)
-      else if (Math.random() < 0.1 && ((symbol1 === symbol2 && symbol1 !== symbol3) || 
+      // Extreme reduction in chances of winning with pairs (only 2% chance of counting)
+      else if (Math.random() < 0.02 && ((symbol1 === symbol2 && symbol1 !== symbol3) || 
                (symbol2 === symbol3 && symbol1 !== symbol2) ||
                (symbol1 === symbol3 && symbol1 !== symbol2))) {
         // Much smaller win for pairs
@@ -260,11 +260,41 @@ export async function playDice(req: Request, res: Response) {
     // Determine if it's a win (roll under target)
     const isWin = result <= target;
     
-    // Calculate multiplier and payout with tougher casino odds
+    // Calculate multiplier and payout with extremely harsh casino odds
     // Multiplier formula: (100 - house_edge) / target
-    // Increased house edge to 5% for much tougher odds
-    const houseEdge = 5.0; 
+    // Massively increased house edge to 15% for much harder odds
+    const houseEdge = 15.0; 
     const multiplier = isWin ? Number(((100 - houseEdge) / target).toFixed(4)) : 0;
+    
+    // Add additional random factor to make winning much harder (50% chance of forced loss)
+    // This creates a hidden double-house edge that makes winning rare
+    if (isWin && Math.random() < 0.5) {
+        // Force a loss by overriding the result
+        const forcedResult = target + Math.floor(Math.random() * (100 - target)) + 1; // A number higher than target
+        const gameResult = diceRollSchema.parse({
+            target,
+            result: forcedResult,
+            multiplier: 0,
+            payout: 0,
+            isWin: false
+        });
+        
+        // Update user balance (deduct the bet amount)
+        const newBalance = Number(user.balance) - amount;
+        await storage.updateUserBalance(userId, newBalance);
+        
+        // Create transaction record for the loss
+        await storage.createTransaction({
+            userId,
+            gameType: "dice",
+            amount: amount.toString(),
+            multiplier: "0",
+            payout: "0",
+            isWin: false
+        });
+        
+        return res.status(200).json(gameResult);
+    }
     
     // Add small random variation to payouts to make it feel more realistic
     // This is within 0.5% of the calculated amount
