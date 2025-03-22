@@ -9,6 +9,7 @@ import AuthPage from "@/pages/auth-page";
 import SlotsPage from "@/pages/slots-page";
 import DicePage from "@/pages/dice-page";
 import CrashPage from "@/pages/crash-page";
+import RoulettePage from "@/pages/roulette-page";
 import { ProtectedRoute } from "./lib/protected-route";
 
 function Router() {

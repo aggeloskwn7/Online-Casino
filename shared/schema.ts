@@ -64,6 +64,40 @@ export const crashGameSchema = z.object({
   isWin: z.boolean()
 });
 
+// Roulette bet types
+export const rouletteBetTypeSchema = z.enum([
+  'straight', // Single number (35:1)
+  'split', // Two numbers (17:1)
+  'street', // Three numbers (11:1)
+  'corner', // Four numbers (8:1)
+  'line', // Six numbers (5:1)
+  'dozen', // 12 numbers (2:1) - first, second, or third dozen
+  'column', // 12 numbers (2:1) - 1st, 2nd, or 3rd column
+  'even', // Even numbers (1:1)
+  'odd', // Odd numbers (1:1)
+  'red', // Red numbers (1:1)
+  'black', // Black numbers (1:1)
+  'low', // 1-18 (1:1)
+  'high', // 19-36 (1:1)
+]);
+
+export const rouletteBetSchema = z.object({
+  amount: z.number().positive().min(1).max(10000),
+  betType: rouletteBetTypeSchema,
+  numbers: z.array(z.number().int().min(0).max(36)), // Array of numbers being bet on (can be a single number, or multiple)
+});
+
+export const rouletteResultSchema = z.object({
+  spin: z.number().int().min(0).max(36), // The number that the ball landed on
+  color: z.enum(['red', 'black', 'green']), // Color of the pocket
+  multiplier: z.number(),
+  payout: z.number(),
+  isWin: z.boolean()
+});
+
 export type SlotsPayout = z.infer<typeof slotsPayoutSchema>;
 export type DiceRoll = z.infer<typeof diceRollSchema>;
 export type CrashGame = z.infer<typeof crashGameSchema>;
+export type RouletteBetType = z.infer<typeof rouletteBetTypeSchema>;
+export type RouletteBet = z.infer<typeof rouletteBetSchema>;
+export type RouletteResult = z.infer<typeof rouletteResultSchema>;

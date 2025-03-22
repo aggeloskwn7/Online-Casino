@@ -1,3 +1,5 @@
+import { RouletteBetType } from "@shared/schema";
+
 // Slot machine symbols
 export const SLOT_SYMBOLS = ["🍒", "🍋", "🍊", "🍇", "🔔", "💎", "7️⃣", "🍀", "⭐", "🎰"];
 
@@ -76,6 +78,12 @@ export const getGameIcon = (gameType: string) => {
       return 'ri-dice-line';
     case 'crash':
       return 'ri-rocket-line';
+    case 'roulette':
+      return 'ri-circle-line';
+    case 'blackjack':
+      return 'ri-cards-2-line';
+    case 'poker':
+      return 'ri-cards-fill';
     default:
       return 'ri-gamepad-line';
   }
@@ -114,3 +122,49 @@ export const generateCrashCurvePoints = (
   
   return points;
 };
+
+// Roulette game constants and utilities
+export const ROULETTE_NUMBERS = [
+  0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26
+];
+
+export const ROULETTE_COLORS: { [key: number]: 'red' | 'black' | 'green' } = {
+  0: 'green',
+  1: 'red', 2: 'black', 3: 'red', 4: 'black', 5: 'red', 6: 'black',
+  7: 'red', 8: 'black', 9: 'red', 10: 'black', 11: 'black', 12: 'red',
+  13: 'black', 14: 'red', 15: 'black', 16: 'red', 17: 'black', 18: 'red',
+  19: 'red', 20: 'black', 21: 'red', 22: 'black', 23: 'red', 24: 'black',
+  25: 'red', 26: 'black', 27: 'red', 28: 'black', 29: 'black', 30: 'red',
+  31: 'black', 32: 'red', 33: 'black', 34: 'red', 35: 'black', 36: 'red'
+};
+
+export const ROULETTE_PAYOUTS: { [key in RouletteBetType]: number } = {
+  'straight': 35, // Single number (35:1)
+  'split': 17, // Two numbers (17:1)
+  'street': 11, // Three numbers (11:1)
+  'corner': 8, // Four numbers (8:1)
+  'line': 5, // Six numbers (5:1)
+  'dozen': 2, // 12 numbers (2:1)
+  'column': 2, // 12 numbers (2:1)
+  'even': 1, // Even numbers (1:1)
+  'odd': 1, // Odd numbers (1:1)
+  'red': 1, // Red numbers (1:1)
+  'black': 1, // Black numbers (1:1)
+  'low': 1, // 1-18 (1:1)
+  'high': 1, // 19-36 (1:1)
+};
+
+// Utility functions for checking roulette bets
+export const isRed = (number: number) => ROULETTE_COLORS[number] === 'red';
+export const isBlack = (number: number) => ROULETTE_COLORS[number] === 'black';
+export const isGreen = (number: number) => ROULETTE_COLORS[number] === 'green';
+export const isEven = (number: number) => number !== 0 && number % 2 === 0;
+export const isOdd = (number: number) => number % 2 === 1;
+export const isLow = (number: number) => number >= 1 && number <= 18;
+export const isHigh = (number: number) => number >= 19 && number <= 36;
+export const isInFirstDozen = (number: number) => number >= 1 && number <= 12;
+export const isInSecondDozen = (number: number) => number >= 13 && number <= 24;
+export const isInThirdDozen = (number: number) => number >= 25 && number <= 36;
+export const isInFirstColumn = (number: number) => number % 3 === 1;
+export const isInSecondColumn = (number: number) => number % 3 === 2;
+export const isInThirdColumn = (number: number) => number % 3 === 0 && number !== 0;
