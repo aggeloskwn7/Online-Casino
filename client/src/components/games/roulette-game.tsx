@@ -326,7 +326,7 @@ export default function RouletteGame() {
         <div className="grid grid-cols-2 gap-2">
           <motion.button 
             className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold shadow-md bg-gradient-to-b from-[#444444] to-[#333333] text-white ${
-              (isBetActive('low') || isBetActive('low', true)) ? 'ring-2 ring-[#5465FF]' : ''
+              isBetActive('low') ? 'ring-2 ring-[#5465FF]' : ''
             }`}
             onClick={() => handleOutsideBetClick('low', lowNumbers)}
             disabled={isSpinning}
@@ -338,7 +338,7 @@ export default function RouletteGame() {
           </motion.button>
           <motion.button 
             className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold shadow-md bg-gradient-to-b from-[#444444] to-[#333333] text-white ${
-              (isBetActive('high') || isBetActive('high', true)) ? 'ring-2 ring-[#5465FF]' : ''
+              isBetActive('high') ? 'ring-2 ring-[#5465FF]' : ''
             }`}
             onClick={() => handleOutsideBetClick('high', highNumbers)}
             disabled={isSpinning}
@@ -878,19 +878,7 @@ export default function RouletteGame() {
         </motion.button>
       </div>
       
-      {/* Multi-bet toggle */}
-      <div className="flex justify-center items-center mb-3">
-        <div className="text-sm text-gray-400 mr-2">Allow multiple bets:</div>
-        <label className="relative inline-flex items-center cursor-pointer">
-          <input 
-            type="checkbox" 
-            className="sr-only peer" 
-            checked={multiSelectMode}
-            onChange={() => setMultiSelectMode(!multiSelectMode)}
-          />
-          <div className="w-11 h-6 bg-[#333333] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[#121212] after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#5465FF]"></div>
-        </label>
-      </div>
+      {/* Multiple bets are now allowed by default */}
       
       <AnimatePresence>
         {lastResult && lastResult.isWin && showWinMessage && (
