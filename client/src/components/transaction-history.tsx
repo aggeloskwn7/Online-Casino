@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { Transaction } from '@shared/schema';
-import { formatCurrency, timeAgo, getGameIcon } from '@/lib/game-utils';
+import { formatCurrency, formatMultiplier, timeAgo, getGameIcon } from '@/lib/game-utils';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface TransactionHistoryProps {
