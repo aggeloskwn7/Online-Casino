@@ -17,18 +17,18 @@ declare global {
 const SLOT_SYMBOLS = ["🍒", "🍋", "🍊", "🍇", "🔔", "💎", "7️⃣", "🍀", "⭐", "🎰"];
 
 // Symbol weights (higher weight = more common)
-// ULTRA-tough casino-style distribution with INSANELY rare high-value symbols
+// More balanced distribution but with very rare high-value symbols
 const SYMBOL_WEIGHTS = [
-  50000, // 🍒 - Ridiculously common (500x more common than original)
-  5000,  // 🍋
-  1000,  // 🍊
-  100,   // 🍇
-  10,    // 🔔
-  1,     // 💎
-  0.1,   // 7️⃣
-  0.01,  // 🍀
-  0.001, // ⭐
-  0.0001 // 🎰 - Virtually impossible (5000x rarer than original)
+  100, // 🍒 - Common but not overwhelming
+  95,  // 🍋
+  90,  // 🍊
+  75,  // 🍇
+  50,  // 🔔
+  20,  // 💎
+  10,  // 7️⃣
+  5,   // 🍀
+  1,   // ⭐
+  0.5  // 🎰 - Still very rare but possible
 ];
 
 // Slot machine symbol multipliers (for matching 3 in a row)
