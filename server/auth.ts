@@ -1,17 +1,13 @@
-import passport from "passport";
-import { Strategy as LocalStrategy } from "passport-local";
-import { Express } from "express";
-import session from "express-session";
+import { Express, Request, Response, NextFunction } from "express";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
+import jwt from "jsonwebtoken";
 
-declare global {
-  namespace Express {
-    interface User extends SelectUser {}
-  }
-}
+// Use a simple JWT token auth instead of sessions
+const JWT_SECRET = process.env.JWT_SECRET || "crypto-casino-super-secure-jwt-secret";
+const TOKEN_EXPIRY = '24h';
 
 const scryptAsync = promisify(scrypt);
 
@@ -28,59 +24,47 @@ async function comparePasswords(supplied: string, stored: string) {
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
-export function setupAuth(app: Express) {
-  console.log("Setting up authentication...");
-  
-  const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET || "crypto-casino-secret-key",
-    resave: true, // Force the session to be saved back to the store
-    saveUninitialized: true, // Save uninitialized sessions
-    store: storage.sessionStore,
-    name: 'casino.sid', // use a unique name for our session cookie
-    rolling: true, // refresh session expiry with each request
-    cookie: {
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      httpOnly: true,
-      sameSite: 'none', // Allow cross-site cookies
-      secure: false, // Allow non-HTTPS cookies in development
-      path: '/'
+// Extract user from JWT token (for protected routes)
+export function authMiddleware(req: Request, res: Response, next: NextFunction) {
+  try {
+    // Get token from Authorization header
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log("Auth middleware: No Bearer token provided");
+      return res.status(401).json({ message: "Unauthorized" });
     }
-  };
-
-  app.set("trust proxy", 1);
-  app.use(session(sessionSettings));
-  app.use(passport.initialize());
-  app.use(passport.session());
-
-  passport.use(
-    new LocalStrategy(async (username, password, done) => {
-      try {
-        const user = await storage.getUserByUsername(username);
-        if (!user || !(await comparePasswords(password, user.password))) {
-          return done(null, false);
-        } else {
-          return done(null, user);
+    
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: number };
+    
+    // Attach user to request
+    storage.getUser(decoded.userId)
+      .then(user => {
+        if (!user) {
+          console.log("Auth middleware: User not found for token");
+          return res.status(401).json({ message: "Unauthorized" });
         }
-      } catch (error) {
-        return done(error);
-      }
-    }),
-  );
+        
+        // Attach user to request
+        req.user = user;
+        next();
+      })
+      .catch(err => {
+        console.error("Error fetching user:", err);
+        res.status(500).json({ message: "Server error" });
+      });
+  } catch (error) {
+    console.error("Token validation error:", error);
+    res.status(401).json({ message: "Unauthorized" });
+  }
+}
 
-  passport.serializeUser((user, done) => done(null, user.id));
-  passport.deserializeUser(async (id: number, done) => {
-    try {
-      const user = await storage.getUser(id);
-      if (!user) {
-        return done(null, false);
-      }
-      done(null, user);
-    } catch (error) {
-      done(error);
-    }
-  });
+export function setupAuth(app: Express) {
+  console.log("Setting up JWT authentication...");
 
-  app.post("/api/register", async (req, res, next) => {
+  // Register a new user
+  app.post("/api/register", async (req, res) => {
     try {
       console.log("Registration attempt:", req.body.username);
       
@@ -96,88 +80,60 @@ export function setupAuth(app: Express) {
       });
       
       console.log("User created successfully:", user.id, user.username);
-
-      req.login(user, (err) => {
-        if (err) {
-          console.error("Session creation error after registration:", err);
-          return next(err);
-        }
         
-        console.log("Auto login after registration successful. Session ID:", req.sessionID);
-        
-        // Return the user without the password
-        const { password, ...safeUser } = user;
-        res.status(201).json(safeUser);
+      // Generate JWT token
+      const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
+      
+      // Return user data and token
+      const { password, ...safeUser } = user;
+      res.status(201).json({ 
+        user: safeUser,
+        token 
       });
     } catch (error) {
       console.error("Registration error:", error);
-      next(error);
+      res.status(500).json({ message: "Registration failed", error: error.message });
     }
   });
 
-  app.post("/api/login", (req, res, next) => {
-    console.log("Login attempt:", req.body.username);
-    
-    passport.authenticate("local", (err: any, user: SelectUser | false, info: any) => {
-      if (err) {
-        console.error("Login error:", err);
-        return next(err);
-      }
+  // Login user
+  app.post("/api/login", async (req, res) => {
+    try {
+      console.log("Login attempt:", req.body.username);
       
-      if (!user) {
+      const user = await storage.getUserByUsername(req.body.username);
+      
+      if (!user || !(await comparePasswords(req.body.password, user.password))) {
         console.log("Login failed: Invalid credentials");
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
-      req.login(user, (err) => {
-        if (err) {
-          console.error("Session login error:", err);
-          return next(err);
-        }
-        
-        console.log("Login successful for user:", user.username, "Session ID:", req.sessionID);
-        
-        // Return the user without the password
-        const { password, ...safeUser } = user;
-        res.status(200).json(safeUser);
+      console.log("Login successful for user:", user.username);
+      
+      // Generate JWT token
+      const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: TOKEN_EXPIRY });
+      
+      // Return user data and token
+      const { password, ...safeUser } = user;
+      res.status(200).json({ 
+        user: safeUser,
+        token 
       });
-    })(req, res, next);
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Login failed", error: error.message });
+    }
   });
 
-  app.post("/api/logout", (req, res, next) => {
-    console.log("Logout attempt: isAuthenticated():", req.isAuthenticated(),
-                "User:", req.user?.username,
-                "Session ID:", req.sessionID);
-                
-    if (!req.isAuthenticated()) {
-      console.log("Logout called without active session");
-      return res.sendStatus(200); // Still return success to client
-    }
+  // Get current user
+  app.get("/api/user", authMiddleware, (req, res) => {
+    const user = req.user as SelectUser;
+    console.log("User API Authorized - User:", user.username);
     
-    req.logout((err) => {
-      if (err) {
-        console.error("Logout error:", err);
-        return next(err);
-      }
-      console.log("User logged out successfully");
-      res.sendStatus(200);
-    });
-  });
-
-  app.get("/api/user", (req, res) => {
-    console.log("User API check: isAuthenticated():", req.isAuthenticated(),
-                "Session ID:", req.sessionID,
-                "Cookies:", req.headers.cookie);
-    
-    if (!req.isAuthenticated()) {
-      console.log("User API Unauthorized - No valid session");
-      return res.sendStatus(401);
-    }
-    
-    console.log("User API Authorized - User:", req.user?.username);
-    
-    // Return the user without the password
-    const { password, ...safeUser } = req.user as SelectUser;
+    // Return user without password
+    const { password, ...safeUser } = user;
     res.json(safeUser);
   });
+
+  // No need for logout endpoint with JWT - client just discards the token
 }

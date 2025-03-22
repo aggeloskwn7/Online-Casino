@@ -3,6 +3,15 @@ import { storage } from "./storage";
 import { betSchema, slotsPayoutSchema, diceRollSchema, crashGameSchema } from "@shared/schema";
 import { z } from "zod";
 
+// Declare global type extension for Request to include user
+declare global {
+  namespace Express {
+    interface Request {
+      user?: any;
+    }
+  }
+}
+
 // Slot machine symbols
 const SLOT_SYMBOLS = ["🍒", "🍋", "🍊", "🍇", "🔔", "💎", "7️⃣", "🍀", "⭐", "🎰"];
 
@@ -27,19 +36,14 @@ const SLOT_PAYOUTS = {
  */
 export async function playSlots(req: Request, res: Response) {
   try {
-    console.log("Game API Authentication: isAuthenticated():", req.isAuthenticated(), 
-               "User ID:", req.user?.id, 
-               "Session ID:", req.sessionID,
-               "Cookies:", req.headers.cookie);
-               
-    if (!req.isAuthenticated() || !req.user) {
-      console.log("Game API Unauthorized - Session may be invalid");
+    // With JWT auth, user is set by middleware
+    const userId = req.user?.id;
+    if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
     const parsedBody = betSchema.parse(req.body);
     const { amount } = parsedBody;
-    const userId = req.user!.id;
     
     // Get current user with balance
     const user = await storage.getUser(userId);
@@ -117,13 +121,9 @@ export async function playSlots(req: Request, res: Response) {
  */
 export async function playDice(req: Request, res: Response) {
   try {
-    console.log("Dice API Authentication: isAuthenticated():", req.isAuthenticated(), 
-               "User ID:", req.user?.id, 
-               "Session ID:", req.sessionID,
-               "Cookies:", req.headers.cookie);
-               
-    if (!req.isAuthenticated() || !req.user) {
-      console.log("Dice API Unauthorized - Session may be invalid");
+    // With JWT auth, user is set by middleware
+    const userId = req.user?.id;
+    if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
     
@@ -134,7 +134,6 @@ export async function playDice(req: Request, res: Response) {
     }).parse(req.body);
     
     const { amount, target } = parsedBody;
-    const userId = req.user!.id;
     
     // Get user with balance
     const user = await storage.getUser(userId);
@@ -197,13 +196,9 @@ export async function playDice(req: Request, res: Response) {
  */
 export async function startCrash(req: Request, res: Response) {
   try {
-    console.log("Start Crash API Authentication: isAuthenticated():", req.isAuthenticated(), 
-               "User ID:", req.user?.id, 
-               "Session ID:", req.sessionID,
-               "Cookies:", req.headers.cookie);
-               
-    if (!req.isAuthenticated() || !req.user) {
-      console.log("Start Crash API Unauthorized - Session may be invalid");
+    // With JWT auth, user is set by middleware
+    const userId = req.user?.id;
+    if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
     
@@ -214,7 +209,6 @@ export async function startCrash(req: Request, res: Response) {
     }).parse(req.body);
     
     const { amount, autoCashout } = parsedBody;
-    const userId = req.user!.id;
     
     // Get user with balance
     const user = await storage.getUser(userId);
@@ -257,13 +251,9 @@ export async function startCrash(req: Request, res: Response) {
  */
 export async function crashCashout(req: Request, res: Response) {
   try {
-    console.log("Crash Cashout API Authentication: isAuthenticated():", req.isAuthenticated(), 
-               "User ID:", req.user?.id, 
-               "Session ID:", req.sessionID,
-               "Cookies:", req.headers.cookie);
-               
-    if (!req.isAuthenticated() || !req.user) {
-      console.log("Crash Cashout API Unauthorized - Session may be invalid");
+    // With JWT auth, user is set by middleware
+    const userId = req.user?.id;
+    if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
     
@@ -276,7 +266,6 @@ export async function crashCashout(req: Request, res: Response) {
     }).parse(req.body);
     
     const { gameId, amount, crashPoint, cashoutPoint } = parsedBody;
-    const userId = req.user!.id;
     
     // Get user
     const user = await storage.getUser(userId);
@@ -327,17 +316,11 @@ export async function crashCashout(req: Request, res: Response) {
  */
 export async function getTransactions(req: Request, res: Response) {
   try {
-    console.log("Transactions API Authentication: isAuthenticated():", req.isAuthenticated(), 
-               "User ID:", req.user?.id, 
-               "Session ID:", req.sessionID,
-               "Cookies:", req.headers.cookie);
-               
-    if (!req.isAuthenticated() || !req.user) {
-      console.log("Transactions API Unauthorized - Session may be invalid");
+    // With JWT auth, user is set by middleware
+    const userId = req.user?.id;
+    if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-    
-    const userId = req.user!.id;
     const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
     
     const transactions = await storage.getUserTransactions(userId, limit);

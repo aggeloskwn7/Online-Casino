@@ -1,5 +1,20 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+// Get token from localStorage
+const getAuthToken = (): string | null => {
+  return localStorage.getItem('auth_token');
+};
+
+// Set token to localStorage
+export const setAuthToken = (token: string): void => {
+  localStorage.setItem('auth_token', token);
+};
+
+// Remove token from localStorage (logout)
+export const removeAuthToken = (): void => {
+  localStorage.removeItem('auth_token');
+};
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -25,11 +40,16 @@ export async function apiRequest(
     headers["Content-Type"] = "application/json";
   }
   
+  // Add auth token if available
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  
   const res = await fetch(url, {
     method,
     headers,
     body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
   });
 
   console.log(`API response: ${method} ${url} - Status: ${res.status}`);
@@ -45,12 +65,20 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     console.log("Query request to:", queryKey[0]);
+    
+    // Create headers with auth token if available
+    const headers: HeadersInit = {
+      "Cache-Control": "no-cache",
+      "Pragma": "no-cache"
+    };
+    
+    const token = getAuthToken();
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    
     const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
-      headers: {
-        "Cache-Control": "no-cache",
-        "Pragma": "no-cache"
-      }
+      headers
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
