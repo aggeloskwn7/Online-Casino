@@ -7,6 +7,7 @@ import { formatCurrency, generateCrashCurvePoints } from '@/lib/game-utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 
 type GameState = 'idle' | 'betting' | 'in-progress' | 'crashed' | 'cashed-out';
 
@@ -22,6 +23,7 @@ export default function CrashGame() {
   const [cashoutPoint, setCashoutPoint] = useState(0);
   const [gameId, setGameId] = useState('');
   const [curvePoints, setCurvePoints] = useState<{ x: number; y: number }[]>([]);
+  const [showWinMessage, setShowWinMessage] = useState(false);
   
   // Animation frame reference
   const animationRef = useRef<number | null>(null);
@@ -98,6 +100,11 @@ export default function CrashGame() {
       stop('slotSpin');
       play('cashout');
       
+      // Show win message with a short delay
+      setTimeout(() => {
+        setShowWinMessage(true);
+      }, 300);
+      
       // No toast notifications to avoid spoiling the result
     },
     onError: (error) => {
@@ -136,6 +143,11 @@ export default function CrashGame() {
         setGameState('crashed');
         stop('slotSpin');
         play('crash');
+        
+        // Show crash message with a short delay
+        setTimeout(() => {
+          setShowWinMessage(true);
+        }, 300);
         
         // No toast notifications to avoid spoiling the result
         
@@ -245,6 +257,7 @@ export default function CrashGame() {
     setCashoutPoint(0);
     setGameId('');
     setCurvePoints([]);
+    setShowWinMessage(false);
     
     // Stop animation
     if (animationRef.current) {
@@ -359,19 +372,71 @@ export default function CrashGame() {
         )}
       </div>
       
-      {gameState === 'cashed-out' && (
-        <div className="mt-4 p-3 bg-[#121212] rounded-lg text-center">
-          <div className="text-[#00E701] font-bold mb-1">CASHED OUT!</div>
-          <div className="font-mono">{formatCurrency(betAmount * cashoutPoint)} ({cashoutPoint.toFixed(2)}×)</div>
-        </div>
-      )}
+      <AnimatePresence>
+        {gameState === 'cashed-out' && showWinMessage && (
+          <motion.div 
+            className="mt-4 p-3 bg-[#121212] rounded-lg text-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
+          >
+            <motion.div 
+              className="text-[#00E701] font-bold mb-1"
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.1, duration: 0.2 }}
+            >
+              CASHED OUT!
+            </motion.div>
+            <motion.div 
+              className="font-mono text-lg"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3, duration: 0.3 }}
+            >
+              {formatCurrency(betAmount * cashoutPoint)}
+            </motion.div>
+            <motion.div 
+              className="text-sm text-gray-400 mt-1"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.3 }}
+            >
+              Multiplier: {cashoutPoint.toFixed(2)}×
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
-      {gameState === 'crashed' && (
-        <div className="mt-4 p-3 bg-[#121212] rounded-lg text-center">
-          <div className="text-[#FF3A5E] font-bold mb-1">CRASHED!</div>
-          <div className="font-mono">@ {crashPoint.toFixed(2)}×</div>
-        </div>
-      )}
+      <AnimatePresence>
+        {gameState === 'crashed' && showWinMessage && (
+          <motion.div 
+            className="mt-4 p-3 bg-[#121212] rounded-lg text-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
+          >
+            <motion.div 
+              className="text-[#FF3A5E] font-bold mb-1"
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.1, duration: 0.2 }}
+            >
+              CRASHED!
+            </motion.div>
+            <motion.div 
+              className="font-mono text-lg"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3, duration: 0.3 }}
+            >
+              @ {crashPoint.toFixed(2)}×
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

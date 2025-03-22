@@ -223,12 +223,42 @@ export default function DiceGame() {
         {isRolling ? 'ROLLING...' : 'ROLL DICE'}
       </Button>
       
-      {lastResult && lastResult.isWin && (
-        <div className="mt-4 p-3 bg-[#121212] rounded-lg text-center">
-          <div className="text-[#00E701] font-bold mb-1">YOU WON!</div>
-          <div className="font-mono">{formatCurrency(lastResult.payout)}</div>
-        </div>
-      )}
+      <AnimatePresence>
+        {lastResult && lastResult.isWin && showWinMessage && (
+          <motion.div 
+            className="mt-4 p-3 bg-[#121212] rounded-lg text-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
+          >
+            <motion.div 
+              className="text-[#00E701] font-bold mb-1"
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.1, duration: 0.2 }}
+            >
+              YOU WON!
+            </motion.div>
+            <motion.div 
+              className="font-mono text-lg"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3, duration: 0.3 }}
+            >
+              {formatCurrency(lastResult.payout)}
+            </motion.div>
+            <motion.div 
+              className="text-sm text-gray-400 mt-1"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.3 }}
+            >
+              Multiplier: {multiplier.toFixed(2)}x
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
