@@ -285,10 +285,57 @@ export default function RouletteGame() {
   // Render roulette wheel
   const renderRouletteWheel = () => {
     return (
-      <div className="relative w-full h-40 flex items-center justify-center overflow-hidden">
+      <div className="relative w-full h-64 flex items-center justify-center overflow-hidden mb-6">
+        {/* Outer table border with wood texture */}
+        <div className="absolute w-[90%] h-[90%] rounded-full bg-gradient-to-r from-[#8B4513] to-[#654321] border-8 border-[#A0522D] shadow-[0_0_30px_rgba(0,0,0,0.7)]">
+          {/* Inner felt with pattern */}
+          <div className="absolute inset-4 rounded-full bg-[#01581F] shadow-[inset_0_0_20px_rgba(0,0,0,0.8)]">
+            {/* Wheel track/gutter where ball rolls */}
+            <div className="absolute inset-10 rounded-full border-4 border-[#A0522D] bg-gradient-to-r from-[#654321] to-[#8B4513] shadow-[inset_0_0_15px_rgba(0,0,0,0.6)]">
+              
+              {/* Ball */}
+              {isSpinning && (
+                <motion.div 
+                  className="absolute w-4 h-4 rounded-full bg-gradient-to-r from-white to-[#e0e0e0] z-30 shadow-[0_0_5px_rgba(255,255,255,0.8)]"
+                  initial={{ 
+                    top: "50%", 
+                    left: "50%",
+                    x: "-50%",
+                    y: "-50%"
+                  }}
+                  animate={{
+                    top: ["50%", "10%", "20%", "15%", "25%", "20%"],
+                    left: ["50%", "90%", "20%", "70%", "30%", "60%"],
+                    rotate: [0, 720, 1080, 1440, 1800],
+                  }}
+                  transition={{
+                    duration: 4,
+                    ease: "easeInOut",
+                    times: [0, 0.2, 0.4, 0.6, 0.8, 1]
+                  }}
+                />
+              )}
+              
+              {/* Fixed ball after spinning */}
+              {lastResult && !isSpinning && (
+                <motion.div 
+                  className="absolute w-4 h-4 rounded-full bg-gradient-to-r from-white to-[#e0e0e0] z-30 shadow-[0_0_5px_rgba(255,255,255,0.8)]"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  style={{
+                    top: `calc(50% - ${Math.sin((lastResult.spin % 37) * (2 * Math.PI / 37)) * 40}%)`,
+                    left: `calc(50% + ${Math.cos((lastResult.spin % 37) * (2 * Math.PI / 37)) * 40}%)`,
+                  }}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+        
+        {/* Actual spinning wheel */}
         <div 
           ref={wheelRef}
-          className="absolute w-44 h-44 rounded-full bg-gradient-to-r from-[#1A1A1A] to-[#0A0A0A] border-4 border-[#5465FF] flex items-center justify-center transform transition-transform duration-4000 ease-out shadow-[0_0_20px_rgba(84,101,255,0.5)]"
+          className="absolute w-60 h-60 rounded-full bg-gradient-to-r from-[#1A1A1A] to-[#0A0A0A] border-4 border-[#5465FF] flex items-center justify-center transform transition-transform duration-4000 ease-out shadow-[0_0_20px_rgba(84,101,255,0.5)]"
           style={{ transform: `rotate(${rotationAngle}deg)` }}
         >
           {ROULETTE_NUMBERS.map((number, index) => {
@@ -301,12 +348,12 @@ export default function RouletteGame() {
                 key={number}
                 className="absolute w-2 h-2 flex items-center justify-center text-xs text-white"
                 style={{
-                  transform: `rotate(${angle}deg) translateY(-16px)`,
-                  transformOrigin: 'center 16px'
+                  transform: `rotate(${angle}deg) translateY(-25px)`,
+                  transformOrigin: 'center 25px'
                 }}
               >
                 <div 
-                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold shadow-md ${
+                  className={`w-8 h-12 flex items-center justify-center text-[10px] font-bold shadow-md transform -rotate-[${angle}deg] ${
                     color === 'red' ? 'bg-gradient-to-b from-[#E03C3C] to-[#C92A2A] border border-[#FF5555]' : 
                     color === 'black' ? 'bg-gradient-to-b from-[#222222] to-[#121212] border border-[#333333]' :
                     'bg-gradient-to-b from-[#00A000] to-[#008000] border border-[#00C000]'
@@ -317,10 +364,10 @@ export default function RouletteGame() {
               </div>
             );
           })}
-          <div className="w-20 h-20 rounded-full bg-gradient-to-b from-[#333333] to-[#222222] flex items-center justify-center z-10 shadow-[inset_0_0_10px_rgba(0,0,0,0.6)] border border-[#5465FF]">
+          <div className="w-30 h-30 rounded-full bg-gradient-to-b from-[#333333] to-[#222222] flex items-center justify-center z-10 shadow-[inset_0_0_15px_rgba(0,0,0,0.6)] border-2 border-[#5465FF]">
             {lastResult ? (
               <motion.div 
-                className={`w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-md ${
+                className={`w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg ${
                   lastResult.color === 'red' ? 'bg-gradient-to-b from-[#E03C3C] to-[#C92A2A] border border-[#FF5555]' : 
                   lastResult.color === 'black' ? 'bg-gradient-to-b from-[#222222] to-[#121212] border border-[#333333]' :
                   'bg-gradient-to-b from-[#00A000] to-[#008000] border border-[#00C000]'
@@ -337,16 +384,23 @@ export default function RouletteGame() {
                 {lastResult.spin}
               </motion.div>
             ) : (
-              <div className="w-16 h-16 rounded-full bg-gradient-to-b from-[#222222] to-[#181818] border border-[#333333] flex items-center justify-center text-gray-400 text-xl font-bold shadow-md">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-b from-[#222222] to-[#181818] border border-[#333333] flex items-center justify-center text-gray-400 text-2xl font-bold shadow-md">
                 <span className="animate-pulse">?</span>
               </div>
             )}
           </div>
         </div>
+        
+        {/* Wheel marker/pointer */}
         <div className="absolute top-0 left-1/2 transform -translate-x-1/2 z-20 flex flex-col items-center">
-          <div className="w-5 h-5 bg-[#5465FF] rotate-45 mb-[-2.5px] shadow-[0_0_8px_rgba(84,101,255,0.8)]"></div>
-          <div className="w-3 h-10 bg-[#5465FF] shadow-[0_0_8px_rgba(84,101,255,0.8)]"></div>
+          <div className="w-6 h-6 bg-[#5465FF] rotate-45 mb-[-3px] shadow-[0_0_8px_rgba(84,101,255,0.8)]"></div>
+          <div className="w-4 h-12 bg-[#5465FF] shadow-[0_0_8px_rgba(84,101,255,0.8)]"></div>
         </div>
+        
+        {/* Decorative wheel elements */}
+        <div className="absolute inset-0 rounded-full border-8 border-transparent pointer-events-none" style={{ 
+          boxShadow: 'inset 0 0 40px rgba(255, 215, 0, 0.3)' 
+        }}></div>
       </div>
     );
   };
