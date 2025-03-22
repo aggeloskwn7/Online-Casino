@@ -5,13 +5,28 @@ import { Transaction } from '@shared/schema';
 import { formatCurrency, timeAgo, getGameIcon } from '@/lib/game-utils';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export default function TransactionHistory() {
+interface TransactionHistoryProps {
+  gameType?: string;
+  maxItems?: number;
+}
+
+export default function TransactionHistory({ gameType, maxItems = 20 }: TransactionHistoryProps) {
   const { user } = useAuth();
   
   const { data: transactions, isLoading, error } = useQuery<Transaction[]>({
     queryKey: ['/api/transactions'],
     enabled: !!user,
   });
+  
+  // Filter transactions by game type if specified
+  const filteredTransactions = transactions 
+    ? (gameType 
+        ? transactions.filter(t => t.gameType.toLowerCase() === gameType.toLowerCase())
+        : transactions)
+    : [];
+    
+  // Limit the number of transactions to display
+  const limitedTransactions = filteredTransactions.slice(0, maxItems);
   
   if (isLoading) {
     return (
@@ -62,7 +77,7 @@ export default function TransactionHistory() {
     );
   }
   
-  if (!transactions || transactions.length === 0) {
+  if (!filteredTransactions || filteredTransactions.length === 0) {
     return (
       <div className="bg-[#2A2A2A] rounded-xl border border-[#333333] p-6 text-center">
         <p className="text-gray-400">No transaction history yet</p>
@@ -84,7 +99,7 @@ export default function TransactionHistory() {
             </tr>
           </thead>
           <tbody className="divide-y divide-[#333333]">
-            {transactions.map((transaction) => (
+            {limitedTransactions.map((transaction) => (
               <tr key={transaction.id} className="hover:bg-[#1E1E1E]">
                 <td className="py-3 px-4 whitespace-nowrap">
                   <div className="flex items-center">
@@ -95,7 +110,7 @@ export default function TransactionHistory() {
                 <td className="py-3 px-4 whitespace-nowrap font-mono">{formatCurrency(transaction.amount)}</td>
                 <td className="py-3 px-4 whitespace-nowrap font-mono">
                   <span className={transaction.isWin ? 'text-[#00E701]' : 'text-[#FF3A5E]'}>
-                    {transaction.multiplier.toFixed(2)}×
+                    {formatMultiplier(transaction.multiplier)}
                   </span>
                 </td>
                 <td className="py-3 px-4 whitespace-nowrap font-mono">

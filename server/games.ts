@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { storage } from "./storage";
-import { betSchema, slotsPayoutSchema, diceRollSchema, crashGameSchema } from "@shared/schema";
+import { betSchema, slotsPayoutSchema, diceRollSchema, crashGameSchema, rouletteBetSchema, rouletteResultSchema } from "@shared/schema";
 import { z } from "zod";
 
 // Declare global type extension for Request to include user
@@ -489,5 +489,191 @@ export async function getTransactions(req: Request, res: Response) {
   } catch (error) {
     console.error("Get transactions error:", error);
     res.status(500).json({ message: "Failed to get transactions" });
+  }
+}
+
+// Constants for the roulette game
+const ROULETTE_NUMBERS = [
+  0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26
+];
+
+const ROULETTE_COLORS: { [key: number]: 'red' | 'black' | 'green' } = {
+  0: 'green',
+  1: 'red', 2: 'black', 3: 'red', 4: 'black', 5: 'red', 6: 'black',
+  7: 'red', 8: 'black', 9: 'red', 10: 'black', 11: 'black', 12: 'red',
+  13: 'black', 14: 'red', 15: 'black', 16: 'red', 17: 'black', 18: 'red',
+  19: 'red', 20: 'black', 21: 'red', 22: 'black', 23: 'red', 24: 'black',
+  25: 'red', 26: 'black', 27: 'red', 28: 'black', 29: 'black', 30: 'red',
+  31: 'black', 32: 'red', 33: 'black', 34: 'red', 35: 'black', 36: 'red'
+};
+
+// Roulette bet type multipliers
+const ROULETTE_PAYOUTS: { [key: string]: number } = {
+  'straight': 35, // Single number (35:1)
+  'split': 17, // Two numbers (17:1)
+  'street': 11, // Three numbers (11:1)
+  'corner': 8, // Four numbers (8:1)
+  'line': 5, // Six numbers (5:1)
+  'dozen': 2, // 12 numbers (2:1)
+  'column': 2, // 12 numbers (2:1)
+  'even': 1, // Even numbers (1:1)
+  'odd': 1, // Odd numbers (1:1)
+  'red': 1, // Red numbers (1:1)
+  'black': 1, // Black numbers (1:1)
+  'low': 1, // 1-18 (1:1)
+  'high': 1, // 19-36 (1:1)
+};
+
+// Helper functions for checking roulette bet wins
+const isRed = (number: number) => ROULETTE_COLORS[number] === 'red';
+const isBlack = (number: number) => ROULETTE_COLORS[number] === 'black';
+const isGreen = (number: number) => ROULETTE_COLORS[number] === 'green';
+const isEven = (number: number) => number !== 0 && number % 2 === 0;
+const isOdd = (number: number) => number % 2 === 1;
+const isLow = (number: number) => number >= 1 && number <= 18;
+const isHigh = (number: number) => number >= 19 && number <= 36;
+const isInFirstDozen = (number: number) => number >= 1 && number <= 12;
+const isInSecondDozen = (number: number) => number >= 13 && number <= 24;
+const isInThirdDozen = (number: number) => number >= 25 && number <= 36;
+const isInFirstColumn = (number: number) => number % 3 === 1;
+const isInSecondColumn = (number: number) => number % 3 === 2;
+const isInThirdColumn = (number: number) => number % 3 === 0 && number !== 0;
+
+/**
+ * Play roulette game
+ */
+export async function playRoulette(req: Request, res: Response) {
+  try {
+    // With JWT auth, user is set by middleware
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    // Validate request body
+    const parsedBody = rouletteBetSchema.parse(req.body);
+    const { amount, betType, numbers } = parsedBody;
+    
+    // Get user with balance
+    const user = await storage.getUser(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    // Check if user has enough balance
+    if (Number(user.balance) < amount) {
+      return res.status(400).json({ message: "Insufficient balance" });
+    }
+    
+    // Generate random roulette spin (0-36)
+    // Use the ROULETTE_NUMBERS array to pick a number in the correct sequence
+    const randomIndex = Math.floor(Math.random() * ROULETTE_NUMBERS.length);
+    const spin = ROULETTE_NUMBERS[randomIndex];
+    const color = ROULETTE_COLORS[spin];
+    
+    // Determine if it's a win based on bet type and numbers
+    let isWin = false;
+    
+    switch (betType) {
+      case 'straight':
+        // Single number bet
+        isWin = numbers.includes(spin);
+        break;
+      case 'split':
+        // Two adjacent numbers
+        isWin = numbers.includes(spin);
+        break;
+      case 'street':
+        // Three numbers in a row
+        isWin = numbers.includes(spin);
+        break;
+      case 'corner':
+        // Four numbers forming a square
+        isWin = numbers.includes(spin);
+        break;
+      case 'line':
+        // Six numbers (two rows)
+        isWin = numbers.includes(spin);
+        break;
+      case 'dozen':
+        // 12 numbers (1-12, 13-24, 25-36)
+        isWin = numbers.includes(spin);
+        break;
+      case 'column':
+        // 12 numbers (1st, 2nd, or 3rd column)
+        isWin = numbers.includes(spin);
+        break;
+      case 'even':
+        // Even numbers
+        isWin = isEven(spin);
+        break;
+      case 'odd':
+        // Odd numbers
+        isWin = isOdd(spin);
+        break;
+      case 'red':
+        // Red numbers
+        isWin = isRed(spin);
+        break;
+      case 'black':
+        // Black numbers
+        isWin = isBlack(spin);
+        break;
+      case 'low':
+        // 1-18
+        isWin = isLow(spin);
+        break;
+      case 'high':
+        // 19-36
+        isWin = isHigh(spin);
+        break;
+      default:
+        break;
+    }
+    
+    // Add additional random factor to make winning much harder
+    // 20% chance of forcing a loss regardless of the actual result
+    if (isWin && Math.random() < 0.2) {
+      isWin = false;
+    }
+    
+    // Calculate payout
+    const multiplier = isWin ? ROULETTE_PAYOUTS[betType] : 0;
+    
+    // Add small random variation to payouts to make it feel more realistic (within 0.5%)
+    const variation = 1 + (Math.random() * 0.01 - 0.005);
+    const payout = isWin ? Number((amount * multiplier * variation).toFixed(2)) : 0;
+    
+    // Update user balance
+    const newBalance = Number(user.balance) - amount + payout;
+    await storage.updateUserBalance(userId, newBalance);
+    
+    // Create transaction record
+    await storage.createTransaction({
+      userId,
+      gameType: "roulette",
+      amount: amount.toString(),
+      multiplier: multiplier.toString(),
+      payout: payout.toString(),
+      isWin
+    });
+    
+    // Return result
+    const gameResult = rouletteResultSchema.parse({
+      spin,
+      color,
+      multiplier,
+      payout,
+      isWin
+    });
+    
+    res.status(200).json(gameResult);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: "Invalid bet data", errors: error.errors });
+    }
+    
+    console.error("Roulette game error:", error);
+    res.status(500).json({ message: "Failed to process roulette game" });
   }
 }
