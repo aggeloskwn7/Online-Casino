@@ -70,6 +70,7 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
             <NavLink href="/slots" icon="ri-slot-machine-line" label="Slots" />
             <NavLink href="/dice" icon="ri-dice-line" label="Dice" />
             <NavLink href="/crash" icon="ri-rocket-line" label="Crash" />
+            <NavLink href="/roulette" icon="ri-focus-3-line" label="Roulette" />
           </nav>
         </div>
       </div>
