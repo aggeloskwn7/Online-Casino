@@ -100,20 +100,23 @@ export default function RouletteGame() {
         const number = (3 * (12 - row)) + col;
         const color = ROULETTE_COLORS[number];
         cells.push(
-          <button
+          <motion.button
             key={`cell-${number}`}
-            className={`w-12 h-12 border border-[#333333] text-center flex items-center justify-center text-xl font-bold m-0.5 ${
+            className={`w-12 h-12 border border-[#333333] text-center flex items-center justify-center text-xl font-bold m-0.5 shadow-md ${
               selectedNumbers.includes(number)
-                ? 'bg-[#5465FF] text-white'
+                ? 'bg-gradient-to-b from-[#6677FF] to-[#5465FF] text-white'
                 : color === 'red'
-                  ? 'bg-[#C92A2A] text-white hover:bg-[#A91A1A]'
-                  : 'bg-[#121212] text-white hover:bg-[#222222]'
+                  ? 'bg-gradient-to-b from-[#E03C3C] to-[#C92A2A] text-white hover:bg-[#A91A1A]'
+                  : 'bg-gradient-to-b from-[#222222] to-[#121212] text-white hover:bg-[#222222]'
             }`}
             onClick={() => handleNumberSelect(number)}
             disabled={isSpinning}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 400, damping: 17 }}
           >
             {number}
-          </button>
+          </motion.button>
         );
       }
       rows.push(
@@ -126,36 +129,51 @@ export default function RouletteGame() {
     // Add bottom row for dozen bets
     rows.push(
       <div key="dozen-row" className="flex mt-1">
-        <button 
-          className="w-[148px] h-8 border border-[#333333] text-center flex items-center justify-center text-sm font-bold m-0.5 bg-[#333333] text-white hover:bg-[#444444]"
+        <motion.button 
+          className={`w-[148px] h-8 border border-[#333333] text-center flex items-center justify-center text-sm font-bold m-0.5 bg-gradient-to-b from-[#444444] to-[#333333] text-white shadow-md ${
+            selectedBetType === 'dozen' && selectedNumbers.includes(1) ? 'ring-2 ring-[#5465FF]' : ''
+          }`}
           onClick={() => {
             setSelectedBetType('dozen');
             setSelectedNumbers([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
           }}
           disabled={isSpinning}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
         >
           1st 12
-        </button>
-        <button 
-          className="w-[148px] h-8 border border-[#333333] text-center flex items-center justify-center text-sm font-bold m-0.5 bg-[#333333] text-white hover:bg-[#444444]"
+        </motion.button>
+        <motion.button 
+          className={`w-[148px] h-8 border border-[#333333] text-center flex items-center justify-center text-sm font-bold m-0.5 bg-gradient-to-b from-[#444444] to-[#333333] text-white shadow-md ${
+            selectedBetType === 'dozen' && selectedNumbers.includes(13) ? 'ring-2 ring-[#5465FF]' : ''
+          }`}
           onClick={() => {
             setSelectedBetType('dozen');
             setSelectedNumbers([13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]);
           }}
           disabled={isSpinning}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
         >
           2nd 12
-        </button>
-        <button 
-          className="w-[148px] h-8 border border-[#333333] text-center flex items-center justify-center text-sm font-bold m-0.5 bg-[#333333] text-white hover:bg-[#444444]"
+        </motion.button>
+        <motion.button 
+          className={`w-[148px] h-8 border border-[#333333] text-center flex items-center justify-center text-sm font-bold m-0.5 bg-gradient-to-b from-[#444444] to-[#333333] text-white shadow-md ${
+            selectedBetType === 'dozen' && selectedNumbers.includes(25) ? 'ring-2 ring-[#5465FF]' : ''
+          }`}
           onClick={() => {
             setSelectedBetType('dozen');
             setSelectedNumbers([25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]);
           }}
           disabled={isSpinning}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
         >
           3rd 12
-        </button>
+        </motion.button>
       </div>
     );
     
@@ -166,9 +184,9 @@ export default function RouletteGame() {
   const renderOutsideBets = () => {
     return (
       <div className="grid grid-cols-2 gap-2">
-        <button 
-          className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold bg-[#C92A2A] text-white hover:bg-[#A91A1A] ${
-            selectedBetType === 'red' ? 'ring-2 ring-white' : ''
+        <motion.button 
+          className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold shadow-md bg-gradient-to-b from-[#E03C3C] to-[#C92A2A] text-white ${
+            selectedBetType === 'red' ? 'ring-2 ring-[#5465FF]' : ''
           }`}
           onClick={() => {
             setSelectedBetType('red');
@@ -177,12 +195,15 @@ export default function RouletteGame() {
               .map(([num]) => parseInt(num)));
           }}
           disabled={isSpinning}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
         >
           Red
-        </button>
-        <button 
-          className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold bg-[#121212] text-white hover:bg-[#222222] ${
-            selectedBetType === 'black' ? 'ring-2 ring-white' : ''
+        </motion.button>
+        <motion.button 
+          className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold shadow-md bg-gradient-to-b from-[#222222] to-[#121212] text-white ${
+            selectedBetType === 'black' ? 'ring-2 ring-[#5465FF]' : ''
           }`}
           onClick={() => {
             setSelectedBetType('black');
@@ -191,57 +212,72 @@ export default function RouletteGame() {
               .map(([num]) => parseInt(num)));
           }}
           disabled={isSpinning}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
         >
           Black
-        </button>
-        <button 
-          className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold bg-[#333333] text-white hover:bg-[#444444] ${
-            selectedBetType === 'even' ? 'ring-2 ring-white' : ''
+        </motion.button>
+        <motion.button 
+          className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold shadow-md bg-gradient-to-b from-[#444444] to-[#333333] text-white ${
+            selectedBetType === 'even' ? 'ring-2 ring-[#5465FF]' : ''
           }`}
           onClick={() => {
             setSelectedBetType('even');
             setSelectedNumbers(Array.from({length: 18}, (_, i) => (i + 1) * 2));
           }}
           disabled={isSpinning}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
         >
           Even
-        </button>
-        <button 
-          className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold bg-[#333333] text-white hover:bg-[#444444] ${
-            selectedBetType === 'odd' ? 'ring-2 ring-white' : ''
+        </motion.button>
+        <motion.button 
+          className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold shadow-md bg-gradient-to-b from-[#444444] to-[#333333] text-white ${
+            selectedBetType === 'odd' ? 'ring-2 ring-[#5465FF]' : ''
           }`}
           onClick={() => {
             setSelectedBetType('odd');
             setSelectedNumbers(Array.from({length: 18}, (_, i) => (i * 2) + 1));
           }}
           disabled={isSpinning}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
         >
           Odd
-        </button>
-        <button 
-          className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold bg-[#333333] text-white hover:bg-[#444444] ${
-            selectedBetType === 'low' ? 'ring-2 ring-white' : ''
+        </motion.button>
+        <motion.button 
+          className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold shadow-md bg-gradient-to-b from-[#444444] to-[#333333] text-white ${
+            selectedBetType === 'low' ? 'ring-2 ring-[#5465FF]' : ''
           }`}
           onClick={() => {
             setSelectedBetType('low');
             setSelectedNumbers(Array.from({length: 18}, (_, i) => i + 1));
           }}
           disabled={isSpinning}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
         >
           1-18
-        </button>
-        <button 
-          className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold bg-[#333333] text-white hover:bg-[#444444] ${
-            selectedBetType === 'high' ? 'ring-2 ring-white' : ''
+        </motion.button>
+        <motion.button 
+          className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold shadow-md bg-gradient-to-b from-[#444444] to-[#333333] text-white ${
+            selectedBetType === 'high' ? 'ring-2 ring-[#5465FF]' : ''
           }`}
           onClick={() => {
             setSelectedBetType('high');
             setSelectedNumbers(Array.from({length: 18}, (_, i) => i + 19));
           }}
           disabled={isSpinning}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
         >
           19-36
-        </button>
+        </motion.button>
       </div>
     );
   };
@@ -270,10 +306,10 @@ export default function RouletteGame() {
                 }}
               >
                 <div 
-                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold ${
-                    color === 'red' ? 'bg-[#C92A2A]' : 
-                    color === 'black' ? 'bg-[#121212]' :
-                    'bg-[#008000]'
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold shadow-md ${
+                    color === 'red' ? 'bg-gradient-to-b from-[#E03C3C] to-[#C92A2A] border border-[#FF5555]' : 
+                    color === 'black' ? 'bg-gradient-to-b from-[#222222] to-[#121212] border border-[#333333]' :
+                    'bg-gradient-to-b from-[#00A000] to-[#008000] border border-[#00C000]'
                   }`}
                 >
                   {number}
@@ -284,10 +320,10 @@ export default function RouletteGame() {
           <div className="w-20 h-20 rounded-full bg-gradient-to-b from-[#333333] to-[#222222] flex items-center justify-center z-10 shadow-[inset_0_0_10px_rgba(0,0,0,0.6)] border border-[#5465FF]">
             {lastResult ? (
               <motion.div 
-                className={`w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold ${
-                  lastResult.color === 'red' ? 'bg-[#C92A2A]' : 
-                  lastResult.color === 'black' ? 'bg-[#121212]' :
-                  'bg-[#008000]'
+                className={`w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-md ${
+                  lastResult.color === 'red' ? 'bg-gradient-to-b from-[#E03C3C] to-[#C92A2A] border border-[#FF5555]' : 
+                  lastResult.color === 'black' ? 'bg-gradient-to-b from-[#222222] to-[#121212] border border-[#333333]' :
+                  'bg-gradient-to-b from-[#00A000] to-[#008000] border border-[#00C000]'
                 }`}
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
@@ -301,8 +337,8 @@ export default function RouletteGame() {
                 {lastResult.spin}
               </motion.div>
             ) : (
-              <div className="w-16 h-16 rounded-full bg-[#181818] flex items-center justify-center text-gray-500 text-xl font-bold">
-                ?
+              <div className="w-16 h-16 rounded-full bg-gradient-to-b from-[#222222] to-[#181818] border border-[#333333] flex items-center justify-center text-gray-400 text-xl font-bold shadow-md">
+                <span className="animate-pulse">?</span>
               </div>
             )}
           </div>
@@ -467,40 +503,40 @@ export default function RouletteGame() {
       </Tabs>
       
       {/* Current Bet Info */}
-      <div className="mt-4 p-3 bg-[#121212] rounded-lg">
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-sm text-gray-400">Current Bet</span>
-          <Badge className="bg-[#5465FF]">
+      <div className="mt-4 p-4 bg-gradient-to-b from-[#181818] to-[#121212] rounded-lg shadow-md border border-[#333333]">
+        <div className="flex justify-between items-center mb-3">
+          <span className="text-sm font-medium text-gray-300">Current Bet</span>
+          <Badge className="bg-gradient-to-r from-[#5465FF] to-[#6677FF] shadow-sm">
             {selectedBetType.charAt(0).toUpperCase() + selectedBetType.slice(1)}
           </Badge>
         </div>
-        <div className="flex flex-wrap gap-1 mb-2">
+        <div className="flex flex-wrap gap-1.5 mb-3">
           {selectedNumbers.length > 0 ? (
             selectedNumbers.length <= 12 ? (
               selectedNumbers.map(num => (
-                <Badge key={num} variant="outline" className="bg-[#222222]">
+                <Badge key={num} variant="outline" className="bg-[#1A1A1A] border-[#333333] text-gray-200 font-mono">
                   {num}
                 </Badge>
               ))
             ) : (
-              <Badge variant="outline" className="bg-[#222222]">
+              <Badge variant="outline" className="bg-[#1A1A1A] border-[#333333] text-gray-200">
                 {selectedNumbers.length} numbers
               </Badge>
             )
           ) : (
-            <span className="text-sm text-gray-500">No numbers selected</span>
+            <span className="text-sm text-gray-500 italic">No numbers selected</span>
           )}
         </div>
-        <div className="flex justify-between items-center text-sm">
-          <span className="text-gray-400">Payout</span>
-          <span>{multiplier}:1</span>
+        <div className="flex justify-between items-center text-sm bg-[#1A1A1A] p-2 rounded-md">
+          <span className="text-gray-300 font-medium">Payout Ratio</span>
+          <span className="text-[#00E701] font-bold">{multiplier}:1</span>
         </div>
       </div>
       
       {/* Bet Amount and Spin Button */}
-      <div className="flex gap-2 mt-4 mb-4">
+      <div className="flex gap-3 mt-5 mb-5">
         <div className="w-1/2">
-          <span className="text-sm text-gray-400 block mb-1">Bet Amount</span>
+          <span className="text-sm font-medium text-gray-300 block mb-1.5">Bet Amount</span>
           <div className="relative">
             <Input
               type="text"
@@ -512,74 +548,98 @@ export default function RouletteGame() {
                 const sanitized = parts[0] + (parts.length > 1 ? '.' + parts.slice(1).join('') : '');
                 setBetAmount(Number(sanitized) || 0);
               }}
-              className="w-full bg-[#121212] rounded-lg border border-[#333333] p-2 font-mono"
+              className="w-full bg-gradient-to-b from-[#181818] to-[#121212] rounded-lg border border-[#333333] p-3 font-mono text-white shadow-inner"
               disabled={isSpinning}
             />
-            <button 
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-[#5465FF]"
+            <motion.button 
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-[#5465FF] font-semibold bg-[#1A1A1A] px-2 py-1 rounded hover:bg-[#222222]"
               onClick={() => user && setBetAmount(Number(user.balance))}
               disabled={isSpinning}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
               MAX
-            </button>
+            </motion.button>
           </div>
         </div>
         <div className="w-1/2">
-          <span className="text-sm text-gray-400 block mb-1">Profit on Win</span>
+          <span className="text-sm font-medium text-gray-300 block mb-1.5">Profit on Win</span>
           <div className="relative">
             <Input
               type="text"
               value={formatCurrency(profitOnWin)}
-              className="w-full bg-[#121212] rounded-lg border border-[#333333] p-2 font-mono"
+              className="w-full bg-gradient-to-b from-[#181818] to-[#121212] rounded-lg border border-[#333333] p-3 font-mono text-[#00E701] font-semibold shadow-inner"
               readOnly
             />
-            <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-[#00E701]">
+            <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs bg-[#1A1A1A] text-[#00E701] font-bold px-2 py-1 rounded-full shadow">
               {multiplier}x
             </div>
           </div>
         </div>
       </div>
       
-      <Button
-        className="w-full bg-[#5465FF] hover:bg-[#6677FF] text-white font-bold py-3 px-4 rounded-lg transition duration-200"
+      <motion.button
+        className="w-full bg-gradient-to-r from-[#5465FF] to-[#788AFF] hover:bg-gradient-to-r hover:from-[#6677FF] hover:to-[#899BFF] text-white font-bold py-4 px-6 rounded-lg shadow-lg transition duration-200 text-lg"
         onClick={handleSpin}
         disabled={isSpinning || !user || betAmount > Number(user.balance) || selectedNumbers.length === 0}
+        whileHover={{ scale: 1.03 }}
+        whileTap={{ scale: 0.97 }}
+        transition={{ type: "spring", stiffness: 400, damping: 10 }}
       >
-        {isSpinning ? 'SPINNING...' : 'SPIN'}
-      </Button>
+        {isSpinning ? (
+          <div className="flex items-center justify-center">
+            <span className="mr-2">SPINNING</span>
+            <span className="animate-pulse">...</span>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center">
+            <span className="mr-2">SPIN</span>
+            <span className="text-sm">🎡</span>
+          </div>
+        )}
+      </motion.button>
       
       <AnimatePresence>
         {lastResult && lastResult.isWin && showWinMessage && (
           <motion.div 
-            className="mt-4 p-3 bg-[#121212] rounded-lg text-center"
+            className="mt-4 p-5 bg-gradient-to-b from-[#181818] to-[#121212] rounded-lg text-center shadow-xl border border-[#5465FF]"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
           >
             <motion.div 
-              className="text-[#00E701] font-bold mb-1"
+              className="text-[#00E701] font-bold text-xl mb-2 flex items-center justify-center"
               initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.1, duration: 0.2 }}
+              animate={{ 
+                scale: [1, 1.1, 1],
+                rotate: [0, 2, -2, 0]
+              }}
+              transition={{ 
+                duration: 0.5,
+                repeat: 2,
+                repeatType: "reverse" 
+              }}
             >
+              <span className="mr-2">🎉</span>
               YOU WON!
+              <span className="ml-2">🎉</span>
             </motion.div>
             <motion.div 
-              className="font-mono text-lg"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3, duration: 0.3 }}
+              className="font-mono text-2xl font-bold text-white my-3"
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3, duration: 0.4, type: "spring" }}
             >
               {formatCurrency(lastResult.payout)}
             </motion.div>
             <motion.div 
-              className="text-sm text-gray-400 mt-1"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              className="text-sm bg-[#1A1A1A] py-2 px-4 rounded-full inline-block text-[#5465FF] mt-1 font-bold"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.3 }}
             >
-              Multiplier: {multiplier}x
+              <span className="mr-1">×</span>{multiplier} Multiplier
             </motion.div>
           </motion.div>
         )}
