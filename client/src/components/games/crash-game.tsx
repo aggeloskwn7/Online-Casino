@@ -290,7 +290,13 @@ export default function CrashGame() {
             <Input
               type="text"
               value={betAmount.toString()}
-              onChange={(e) => setBetAmount(Number(e.target.value.replace(/[^0-9]/g, '')))}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^0-9.]/g, '');
+                // Ensure only one decimal point
+                const parts = value.split('.');
+                const sanitized = parts[0] + (parts.length > 1 ? '.' + parts.slice(1).join('') : '');
+                setBetAmount(Number(sanitized) || 0);
+              }}
               className="w-full bg-[#121212] rounded-lg border border-[#333333] p-2 font-mono"
               disabled={gameState !== 'idle'}
             />
