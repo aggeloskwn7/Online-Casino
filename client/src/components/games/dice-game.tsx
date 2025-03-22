@@ -9,6 +9,7 @@ import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { DiceRoll } from '@shared/schema';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function DiceGame() {
   const { user } = useAuth();
@@ -19,6 +20,7 @@ export default function DiceGame() {
   const [isRolling, setIsRolling] = useState(false);
   const [lastResult, setLastResult] = useState<DiceRoll | null>(null);
   const [diceValue, setDiceValue] = useState<number | null>(null);
+  const [showWinMessage, setShowWinMessage] = useState(false);
   
   // Calculate profit on win
   const winChance = target;
@@ -65,6 +67,9 @@ export default function DiceGame() {
     const maxRolls = 10;
     const rollInterval = 100;
     
+    // Hide win message during rolling
+    setShowWinMessage(false);
+    
     const roll = () => {
       rolls++;
       
@@ -76,6 +81,11 @@ export default function DiceGame() {
         // Final dice value
         setDiceValue(finalValue);
         setIsRolling(false);
+        
+        // Show win message after rolling completes with a short delay
+        setTimeout(() => {
+          setShowWinMessage(true);
+        }, 300);
       }
     };
     

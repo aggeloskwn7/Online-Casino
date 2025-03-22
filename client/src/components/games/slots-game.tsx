@@ -9,6 +9,7 @@ import { Slider } from '@/components/ui/slider';
 import { useToast } from '@/hooks/use-toast';
 import { SLOT_SYMBOLS } from '@/lib/game-utils';
 import { SlotsPayout } from '@shared/schema';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function SlotsGame() {
   const { user } = useAuth();
@@ -23,6 +24,7 @@ export default function SlotsGame() {
   const [isSpinning, setIsSpinning] = useState(false);
   const [lastResult, setLastResult] = useState<SlotsPayout | null>(null);
   const [highlightedCells, setHighlightedCells] = useState<[number, number][]>([]);
+  const [showWinMessage, setShowWinMessage] = useState(false);
   
   // Play slots mutation
   const slotsMutation = useMutation({
@@ -114,6 +116,11 @@ export default function SlotsGame() {
         // Set all symbols to final
         setSymbols(finalSymbols);
         setIsSpinning(false);
+        
+        // Show win message after spinning completes with a short delay
+        setTimeout(() => {
+          setShowWinMessage(true);
+        }, 300);
       }
     };
     
@@ -135,6 +142,7 @@ export default function SlotsGame() {
     // Start spinning
     setIsSpinning(true);
     setHighlightedCells([]); // Clear any highlighted cells
+    setShowWinMessage(false); // Hide win message while spinning
     play('slotSpin');
     
     // Make API call
@@ -222,13 +230,42 @@ export default function SlotsGame() {
         {isSpinning ? 'SPINNING...' : 'SPIN'}
       </Button>
       
-      {lastResult && lastResult.isWin && (
-        <div className="mt-4 p-3 bg-[#121212] rounded-lg text-center">
-          <div className="text-[#00E701] font-bold mb-1">YOU WON!</div>
-          <div className="font-mono">{formatCurrency(lastResult.payout)}</div>
-          <div className="text-sm text-gray-400 mt-1">Multiplier: {lastResult.multiplier.toFixed(2)}x</div>
-        </div>
-      )}
+      <AnimatePresence>
+        {lastResult && lastResult.isWin && showWinMessage && (
+          <motion.div 
+            className="mt-4 p-3 bg-[#121212] rounded-lg text-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
+          >
+            <motion.div 
+              className="text-[#00E701] font-bold mb-1"
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.1, duration: 0.2 }}
+            >
+              YOU WON!
+            </motion.div>
+            <motion.div 
+              className="font-mono text-lg"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3, duration: 0.3 }}
+            >
+              {formatCurrency(lastResult.payout)}
+            </motion.div>
+            <motion.div 
+              className="text-sm text-gray-400 mt-1"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.3 }}
+            >
+              Multiplier: {lastResult.multiplier.toFixed(2)}x
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
