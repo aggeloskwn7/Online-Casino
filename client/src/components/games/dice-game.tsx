@@ -48,19 +48,7 @@ export default function DiceGame() {
         play('lose');
       }
       
-      // Show toast
-      if (data.isWin) {
-        toast({
-          title: 'You won!',
-          description: `You rolled ${data.result} and won ${formatCurrency(data.payout)}`,
-          variant: 'default',
-        });
-      } else {
-        toast({
-          title: 'You lost',
-          description: `You rolled ${data.result}, which is above ${data.target}`,
-        });
-      }
+      // No toast notifications to avoid spoiling the result
     },
     onError: (error) => {
       toast({

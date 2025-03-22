@@ -98,12 +98,7 @@ export default function CrashGame() {
       stop('slotSpin');
       play('cashout');
       
-      // Show toast
-      toast({
-        title: 'Cashed Out!',
-        description: `You cashed out at ${data.cashoutPoint.toFixed(2)}x and won ${formatCurrency(data.payout)}`,
-        variant: 'default',
-      });
+      // No toast notifications to avoid spoiling the result
     },
     onError: (error) => {
       toast({
@@ -142,11 +137,7 @@ export default function CrashGame() {
         stop('slotSpin');
         play('crash');
         
-        toast({
-          title: 'Crashed!',
-          description: `The game crashed at ${targetCrashPoint.toFixed(2)}x`,
-          variant: 'destructive',
-        });
+        // No toast notifications to avoid spoiling the result
         
         return;
       }

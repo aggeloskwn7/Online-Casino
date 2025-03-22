@@ -62,19 +62,7 @@ export default function SlotsGame() {
         play('lose');
       }
       
-      // Show toast
-      if (data.isWin) {
-        toast({
-          title: 'You won!',
-          description: `You won ${formatCurrency(data.payout)} with multiplier ${data.multiplier.toFixed(2)}x`,
-          variant: 'default',
-        });
-      } else {
-        toast({
-          title: 'You lost',
-          description: `Better luck next time!`,
-        });
-      }
+      // No toast notifications to avoid spoiling the result
     },
     onError: (error) => {
       toast({
