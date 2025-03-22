@@ -14,7 +14,7 @@ export default function SlotsGame() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { play } = useSound();
-  const [betAmount, setBetAmount] = useState(100);
+  const [betAmount, setBetAmount] = useState(1);
   const [symbols, setSymbols] = useState<string[][]>([
     ['🍒', '🍋', '🍊'],
     ['🍇', '🔔', '💎'],
@@ -158,8 +158,15 @@ export default function SlotsGame() {
   };
   
   const adjustBet = (amount: number) => {
-    const newBet = Math.max(10, Math.min(1000, betAmount + amount));
-    setBetAmount(newBet);
+    // If current bet is small, adjust by smaller amounts
+    const adjustAmount = betAmount < 1 ? 0.1 : 
+                      betAmount < 10 ? 1 : 
+                      betAmount < 100 ? 10 : 
+                      betAmount < 1000 ? 100 : 1000;
+    
+    const increment = amount > 0 ? adjustAmount : -adjustAmount;
+    const newBet = Math.max(0.1, Math.min(10000, betAmount + increment));
+    setBetAmount(Math.round(newBet * 100) / 100); // Round to 2 decimal places
   };
   
   // Function to check if a cell should be highlighted
@@ -208,10 +215,10 @@ export default function SlotsGame() {
           </div>
         </div>
         <Slider 
-          defaultValue={[100]} 
-          min={10} 
-          max={1000} 
-          step={10}
+          defaultValue={[1]} 
+          min={0.10} 
+          max={10000} 
+          step={0.10}
           value={[betAmount]}
           onValueChange={handleBetChange}
           disabled={isSpinning}

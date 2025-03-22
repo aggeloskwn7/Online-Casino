@@ -17,10 +17,10 @@ export const SLOT_PAYOUTS = {
   "pair": 1.5,
 };
 
-// Format currency value
+// Format currency value with dollar sign
 export const formatCurrency = (value: number | string) => {
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
-  return numValue.toLocaleString('en-US', {
+  return '$' + numValue.toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   });

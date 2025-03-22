@@ -14,7 +14,7 @@ export default function DiceGame() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { play } = useSound();
-  const [betAmount, setBetAmount] = useState(100);
+  const [betAmount, setBetAmount] = useState(1);
   const [target, setTarget] = useState(50);
   const [isRolling, setIsRolling] = useState(false);
   const [lastResult, setLastResult] = useState<DiceRoll | null>(null);
@@ -182,7 +182,13 @@ export default function DiceGame() {
             <Input
               type="text"
               value={betAmount.toString()}
-              onChange={(e) => setBetAmount(Number(e.target.value.replace(/[^0-9]/g, '')))}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^0-9.]/g, '');
+                // Ensure only one decimal point
+                const parts = value.split('.');
+                const sanitized = parts[0] + (parts.length > 1 ? '.' + parts.slice(1).join('') : '');
+                setBetAmount(Number(sanitized) || 0);
+              }}
               className="w-full bg-[#121212] rounded-lg border border-[#333333] p-2 font-mono"
               disabled={isRolling}
             />

@@ -14,7 +14,7 @@ export default function CrashGame() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { play, stop } = useSound();
-  const [betAmount, setBetAmount] = useState(100);
+  const [betAmount, setBetAmount] = useState(1);
   const [autoCashout, setAutoCashout] = useState(2);
   const [gameState, setGameState] = useState<GameState>('idle');
   const [currentMultiplier, setCurrentMultiplier] = useState(1);
