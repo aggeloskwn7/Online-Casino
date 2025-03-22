@@ -47,7 +47,6 @@ export default function RouletteGame() {
   const [rotationAngle, setRotationAngle] = useState(0);
   const [showWinMessage, setShowWinMessage] = useState(false);
   const [activeTab, setActiveTab] = useState('inside');
-  const [multiSelectMode, setMultiSelectMode] = useState(false);
   
   // Calculate total bet amount and potential profit
   const totalBetAmount = activeBets.reduce((total, bet) => total + bet.amount, 0) + betAmount;
@@ -211,51 +210,38 @@ export default function RouletteGame() {
   
   // Outside bets (red/black, odd/even, etc.)
   const renderOutsideBets = () => {
-    // Helper to determine if an outside bet is active in a specific bet list
-    const isBetActive = (betType: RouletteBetType, inActiveBets = false) => {
-      if (inActiveBets) {
-        return activeBets.some(bet => bet.type === betType);
-      }
-      return selectedBetType === betType;
+    // Helper to determine if an outside bet is active in the active bets list
+    const isBetActive = (betType: RouletteBetType) => {
+      return activeBets.some(bet => bet.type === betType);
     };
     
     // Function to handle clicking an outside bet option
     const handleOutsideBetClick = (betType: RouletteBetType, numbers: number[]) => {
       if (isSpinning) return;
       
-      // Set the bet type and numbers
-      setSelectedBetType(betType);
-      setSelectedNumbers(numbers);
-      
-      // If multi-select is enabled and the user clicks "Add Bet", they'll be able to add multiple bets
-      if (multiSelectMode && activeBets.length > 0) {
-        // Auto-add the bet if multi-select is enabled
+      // Check if the bet already exists
+      if (isBetActive(betType)) {
+        // Remove the bet if it already exists
+        setActiveBets(activeBets.filter(bet => bet.type !== betType));
+        
+        toast({
+          title: 'Bet removed',
+          description: `${betType} bet has been removed`,
+        });
+      } else {
+        // Add the bet if it doesn't exist
         const newBet: Bet = {
           type: betType,
           numbers: [...numbers],
           amount: betAmount
         };
         
-        // Don't add duplicate bet types in multi-select mode
-        if (!activeBets.some(bet => bet.type === betType)) {
-          setActiveBets([...activeBets, newBet]);
-          
-          // Show success toast
-          toast({
-            title: 'Bet added',
-            description: `${betType} bet for ${formatCurrency(betAmount)} added`,
-          });
-          
-          // Clear the current selection
-          setSelectedNumbers([]);
-        } else {
-          // Show warning toast
-          toast({
-            title: 'Bet already added',
-            description: `You already have a ${betType} bet`,
-            variant: 'destructive',
-          });
-        }
+        setActiveBets([...activeBets, newBet]);
+        
+        toast({
+          title: 'Bet added',
+          description: `${betType} bet for ${formatCurrency(betAmount)} added`,
+        });
       }
     };
     
@@ -286,7 +272,7 @@ export default function RouletteGame() {
         <div className="grid grid-cols-2 gap-2">
           <motion.button 
             className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold shadow-md bg-gradient-to-b from-[#E03C3C] to-[#C92A2A] text-white ${
-              (isBetActive('red') || isBetActive('red', true)) ? 'ring-2 ring-[#5465FF]' : ''
+              isBetActive('red') ? 'ring-2 ring-[#5465FF]' : ''
             }`}
             onClick={() => handleOutsideBetClick('red', redNumbers)}
             disabled={isSpinning}
@@ -298,7 +284,7 @@ export default function RouletteGame() {
           </motion.button>
           <motion.button 
             className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold shadow-md bg-gradient-to-b from-[#222222] to-[#121212] text-white ${
-              (isBetActive('black') || isBetActive('black', true)) ? 'ring-2 ring-[#5465FF]' : ''
+              isBetActive('black') ? 'ring-2 ring-[#5465FF]' : ''
             }`}
             onClick={() => handleOutsideBetClick('black', blackNumbers)}
             disabled={isSpinning}
@@ -313,7 +299,7 @@ export default function RouletteGame() {
         <div className="grid grid-cols-2 gap-2">
           <motion.button 
             className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold shadow-md bg-gradient-to-b from-[#444444] to-[#333333] text-white ${
-              (isBetActive('even') || isBetActive('even', true)) ? 'ring-2 ring-[#5465FF]' : ''
+              isBetActive('even') ? 'ring-2 ring-[#5465FF]' : ''
             }`}
             onClick={() => handleOutsideBetClick('even', evenNumbers)}
             disabled={isSpinning}
@@ -325,7 +311,7 @@ export default function RouletteGame() {
           </motion.button>
           <motion.button 
             className={`h-14 border border-[#333333] text-center flex items-center justify-center text-lg font-bold shadow-md bg-gradient-to-b from-[#444444] to-[#333333] text-white ${
-              (isBetActive('odd') || isBetActive('odd', true)) ? 'ring-2 ring-[#5465FF]' : ''
+              isBetActive('odd') ? 'ring-2 ring-[#5465FF]' : ''
             }`}
             onClick={() => handleOutsideBetClick('odd', oddNumbers)}
             disabled={isSpinning}
@@ -366,20 +352,20 @@ export default function RouletteGame() {
         
         <div className="bg-[#181818] p-3 rounded-lg border border-[#333333] shadow-inner">
           <p className="text-center text-sm text-gray-400 mb-2">
-            {multiSelectMode ? 
-              'Multiple bet mode: Click on options to add bets immediately.' :
-              'Single bet mode: Configure your bet before clicking "Add Bet".'
-            }
+            Click on options to toggle bets. Each bet uses your bet amount.
           </p>
           <div className="flex flex-wrap gap-1.5 justify-center">
             {activeBets.map((bet, index) => (
               <Badge 
                 key={index} 
-                className="bg-[#1a1a1a] border border-[#333333] text-gray-300"
+                className="bg-gradient-to-r from-[#394DFE] to-[#5465FF] text-white font-medium"
               >
-                {bet.type}
+                {bet.type} • {formatCurrency(bet.amount)}
               </Badge>
             ))}
+            {activeBets.length === 0 && (
+              <span className="text-sm text-gray-500 italic">No bets placed yet</span>
+            )}
           </div>
         </div>
       </div>
