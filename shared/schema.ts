@@ -37,7 +37,7 @@ export type Transaction = typeof transactions.$inferSelect;
 
 // Game related schemas
 export const betSchema = z.object({
-  amount: z.number().positive().min(0.1).max(10000),
+  amount: z.number().positive().min(1).max(10000),
 });
 
 export const slotsPayoutSchema = z.object({

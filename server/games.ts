@@ -237,7 +237,7 @@ export async function playDice(req: Request, res: Response) {
     
     // Validate request body
     const parsedBody = z.object({
-      amount: z.number().positive().min(0.1).max(10000),
+      amount: z.number().positive().min(1).max(10000),
       target: z.number().int().min(1).max(99)
     }).parse(req.body);
     
@@ -318,7 +318,7 @@ export async function startCrash(req: Request, res: Response) {
     
     // Validate request body
     const parsedBody = z.object({
-      amount: z.number().positive().min(0.1).max(10000),
+      amount: z.number().positive().min(1).max(10000),
       autoCashout: z.number().positive().optional()
     }).parse(req.body);
     
@@ -381,7 +381,7 @@ export async function crashCashout(req: Request, res: Response) {
     // Validate request body
     const parsedBody = z.object({
       gameId: z.string(),
-      amount: z.number().positive().min(0.1),
+      amount: z.number().positive().min(1),
       crashPoint: z.number().positive(),
       cashoutPoint: z.number().positive()
     }).parse(req.body);

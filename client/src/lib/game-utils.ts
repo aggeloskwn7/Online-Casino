@@ -20,13 +20,13 @@ export const SLOT_PAYOUTS = {
   "full_grid": 20,
 };
 
-// Format currency value with dollar sign
+// Format currency value with coins
 export const formatCurrency = (value: number | string) => {
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
-  return '$' + numValue.toLocaleString('en-US', {
+  return numValue.toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
-  });
+  }) + ' coins';
 };
 
 // Format multiplier value
