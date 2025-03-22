@@ -87,9 +87,9 @@ export async function playSlots(req: Request, res: Response) {
     await storage.createTransaction({
       userId,
       gameType: "slots",
-      amount,
-      multiplier,
-      payout,
+      amount: amount.toString(),
+      multiplier: multiplier.toString(),
+      payout: payout.toString(),
       isWin
     });
     
@@ -166,9 +166,9 @@ export async function playDice(req: Request, res: Response) {
     await storage.createTransaction({
       userId,
       gameType: "dice",
-      amount,
-      multiplier,
-      payout,
+      amount: amount.toString(),
+      multiplier: multiplier.toString(),
+      payout: payout.toString(),
       isWin
     });
     
@@ -197,7 +197,13 @@ export async function playDice(req: Request, res: Response) {
  */
 export async function startCrash(req: Request, res: Response) {
   try {
-    if (!req.isAuthenticated()) {
+    console.log("Start Crash API Authentication: isAuthenticated():", req.isAuthenticated(), 
+               "User ID:", req.user?.id, 
+               "Session ID:", req.sessionID,
+               "Cookies:", req.headers.cookie);
+               
+    if (!req.isAuthenticated() || !req.user) {
+      console.log("Start Crash API Unauthorized - Session may be invalid");
       return res.status(401).json({ message: "Unauthorized" });
     }
     
@@ -251,7 +257,13 @@ export async function startCrash(req: Request, res: Response) {
  */
 export async function crashCashout(req: Request, res: Response) {
   try {
-    if (!req.isAuthenticated()) {
+    console.log("Crash Cashout API Authentication: isAuthenticated():", req.isAuthenticated(), 
+               "User ID:", req.user?.id, 
+               "Session ID:", req.sessionID,
+               "Cookies:", req.headers.cookie);
+               
+    if (!req.isAuthenticated() || !req.user) {
+      console.log("Crash Cashout API Unauthorized - Session may be invalid");
       return res.status(401).json({ message: "Unauthorized" });
     }
     
@@ -284,9 +296,9 @@ export async function crashCashout(req: Request, res: Response) {
     await storage.createTransaction({
       userId,
       gameType: "crash",
-      amount,
-      multiplier,
-      payout,
+      amount: amount.toString(),
+      multiplier: multiplier.toString(),
+      payout: payout.toString(),
       isWin
     });
     
@@ -315,7 +327,13 @@ export async function crashCashout(req: Request, res: Response) {
  */
 export async function getTransactions(req: Request, res: Response) {
   try {
-    if (!req.isAuthenticated()) {
+    console.log("Transactions API Authentication: isAuthenticated():", req.isAuthenticated(), 
+               "User ID:", req.user?.id, 
+               "Session ID:", req.sessionID,
+               "Cookies:", req.headers.cookie);
+               
+    if (!req.isAuthenticated() || !req.user) {
+      console.log("Transactions API Unauthorized - Session may be invalid");
       return res.status(401).json({ message: "Unauthorized" });
     }
     
