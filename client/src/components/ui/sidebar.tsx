@@ -73,7 +73,7 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
                   ? 'text-white bg-[#5465FF] bg-opacity-20' 
                   : 'text-gray-400 hover:text-white hover:bg-[#2A2A2A]'
               }`} onClick={onClose}>
-                <i className="ri-gamepad-line text-lg text-amber-400"></i>
+                <span className="text-lg font-bold">🎰</span>
                 <span>Slots</span>
               </a>
             </Link>
@@ -83,7 +83,7 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
                   ? 'text-white bg-[#5465FF] bg-opacity-20' 
                   : 'text-gray-400 hover:text-white hover:bg-[#2A2A2A]'
               }`} onClick={onClose}>
-                <i className="ri-cube-line text-lg text-[#5465FF]"></i>
+                <span className="text-lg text-[#5465FF] font-bold">🎲</span>
                 <span>Dice</span>
               </a>
             </Link>
@@ -93,7 +93,7 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
                   ? 'text-white bg-[#5465FF] bg-opacity-20' 
                   : 'text-gray-400 hover:text-white hover:bg-[#2A2A2A]'
               }`} onClick={onClose}>
-                <i className="ri-rocket-line text-lg text-green-500"></i>
+                <span className="text-lg font-bold">🚀</span>
                 <span>Crash</span>
               </a>
             </Link>
@@ -103,7 +103,7 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
                   ? 'text-white bg-[#5465FF] bg-opacity-20' 
                   : 'text-gray-400 hover:text-white hover:bg-[#2A2A2A]'
               }`} onClick={onClose}>
-                <i className="ri-focus-3-line text-lg text-red-500"></i>
+                <span className="text-lg font-bold">🎯</span>
                 <span>Roulette</span>
               </a>
             </Link>
