@@ -312,11 +312,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const latestInvoice = subscription.latest_invoice as Stripe.Invoice;
       const paymentIntent = latestInvoice.payment_intent as Stripe.PaymentIntent;
       
-      // Save subscription info in our database
+      // Save subscription info in our database with pending status
       await storage.createSubscription({
         userId,
         tier: selectedPlan.tier as "bronze" | "silver" | "gold",
-        status: subscription.status,
+        status: 'incomplete', // Mark as incomplete until payment is confirmed
         stripeSubscriptionId: subscription.id,
         priceId: selectedPlan.priceId,
         priceAmount: selectedPlan.price.toString(),
@@ -327,8 +327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
       });
       
-      // Update user's subscription tier
-      await storage.updateUserSubscriptionTier(userId, selectedPlan.tier);
+      // Don't update user's subscription tier yet - will be done in webhook
       
       res.json({
         subscriptionId: subscription.id,
@@ -382,32 +381,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
         process.env.STRIPE_WEBHOOK_SECRET || 'whsec_test'
       );
       
+      console.log(`Received webhook event: ${event.type}`);
+      
       // Handle the event
       switch (event.type) {
         case 'customer.subscription.created':
-        case 'customer.subscription.updated':
-        case 'customer.subscription.deleted':
-          const subscription = event.data.object as Stripe.Subscription;
-          // Update subscription status in your database
-          console.log(`Subscription ${subscription.id} was ${event.type.split('.')[2]}`);
-          // You would update your database here
+          // Just log this event, we don't need to take action as we already created our record
+          console.log(`Subscription created in Stripe: ${(event.data.object as Stripe.Subscription).id}`);
           break;
+          
+        case 'customer.subscription.updated':
+          const updatedSubscription = event.data.object as Stripe.Subscription;
+          console.log(`Subscription ${updatedSubscription.id} was updated. Status: ${updatedSubscription.status}`);
+          
+          try {
+            // Find the subscription in our database
+            const dbSubscription = await storage.findSubscriptionByStripeId(updatedSubscription.id);
+            
+            if (dbSubscription) {
+              // Update status
+              await storage.updateSubscription(dbSubscription.id, {
+                status: updatedSubscription.status
+              });
+              
+              // Update user subscription tier if the status is active
+              if (updatedSubscription.status === 'active') {
+                await storage.updateUserSubscriptionTier(dbSubscription.userId, dbSubscription.tier);
+                console.log(`User ${dbSubscription.userId} subscription updated to ${dbSubscription.tier}`);
+              } else if (updatedSubscription.status === 'canceled' || updatedSubscription.status === 'unpaid') {
+                // Remove subscription tier if canceled or unpaid
+                await storage.updateUserSubscriptionTier(dbSubscription.userId, null);
+                console.log(`User ${dbSubscription.userId} subscription removed due to status: ${updatedSubscription.status}`);
+              }
+            }
+          } catch (error) {
+            console.error('Error processing subscription update:', error);
+          }
+          break;
+          
+        case 'customer.subscription.deleted':
+          const deletedSubscription = event.data.object as Stripe.Subscription;
+          console.log(`Subscription ${deletedSubscription.id} was deleted`);
+          
+          try {
+            // Find the subscription in our database
+            const dbSubscription = await storage.findSubscriptionByStripeId(deletedSubscription.id);
+            
+            if (dbSubscription) {
+              // Mark as canceled in our database
+              await storage.updateSubscription(dbSubscription.id, {
+                status: 'canceled',
+                endDate: new Date()
+              });
+              
+              // Remove subscription tier from user
+              await storage.updateUserSubscriptionTier(dbSubscription.userId, null);
+              console.log(`User ${dbSubscription.userId} subscription removed due to deletion`);
+            }
+          } catch (error) {
+            console.error('Error processing subscription deletion:', error);
+          }
+          break;
+          
         case 'invoice.payment_succeeded':
           const invoice = event.data.object as Stripe.Invoice;
           if (invoice.subscription) {
-            // Handle successful subscription payment
             console.log(`Payment succeeded for subscription ${invoice.subscription}`);
-            // You would update your database here
+            
+            try {
+              // Find the subscription in our database
+              const dbSubscription = await storage.findSubscriptionByStripeId(invoice.subscription as string);
+              
+              if (dbSubscription) {
+                // Update status to active
+                await storage.updateSubscription(dbSubscription.id, {
+                  status: 'active'
+                });
+                
+                // Update user's subscription tier
+                await storage.updateUserSubscriptionTier(dbSubscription.userId, dbSubscription.tier);
+                console.log(`User ${dbSubscription.userId} subscription activated after payment`);
+              }
+            } catch (error) {
+              console.error('Error processing payment success:', error);
+            }
           }
           break;
+          
         case 'invoice.payment_failed':
           const failedInvoice = event.data.object as Stripe.Invoice;
           if (failedInvoice.subscription) {
-            // Handle failed subscription payment
             console.log(`Payment failed for subscription ${failedInvoice.subscription}`);
-            // You would update your database here
+            
+            try {
+              const dbSubscription = await storage.findSubscriptionByStripeId(failedInvoice.subscription as string);
+              
+              if (dbSubscription) {
+                // Mark as past_due or unpaid in our database
+                await storage.updateSubscription(dbSubscription.id, {
+                  status: 'past_due'
+                });
+                
+                // Remove subscription tier from user if it was previously active
+                if (dbSubscription.status === 'active') {
+                  await storage.updateUserSubscriptionTier(dbSubscription.userId, null);
+                  console.log(`User ${dbSubscription.userId} subscription deactivated due to payment failure`);
+                }
+              }
+            } catch (error) {
+              console.error('Error processing payment failure:', error);
+            }
           }
           break;
+          
         default:
           console.log(`Unhandled event type ${event.type}`);
       }

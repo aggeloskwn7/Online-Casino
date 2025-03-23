@@ -123,6 +123,8 @@ function SubscriptionForm({ clientSecret, onSuccess, onCancel, plan }: { clientS
         variant: "destructive",
       });
       setIsProcessing(false);
+      // Cancel the subscription attempt if payment fails
+      onCancel();
     } else {
       // The payment was successful!
       toast({
