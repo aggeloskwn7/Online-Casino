@@ -58,7 +58,6 @@ export default function BlackjackGame() {
   // Game state
   const [betAmount, setBetAmount] = useState<number>(10);
   const [gameState, setGameState] = useState<BlackjackState | null>(null);
-  const [showOutcomeDialog, setShowOutcomeDialog] = useState(false);
   const [activeHandIndex, setActiveHandIndex] = useState(0);
   const [isDealing, setIsDealing] = useState(false);
   
@@ -105,7 +104,7 @@ export default function BlackjackGame() {
       } else if (data.status === 'dealer-turn' || data.status === 'complete') {
         play('cardDeal');
         
-        // If game is complete, show outcome dialog after dealer animation
+        // If game is complete, play sounds after dealer animation
         if (data.status === 'complete') {
           setTimeout(() => {
             if (data.result === 'win') {
@@ -115,7 +114,6 @@ export default function BlackjackGame() {
             } else {
               play('cardDeal');
             }
-            setShowOutcomeDialog(true);
           }, 1500);
         }
       }
