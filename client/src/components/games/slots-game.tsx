@@ -288,40 +288,49 @@ export default function SlotsGame() {
   
   return (
     <div className="relative" ref={confettiContainerRef}>
-      {/* Vegas-style header with lights */}
-      <div className="relative bg-gradient-to-b from-[#1a1a1a] to-[#121212] p-4 rounded-t-xl border-b-4 border-[#FFD700] overflow-hidden">
+      {/* Compact header with stats and reels in single view */}
+      <div className="relative bg-gradient-to-b from-[#1a1a1a] to-[#121212] p-3 rounded-t-xl border-b-4 border-[#FFD700] overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#FFD700] via-[#FF4500] to-[#FFD700] animate-gradient"></div>
         
-        <div className="flex justify-between items-center mb-3">
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-[#FFD700] to-[#FFA500] bg-clip-text text-transparent flex items-center">
+        {/* Header with Balance and Title */}
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-bold bg-gradient-to-r from-[#FFD700] to-[#FFA500] bg-clip-text text-transparent flex items-center">
             <span className="mr-2">LUCKY SLOTS</span>
-            <Sparkles className="w-5 h-5 text-yellow-500 animate-pulse" />
+            <Sparkles className="w-4 h-4 text-yellow-500 animate-pulse" />
           </h2>
           
-          <div className="flex items-center space-x-2 bg-[#0C0C0C] p-2 rounded-lg shadow-inner">
-            <span className="text-gray-400 text-xs">BALANCE</span>
-            <span className="font-mono font-bold text-[#00E701]">
-              {user ? formatCurrency(user.balance) : '0.00'}
-            </span>
-          </div>
-        </div>
-        
-        <div className="text-center mb-4">
-          <div className="text-sm text-gray-400 mb-1">LAST WIN</div>
-          <div className="font-mono text-xl font-bold text-yellow-500">
-            {lastResult?.isWin && lastResult.payout > 0 
-              ? formatCurrency(lastResult.payout)
-              : '---'
-            }
+          <div className="flex items-center gap-3">
+            {/* Last Win Display */}
+            <div className="bg-[#0C0C0C] px-2 py-1 rounded-lg shadow-inner">
+              <div className="flex items-center gap-1">
+                <span className="text-gray-400 text-xs">LAST WIN:</span>
+                <span className="font-mono font-bold text-yellow-500 text-sm">
+                  {lastResult?.isWin && lastResult.payout > 0 
+                    ? formatCurrency(lastResult.payout)
+                    : '---'
+                  }
+                </span>
+              </div>
+            </div>
+            
+            {/* Balance Display */}
+            <div className="bg-[#0C0C0C] px-2 py-1 rounded-lg shadow-inner">
+              <div className="flex items-center gap-1">
+                <span className="text-gray-400 text-xs">BALANCE:</span>
+                <span className="font-mono font-bold text-[#00E701] text-sm">
+                  {user ? formatCurrency(user.balance) : '0.00'}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
       
-      {/* Premium slot machine container with metallic effect */}
-      <div className="bg-gradient-to-b from-[#333333] to-[#222222] p-6 relative">
-        {/* Slot machine display */}
+      {/* Main content area with slots and bet controls side by side */}
+      <div className="bg-gradient-to-b from-[#333333] to-[#222222] p-3 md:p-4 relative grid md:grid-cols-5 gap-3">
+        {/* Slot machine display - Now takes 3/5 of the space on larger screens */}
         <motion.div 
-          className="relative bg-[#0A0A0A] p-4 rounded-lg mb-6 border-2 border-[#444444] shadow-[0_0_20px_rgba(0,0,0,0.5)]"
+          className="md:col-span-3 relative bg-[#0A0A0A] p-3 rounded-lg border-2 border-[#444444] shadow-[0_0_20px_rgba(0,0,0,0.5)]"
           initial={{ opacity: 1 }}
           animate={{ 
             boxShadow: isSpinning 
@@ -335,7 +344,7 @@ export default function SlotsGame() {
             {[0, 1, 2].map(i => (
               <motion.div
                 key={i}
-                className="w-4 h-4 rounded-full bg-red-600"
+                className="w-3 h-3 rounded-full bg-red-600"
                 animate={{ 
                   opacity: isSpinning ? [0.4, 1, 0.4] : 0.3,
                   scale: isSpinning ? [0.8, 1.1, 0.8] : 1
@@ -349,10 +358,10 @@ export default function SlotsGame() {
             ))}
           </div>
           
-          {/* Slot reels - Made much larger for better visibility */}
-          <div className="grid grid-rows-3 gap-4 mb-3">
+          {/* Slot reels - Main attraction, takes most of the space */}
+          <div className="grid grid-rows-3 gap-2 mb-2">
             {symbols.map((row, rowIndex) => (
-              <div key={rowIndex} className="grid grid-cols-3 gap-4">
+              <div key={rowIndex} className="grid grid-cols-3 gap-2">
                 {row.map((symbol, colIndex) => (
                   <motion.div 
                     key={`${rowIndex}-${colIndex}`} 
@@ -377,9 +386,9 @@ export default function SlotsGame() {
                     {/* Inner border effect */}
                     <div className="absolute inset-0 border border-[#333333] rounded-lg pointer-events-none"></div>
                     
-                    {/* Symbol with subtle bounce effect */}
+                    {/* Symbol with subtle bounce effect - Sized appropriately */}
                     <motion.div 
-                      className="slot-symbol text-7xl md:text-8xl z-10"
+                      className="slot-symbol text-5xl md:text-6xl lg:text-7xl z-10"
                       animate={isCellHighlighted(rowIndex, colIndex) ? { 
                         scale: [1, 1.2, 1],
                         rotate: [0, 5, 0, -5, 0]
@@ -410,107 +419,110 @@ export default function SlotsGame() {
           </div>
           
           {/* Win lines indicators */}
-          <div className="flex justify-between text-xs text-gray-500 px-2 mb-3">
+          <div className="flex justify-between text-xs text-gray-500 px-1">
             <div>LEFT</div>
             <div>CENTER</div>
             <div>RIGHT</div>
           </div>
         </motion.div>
         
-        {/* Bet controls with premium styling */}
-        <div className="bg-[#0A0A0A] p-4 rounded-lg mb-6 border border-[#333333]">
-          <div className="flex justify-between items-center mb-3">
-            <div className="flex flex-col">
-              <span className="text-sm text-gray-400">Bet Amount</span>
-              <span className="font-mono text-xl font-bold text-yellow-500">{formatCurrency(betAmount)}</span>
+        {/* Betting controls - Now takes 2/5 of the space on larger screens */}
+        <div className="md:col-span-2 flex flex-col">
+          {/* Bet controls with premium styling */}
+          <div className="bg-[#0A0A0A] p-3 rounded-lg mb-3 border border-[#333333] flex-grow">
+            <div className="flex justify-between items-center mb-2">
+              <div className="flex flex-col">
+                <span className="text-sm text-gray-400">Bet Amount</span>
+                <span className="font-mono text-xl font-bold text-yellow-500">{formatCurrency(betAmount)}</span>
+              </div>
+              
+              <div className="flex gap-2">
+                <motion.button 
+                  className="w-10 h-10 bg-gradient-to-b from-[#444444] to-[#333333] rounded-full flex items-center justify-center text-white shadow-md"
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => adjustBet(-1)}
+                  disabled={isSpinning}
+                >
+                  <span className="text-lg font-bold">-</span>
+                </motion.button>
+                
+                <motion.button 
+                  className="w-10 h-10 bg-gradient-to-b from-[#444444] to-[#333333] rounded-full flex items-center justify-center text-white shadow-md"
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => adjustBet(1)}
+                  disabled={isSpinning}
+                >
+                  <span className="text-lg font-bold">+</span>
+                </motion.button>
+              </div>
             </div>
             
-            <div className="flex gap-2">
-              <motion.button 
-                className="w-10 h-10 bg-gradient-to-b from-[#444444] to-[#333333] rounded-full flex items-center justify-center text-white shadow-md"
-                whileTap={{ scale: 0.95 }}
-                onClick={() => adjustBet(-1)}
+            {/* Styled slider */}
+            <div className="relative px-1 py-1">
+              <Slider 
+                defaultValue={[1]} 
+                min={0.10} 
+                max={100} 
+                step={0.10}
+                value={[betAmount]}
+                onValueChange={handleBetChange}
                 disabled={isSpinning}
-              >
-                <span className="text-lg font-bold">-</span>
-              </motion.button>
-              
-              <motion.button 
-                className="w-10 h-10 bg-gradient-to-b from-[#444444] to-[#333333] rounded-full flex items-center justify-center text-white shadow-md"
-                whileTap={{ scale: 0.95 }}
-                onClick={() => adjustBet(1)}
-                disabled={isSpinning}
-              >
-                <span className="text-lg font-bold">+</span>
-              </motion.button>
+                className="w-full"
+              />
             </div>
+            
+            {renderBetButtons()}
           </div>
           
-          {/* Styled slider */}
-          <div className="relative px-2 py-1">
-            <Slider 
-              defaultValue={[1]} 
-              min={0.10} 
-              max={100} 
-              step={0.10}
-              value={[betAmount]}
-              onValueChange={handleBetChange}
-              disabled={isSpinning}
-              className="w-full"
-            />
-          </div>
-          
-          {renderBetButtons()}
-        </div>
-        
-        {/* Spin button with premium styling */}
-        <motion.button
-          className={`
-            w-full py-4 rounded-lg font-bold text-lg uppercase relative
-            overflow-hidden shadow-lg
-            ${isSpinning 
-              ? 'bg-gradient-to-r from-[#444444] to-[#555555] text-gray-300' 
-              : 'bg-gradient-to-r from-[#FF4500] to-[#FF8C00] text-white'
-            }
-          `}
-          whileTap={{ scale: 0.98 }}
-          whileHover={isSpinning ? {} : { scale: 1.02 }}
-          disabled={isSpinning || !user || betAmount > Number(user.balance)}
-          onClick={handleSpin}
-        >
-          {/* Animated button content */}
-          <motion.span
-            className="relative z-10 flex items-center justify-center"
-            animate={isSpinning ? { opacity: [1, 0.7, 1] } : {}}
-            transition={{ duration: 1, repeat: isSpinning ? Infinity : 0 }}
+          {/* Spin button with premium styling */}
+          <motion.button
+            className={`
+              w-full py-4 rounded-lg font-bold text-lg uppercase relative
+              overflow-hidden shadow-lg
+              ${isSpinning 
+                ? 'bg-gradient-to-r from-[#444444] to-[#555555] text-gray-300' 
+                : 'bg-gradient-to-r from-[#FF4500] to-[#FF8C00] text-white'
+              }
+            `}
+            whileTap={{ scale: 0.98 }}
+            whileHover={isSpinning ? {} : { scale: 1.02 }}
+            disabled={isSpinning || !user || betAmount > Number(user.balance)}
+            onClick={handleSpin}
           >
-            {isSpinning ? (
-              <>
-                <span className="animate-spin mr-2 inline-block">
-                  <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                </span>
-                <span>SPINNING...</span>
-              </>
-            ) : (
-              <>
-                <span className="mr-2">SPIN</span>
-                <span className="animate-bounce inline-block">🎰</span>
-              </>
+            {/* Animated button content */}
+            <motion.span
+              className="relative z-10 flex items-center justify-center"
+              animate={isSpinning ? { opacity: [1, 0.7, 1] } : {}}
+              transition={{ duration: 1, repeat: isSpinning ? Infinity : 0 }}
+            >
+              {isSpinning ? (
+                <>
+                  <span className="animate-spin mr-2 inline-block">
+                    <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  </span>
+                  <span>SPINNING...</span>
+                </>
+              ) : (
+                <>
+                  <span className="mr-2">SPIN</span>
+                  <span className="animate-bounce inline-block">🎰</span>
+                </>
+              )}
+            </motion.span>
+            
+            {/* Button glow effect */}
+            {!isSpinning && (
+              <motion.div 
+                className="absolute inset-0 bg-white opacity-0"
+                animate={{ opacity: [0, 0.1, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
             )}
-          </motion.span>
-          
-          {/* Button glow effect */}
-          {!isSpinning && (
-            <motion.div 
-              className="absolute inset-0 bg-white opacity-0"
-              animate={{ opacity: [0, 0.1, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            />
-          )}
-        </motion.button>
+          </motion.button>
+        </div>
       </div>
       
       {/* Win message with enhanced animation */}
