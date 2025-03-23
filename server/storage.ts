@@ -5,6 +5,7 @@ import {
   payments,
   loginRewards,
   subscriptions,
+  banAppeals,
   User, 
   InsertUser, 
   Transaction, 
@@ -12,6 +13,10 @@ import {
   CoinTransaction, 
   InsertCoinTransaction,
   AdminUserUpdate,
+  AdminBanUser,
+  BanAppealType,
+  InsertBanAppeal,
+  AdminBanAppealResponse,
   AdminAnnouncement,
   AdminGameConfig,
   AdminMassBonus,
@@ -91,6 +96,17 @@ export interface IStorage {
   getSubscriptionPlans(): Promise<SubscriptionPlan[]>;
   updateUserSubscriptionTier(userId: number, tier: string | null): Promise<User>;
   assignSubscriptionToUser(userId: number, tier: string, durationMonths: number, adminId: number, reason: string): Promise<Subscription>;
+  
+  // Ban management operations
+  banUser(userId: number, adminId: number, reason: string): Promise<User>;
+  unbanUser(userId: number): Promise<User>;
+  getBannedUsers(limit?: number, offset?: number): Promise<User[]>;
+  
+  // Ban appeal operations
+  createBanAppeal(userId: number, reason: string): Promise<BanAppealType>;
+  getBanAppeals(status?: string, limit?: number, offset?: number): Promise<BanAppealType[]>;
+  getUserBanAppeal(userId: number): Promise<BanAppealType | undefined>;
+  respondToBanAppeal(appealId: number, adminId: number, status: string, response: string): Promise<BanAppealType>;
 }
 
 export class DatabaseStorage implements IStorage {

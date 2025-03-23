@@ -15,6 +15,9 @@ export const users = pgTable("users", {
   lastRewardDate: timestamp("last_reward_date"),
   currentLoginStreak: integer("current_login_streak").default(0).notNull(),
   isBanned: boolean("is_banned").default(false).notNull(),
+  banReason: text("ban_reason"),
+  bannedAt: timestamp("banned_at"),
+  bannedBy: integer("banned_by"),
   subscriptionTier: text("subscription_tier").default("none"), // none, bronze, silver, gold
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
@@ -78,6 +81,17 @@ export const subscriptions = pgTable("subscriptions", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const banAppeals = pgTable("ban_appeals", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  reason: text("reason").notNull(), // User's explanation for the appeal
+  status: text("status").default("pending").notNull(), // pending, approved, rejected
+  adminResponse: text("admin_response"), // Admin's response to the appeal
+  adminId: integer("admin_id"), // Admin who responded to the appeal
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -115,6 +129,21 @@ export const adminUserUpdateSchema = z.object({
   isAdmin: z.boolean().optional(),
   isOwner: z.boolean().optional(),
   isBanned: z.boolean().optional(),
+});
+
+export const adminBanUserSchema = z.object({
+  userId: z.number(),
+  banReason: z.string().min(3).max(500),
+});
+
+export const banAppealSchema = z.object({
+  reason: z.string().min(10).max(1000).describe("Explain why your ban should be lifted"),
+});
+
+export const adminBanAppealResponseSchema = z.object({
+  appealId: z.number(),
+  status: z.enum(['approved', 'rejected']),
+  response: z.string().min(3).max(500),
 });
 
 export const adminCoinAdjustmentSchema = z.object({
@@ -192,6 +221,15 @@ export const manageSubscriptionSchema = z.object({
   tier: z.enum(['bronze', 'silver', 'gold']),
 });
 
+export const insertBanAppealSchema = createInsertSchema(banAppeals).omit({
+  id: true,
+  status: true,
+  adminResponse: true,
+  adminId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
@@ -199,6 +237,11 @@ export type Transaction = typeof transactions.$inferSelect;
 export type InsertCoinTransaction = z.infer<typeof insertCoinTransactionSchema>;
 export type CoinTransaction = typeof coinTransactions.$inferSelect;
 export type AdminUserUpdate = z.infer<typeof adminUserUpdateSchema>;
+export type AdminBanUser = z.infer<typeof adminBanUserSchema>;
+export type BanAppeal = z.infer<typeof banAppealSchema>;
+export type AdminBanAppealResponse = z.infer<typeof adminBanAppealResponseSchema>;
+export type InsertBanAppeal = z.infer<typeof insertBanAppealSchema>;
+export type BanAppealType = typeof banAppeals.$inferSelect;
 export type AdminCoinAdjustment = z.infer<typeof adminCoinAdjustmentSchema>;
 export type AdminMassBonus = z.infer<typeof adminMassBonusSchema>;
 export type AdminAnnouncement = z.infer<typeof adminAnnouncementSchema>;
