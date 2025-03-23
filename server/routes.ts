@@ -21,7 +21,7 @@ const coinPackages: CoinPackage[] = [
   {
     id: 'small',
     name: 'Starter Package',
-    coins: 5000,
+    coins: 10000,
     price: 4.99,
     featured: false,
     discount: 0
@@ -29,7 +29,7 @@ const coinPackages: CoinPackage[] = [
   {
     id: 'medium',
     name: 'Popular Package',
-    coins: 15000,
+    coins: 30000,
     price: 9.99,
     featured: true,
     discount: 15
@@ -37,7 +37,7 @@ const coinPackages: CoinPackage[] = [
   {
     id: 'large',
     name: 'Gold Package',
-    coins: 50000,
+    coins: 100000,
     price: 24.99,
     featured: false,
     discount: 20
@@ -45,7 +45,7 @@ const coinPackages: CoinPackage[] = [
   {
     id: 'whale',
     name: 'Whale Package',
-    coins: 150000,
+    coins: 300000,
     price: 49.99,
     featured: false,
     discount: 25
