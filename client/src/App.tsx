@@ -10,6 +10,7 @@ import SlotsPage from "@/pages/slots-page";
 import DicePage from "@/pages/dice-page";
 import CrashPage from "@/pages/crash-page";
 import RoulettePage from "@/pages/roulette-page";
+import BlackjackPage from "@/pages/blackjack-page";
 import { ProtectedRoute } from "./lib/protected-route";
 
 function Router() {
@@ -20,6 +21,7 @@ function Router() {
       <ProtectedRoute path="/dice" component={DicePage} />
       <ProtectedRoute path="/crash" component={CrashPage} />
       <ProtectedRoute path="/roulette" component={RoulettePage} />
+      <ProtectedRoute path="/blackjack" component={BlackjackPage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
