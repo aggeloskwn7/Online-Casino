@@ -33,17 +33,21 @@ const RewardCalendarItem = ({
   // Base classes that will always be applied
   let containerClasses = "p-3 rounded-lg border flex flex-col items-center justify-center text-center";
   let dayIndicatorClasses = "w-8 h-8 rounded-full flex items-center justify-center mb-1";
+  let amountClasses = "text-xs font-medium mt-1";
   
   // Add styling based on day status
   if (isPast) {
-    containerClasses += " bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800";
+    containerClasses += " bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-gray-900 dark:text-gray-100";
     dayIndicatorClasses += " bg-green-500 text-white";
+    amountClasses += " text-green-700 dark:text-green-400";
   } else if (isToday) {
-    containerClasses += " bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700 ring-2 ring-blue-500 dark:ring-blue-400";
+    containerClasses += " bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700 ring-2 ring-blue-500 dark:ring-blue-400 text-gray-900 dark:text-gray-100";
     dayIndicatorClasses += " bg-blue-500 text-white";
+    amountClasses += " text-blue-700 dark:text-blue-400";
   } else if (isFuture) {
-    containerClasses += " border-gray-200 dark:border-gray-800 opacity-70";
+    containerClasses += " bg-gray-50 dark:bg-gray-900/10 border-gray-200 dark:border-gray-800 opacity-70 text-gray-700 dark:text-gray-300";
     dayIndicatorClasses += " bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100";
+    amountClasses += " text-gray-700 dark:text-gray-400";
   }
   
   // Add milestone styling
@@ -52,9 +56,13 @@ const RewardCalendarItem = ({
       dayIndicatorClasses += " bg-yellow-400 dark:bg-yellow-600 text-black dark:text-white";
     }
     containerClasses += " border-yellow-300 dark:border-yellow-700";
+    if (!isPast && !isToday) {
+      amountClasses += " text-yellow-700 dark:text-yellow-400";
+    }
   } else if (!isPast && !isToday && !isFuture) {
     // Default styling for normal future days
     dayIndicatorClasses += " bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100";
+    amountClasses += " text-gray-700 dark:text-gray-400";
   }
 
   return (
@@ -62,7 +70,7 @@ const RewardCalendarItem = ({
       <div className={dayIndicatorClasses}>
         {isPast ? <Check size={16} /> : day}
       </div>
-      <div className="text-xs font-medium mt-1">
+      <div className={amountClasses}>
         {formatCurrency(amount)}
       </div>
       {isMilestone && (
@@ -204,7 +212,7 @@ export default function RewardsPage() {
 
   return (
     <MainLayout>
-      <div className="container max-w-5xl py-8">
+      <div className="w-full max-w-[1400px] px-4 md:px-6 py-8 mx-auto">
         <h1 className="text-3xl font-bold tracking-tight mb-1">Daily Rewards</h1>
         <p className="text-gray-500 dark:text-gray-400 mb-6">
           Log in daily to receive increasing rewards for up to 30 days!
