@@ -30,33 +30,57 @@ export default function MobileNav({ type = 'top', onMenuClick }: MobileNavProps)
     );
   }
   
+  // Create a reusable navigation item component
+  const NavItem = ({ 
+    href, 
+    icon, 
+    emoji = null,
+    label 
+  }: { 
+    href: string; 
+    icon?: string; 
+    emoji?: string | null;
+    label: string; 
+  }) => {
+    const isActive = location === href;
+    const isBlackjack = href === '/blackjack';
+    
+    return (
+      <Link href={href}>
+        <div 
+          className={`relative flex flex-col items-center p-2 cursor-pointer transition-colors duration-200 
+            ${isActive 
+              ? `text-[#5465FF] ${isBlackjack ? 'animate-pulse' : ''}` 
+              : 'text-gray-400 hover:text-gray-200'}`
+          }
+        >
+          <div className="relative">
+            {emoji ? (
+              <span className="text-xl">{emoji}</span>
+            ) : (
+              <i className={`${icon} text-lg`}></i>
+            )}
+            
+            {isActive && isBlackjack && (
+              <span className="absolute -top-2 -right-2 bg-yellow-500 text-[8px] rounded-full px-1 py-0 text-black font-bold">
+                NEW
+              </span>
+            )}
+          </div>
+          <span className="text-xs mt-1">{label}</span>
+        </div>
+      </Link>
+    );
+  };
+
   // Bottom navigation
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#1E1E1E] border-t border-[#333333] flex justify-around py-2 z-10">
-      <Link href="/">
-        <a className={`flex flex-col items-center p-2 ${location === '/' ? 'text-[#5465FF]' : 'text-gray-400'}`}>
-          <i className="ri-home-4-line text-lg"></i>
-          <span className="text-xs mt-1">Home</span>
-        </a>
-      </Link>
-      <Link href="/slots">
-        <a className={`flex flex-col items-center p-2 ${location === '/slots' ? 'text-[#5465FF]' : 'text-gray-400'}`}>
-          <i className="ri-slot-machine-line text-lg"></i>
-          <span className="text-xs mt-1">Slots</span>
-        </a>
-      </Link>
-      <Link href="/dice">
-        <a className={`flex flex-col items-center p-2 ${location === '/dice' ? 'text-[#5465FF]' : 'text-gray-400'}`}>
-          <i className="ri-dice-line text-lg"></i>
-          <span className="text-xs mt-1">Dice</span>
-        </a>
-      </Link>
-      <Link href="/crash">
-        <a className={`flex flex-col items-center p-2 ${location === '/crash' ? 'text-[#5465FF]' : 'text-gray-400'}`}>
-          <i className="ri-rocket-line text-lg"></i>
-          <span className="text-xs mt-1">Crash</span>
-        </a>
-      </Link>
+      <NavItem href="/" icon="ri-home-4-line" label="Home" />
+      <NavItem href="/slots" icon="ri-slot-machine-line" label="Slots" />
+      <NavItem href="/dice" icon="ri-dice-line" label="Dice" />
+      <NavItem href="/crash" icon="ri-rocket-line" label="Crash" />
+      <NavItem href="/blackjack" emoji="♠️" label="Cards" />
     </nav>
   );
 }
