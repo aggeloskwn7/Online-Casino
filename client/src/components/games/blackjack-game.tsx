@@ -18,8 +18,18 @@ import {
   isBusted, 
   isBlackjack 
 } from '@/lib/card-utils';
+
 import { formatCurrency } from '@/lib/game-utils';
 import { Button } from '@/components/ui/button';
+
+// Extended interface for the action payload
+interface BlackjackActionPayload {
+  action?: BlackjackAction;
+  amount: number;
+  handIndex?: number;
+  gameState?: BlackjackState;
+}
+
 import { 
   Card as UICard, 
   CardContent, 
@@ -82,7 +92,7 @@ export default function BlackjackGame() {
   
   // Handle player actions (hit, stand, double, split)
   const actionMutation = useMutation({
-    mutationFn: async (data: BlackjackBet) => {
+    mutationFn: async (data: BlackjackActionPayload) => {
       const res = await apiRequest('POST', '/api/games/blackjack/action', data);
       return await res.json() as BlackjackState;
     },
@@ -167,11 +177,12 @@ export default function BlackjackGame() {
       const activeHand = getActiveHand();
       if (!activeHand) return;
       
-      // Include the amount and current hand index in the request
+      // Include the amount, current hand index and current game state in the request
       actionMutation.mutate({ 
         action, 
         amount: activeHand.bet || 0,
-        handIndex: gameState.currentHandIndex || 0
+        handIndex: gameState.currentHandIndex || 0,
+        gameState: gameState // Pass the entire game state
       });
     }
   };

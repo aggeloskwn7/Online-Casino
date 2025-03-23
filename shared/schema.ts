@@ -165,12 +165,6 @@ export const blackjackHandSchema = z.object({
   bet: z.number().optional(),
 });
 
-export const blackjackBetSchema = z.object({
-  amount: z.number().positive().min(1).max(10000),
-  action: blackjackActionSchema.optional(),
-  handIndex: z.number().int().min(0).optional(),
-});
-
 export const blackjackStateSchema = z.object({
   playerHands: z.array(blackjackHandSchema),
   dealerHand: blackjackHandSchema,
@@ -181,6 +175,12 @@ export const blackjackStateSchema = z.object({
   result: z.enum(['win', 'lose', 'push', 'blackjack', 'surrender']).optional(),
   payout: z.number().optional(),
   isComplete: z.boolean().optional(),
+});
+
+export const blackjackBetSchema = z.object({
+  amount: z.number().positive().min(1).max(10000),
+  action: blackjackActionSchema.optional(),
+  handIndex: z.number().int().min(0).optional(),
 });
 
 // Poker schemas

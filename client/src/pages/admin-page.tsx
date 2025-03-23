@@ -47,6 +47,7 @@ import { formatCurrency } from '@/lib/game-utils';
 // Component for the users tab
 function UsersTab() {
   const { toast } = useToast();
+  const { user: currentUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<any>(null);
