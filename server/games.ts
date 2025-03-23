@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { storage } from "./storage";
-import { betSchema, slotsPayoutSchema, diceRollSchema, crashGameSchema, rouletteBetSchema, rouletteResultSchema } from "@shared/schema";
+import { betSchema, slotsPayoutSchema, diceRollSchema, crashGameSchema, rouletteBetSchema, rouletteResultSchema, RouletteBetType } from "@shared/schema";
 import { z } from "zod";
 
 // Declare global type extension for Request to include user
@@ -593,7 +593,15 @@ export async function playRoulette(req: Request, res: Response) {
     
     // Process each bet
     for (const bet of bets) {
-      const { amount, type, numbers } = bet;
+      // Make sure we destructure bet correctly, with validation to avoid "Cannot read properties of undefined (reading 'toString')"
+      if (!bet || typeof bet !== 'object') {
+        console.error("Invalid bet object:", bet);
+        continue;
+      }
+      
+      const amount = bet.amount;
+      const type = bet.type;
+      const numbers = bet.numbers || [];
       let isWin = false;
       
       // Determine if this specific bet is a win
