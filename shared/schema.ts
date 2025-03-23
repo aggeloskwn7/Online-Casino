@@ -145,6 +145,14 @@ export const adminGameConfigSchema = z.object({
   config: z.record(z.any()), // Game-specific configuration as key-value pairs
 });
 
+// Schema for admin assigning subscription to user
+export const adminAssignSubscriptionSchema = z.object({
+  userId: z.number(),
+  tier: z.enum(['bronze', 'silver', 'gold']),
+  durationMonths: z.number().min(1).max(12),
+  reason: z.string().min(3).max(100)
+});
+
 // Schema for coin purchase packages
 export const coinPackageSchema = z.object({
   id: z.string(),
@@ -189,6 +197,7 @@ export type AdminCoinAdjustment = z.infer<typeof adminCoinAdjustmentSchema>;
 export type AdminMassBonus = z.infer<typeof adminMassBonusSchema>;
 export type AdminAnnouncement = z.infer<typeof adminAnnouncementSchema>;
 export type AdminGameConfig = z.infer<typeof adminGameConfigSchema>;
+export type AdminAssignSubscription = z.infer<typeof adminAssignSubscriptionSchema>;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type Payment = typeof payments.$inferSelect;
 export type InsertLoginReward = z.infer<typeof insertLoginRewardSchema>;
