@@ -188,7 +188,6 @@ export default function BlackjackGame() {
   // Reset game state for a new game
   const handleNewGame = () => {
     setGameState(null);
-    setShowOutcomeDialog(false);
   };
   
   // Get the active hand from game state
