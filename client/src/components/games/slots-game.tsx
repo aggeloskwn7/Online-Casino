@@ -24,6 +24,7 @@ export default function SlotsGame() {
   ]);
   const [isSpinning, setIsSpinning] = useState(false);
   const [lastResult, setLastResult] = useState<SlotsPayout | null>(null);
+  const [displayedLastWin, setDisplayedLastWin] = useState<number | null>(null);
   const [highlightedCells, setHighlightedCells] = useState<[number, number][]>([]);
   const [showWinMessage, setShowWinMessage] = useState(false);
   
@@ -149,6 +150,11 @@ export default function SlotsGame() {
             play('lose', { volume: 0.4 });
           }
           
+          // Only update the displayed last win amount after animation completes
+          if (lastResult?.isWin && lastResult.payout > 0) {
+            setDisplayedLastWin(lastResult.payout);
+          }
+          
           setShowWinMessage(true);
         }, 300);
       }
@@ -176,6 +182,9 @@ export default function SlotsGame() {
     setIsSpinning(true);
     setHighlightedCells([]); // Clear any highlighted cells
     setShowWinMessage(false); // Hide win message while spinning
+    
+    // Don't update the displayed last win until after the animation completes
+    // This way, the "LAST WIN" display won't change during the spin animation
     
     // Make API call
     slotsMutation.mutate(betAmount);
@@ -305,8 +314,8 @@ export default function SlotsGame() {
               <div className="flex items-center gap-1">
                 <span className="text-gray-400 text-xs">LAST WIN:</span>
                 <span className="font-mono font-bold text-yellow-500 text-sm">
-                  {lastResult?.isWin && lastResult.payout > 0 
-                    ? formatCurrency(lastResult.payout)
+                  {displayedLastWin !== null
+                    ? formatCurrency(displayedLastWin)
                     : '---'
                   }
                 </span>
@@ -529,7 +538,13 @@ export default function SlotsGame() {
       <AnimatePresence>
         {lastResult && lastResult.isWin && lastResult.payout > betAmount && showWinMessage && (
           <motion.div 
-            className="mt-6 p-5 bg-gradient-to-r from-[#2A2A2A] to-[#1A1A1A] rounded-lg text-center border-2 border-[#FFD700] relative overflow-hidden"
+            className={`mt-6 p-5 rounded-lg text-center relative overflow-hidden
+              ${lastResult?.multiplier >= 10 
+                ? 'bg-gradient-to-r from-[#2A2A2A] via-[#3A1A1A] to-[#2A2A2A] border-4 border-[#FF4500]' 
+                : lastResult?.multiplier >= 5
+                  ? 'bg-gradient-to-r from-[#2A2A2A] to-[#1A1A1A] border-3 border-[#FFD700]' 
+                  : 'bg-gradient-to-r from-[#2A2A2A] to-[#1A1A1A] border-2 border-[#FFD700]'
+              }`}
             initial={{ opacity: 0, y: 20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
@@ -569,16 +584,30 @@ export default function SlotsGame() {
             {/* Content */}
             <div className="relative z-10">
               <motion.div 
-                className="text-2xl font-bold mb-3 text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] to-[#FFA500]"
+                className={`text-2xl font-bold mb-3 text-transparent bg-clip-text 
+                  ${lastResult?.multiplier >= 10 
+                    ? 'bg-gradient-to-r from-[#FF4500] via-[#FFD700] to-[#FF4500] text-3xl'
+                    : lastResult?.multiplier >= 5
+                      ? 'bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-2xl'
+                      : 'bg-gradient-to-r from-[#FFA500] to-[#FFD700] text-xl'
+                  }`}
                 initial={{ scale: 0.8 }}
                 animate={{ scale: [1, 1.1, 1] }}
                 transition={{ duration: 0.8, repeat: 2, repeatType: "reverse" }}
               >
-                BIG WIN!
+                {lastResult?.multiplier >= 10 ? 'MEGA WIN!' : 
+                 lastResult?.multiplier >= 5 ? 'BIG WIN!' : 
+                 lastResult?.multiplier >= 2 ? 'GREAT WIN!' : 'YOU WON!'}
               </motion.div>
               
               <motion.div 
-                className="font-mono text-3xl font-bold text-white mb-2"
+                className={`font-mono font-bold mb-2
+                  ${lastResult?.multiplier >= 10 
+                    ? 'text-4xl text-yellow-400 animate-pulse-glow' 
+                    : lastResult?.multiplier >= 5
+                      ? 'text-3xl text-yellow-300' 
+                      : 'text-2xl text-white'
+                  }`}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1, y: [10, 0] }}
                 transition={{ delay: 0.3, duration: 0.5 }}
