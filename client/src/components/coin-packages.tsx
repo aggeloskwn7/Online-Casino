@@ -54,7 +54,7 @@ export default function CoinPackages({ onSelectPackage }: CoinPackagesProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 w-full overflow-x-hidden">
       {packages && packages.map((pkg: CoinPackage) => {
         const isSelected = selectedPackageId === pkg.id;
         const originalPrice = pkg.discount ? (pkg.price / (1 - pkg.discount / 100)).toFixed(2) : pkg.price.toFixed(2);

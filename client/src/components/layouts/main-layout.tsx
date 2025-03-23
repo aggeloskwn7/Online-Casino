@@ -32,12 +32,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
       </div>
       
       {/* Main content */}
-      <div className="flex-grow lg:ml-64">
+      <div className="flex-grow lg:ml-64 w-full">
         {/* Top Nav (Mobile & Tablet) */}
         <MobileNav onMenuClick={toggleMobileMenu} />
         
         {/* Main content area */}
-        <main className="p-4 md:p-6 lg:p-8 pb-20 lg:pb-8">
+        <main className="pb-20 lg:pb-8 w-full overflow-x-hidden">
           {children}
         </main>
         

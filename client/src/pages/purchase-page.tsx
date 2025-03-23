@@ -75,7 +75,7 @@ export function PurchasePage() {
   };
 
   return (
-    <div className="container max-w-7xl py-6">
+    <div className="w-full max-w-full py-6 px-4 md:px-6">
       {/* Top navigation bar */}
       <div className="flex justify-between items-center mb-8">
         <Button 
