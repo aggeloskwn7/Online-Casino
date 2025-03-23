@@ -137,7 +137,7 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
         </div>
         
         {user && (
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 rounded-full bg-[#5465FF] flex items-center justify-center">
                 <span className="text-sm font-medium">
@@ -167,6 +167,16 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
             </button>
           </div>
         )}
+        
+        {/* Legal links */}
+        <div className="flex justify-center space-x-4 text-xs text-gray-400">
+          <Link href="/privacy-policy" onClick={onClose}>
+            <span className="hover:text-white hover:underline">Privacy Policy</span>
+          </Link>
+          <Link href="/terms-of-service" onClick={onClose}>
+            <span className="hover:text-white hover:underline">Terms of Service</span>
+          </Link>
+        </div>
       </div>
     </div>
   );

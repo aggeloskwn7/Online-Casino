@@ -268,7 +268,7 @@ export function PurchasePage() {
           </div>
         </CardContent>
         <CardFooter className="pt-0 text-xs text-muted-foreground">
-          By making a purchase, you agree to our <Link to="/terms-of-service" className="text-primary hover:underline">Terms of Service</Link> and <Link to="/privacy-policy" className="text-primary hover:underline">Privacy Policy</Link>.
+          By making a purchase, you agree to our <a href="/terms-of-service" className="text-primary hover:underline">Terms of Service</a> and <a href="/privacy-policy" className="text-primary hover:underline">Privacy Policy</a>.
         </CardFooter>
       </Card>
     </div>
