@@ -46,6 +46,12 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
           return res.status(401).json({ message: "Unauthorized" });
         }
         
+        // Check if user is banned
+        if (user.isBanned) {
+          console.log("Auth middleware: Banned user attempted access:", user.username);
+          return res.status(403).json({ message: "Account banned" });
+        }
+        
         // Attach user to request
         req.user = user;
         next();
@@ -58,6 +64,36 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
     console.error("Token validation error:", error);
     res.status(401).json({ message: "Unauthorized" });
   }
+}
+
+// Admin-only middleware - must come after authMiddleware
+export function adminMiddleware(req: Request, res: Response, next: NextFunction) {
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  
+  if (!req.user.isAdmin) {
+    console.log("Admin access denied for user:", req.user.username);
+    return res.status(403).json({ message: "Admin access required" });
+  }
+  
+  console.log("Admin access granted for:", req.user.username);
+  next();
+}
+
+// Owner-only middleware - must come after authMiddleware
+export function ownerMiddleware(req: Request, res: Response, next: NextFunction) {
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  
+  if (!req.user.isOwner) {
+    console.log("Owner access denied for user:", req.user.username);
+    return res.status(403).json({ message: "Owner access required" });
+  }
+  
+  console.log("Owner access granted for:", req.user.username);
+  next();
 }
 
 export function setupAuth(app: Express) {

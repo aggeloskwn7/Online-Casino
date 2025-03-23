@@ -8,6 +8,11 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   balance: decimal("balance", { precision: 10, scale: 2 }).default("10000").notNull(),
   playCount: integer("play_count").default(0).notNull(),
+  isAdmin: boolean("is_admin").default(false).notNull(),
+  isOwner: boolean("is_owner").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastLogin: timestamp("last_login").defaultNow().notNull(),
+  isBanned: boolean("is_banned").default(false).notNull(),
 });
 
 export const transactions = pgTable("transactions", {
@@ -23,6 +28,15 @@ export const transactions = pgTable("transactions", {
   gameData: text("game_data"),
 });
 
+export const coinTransactions = pgTable("coin_transactions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(), // Positive for adding coins, negative for removing
+  reason: text("reason").notNull(),
+  adminId: integer("admin_id").notNull(), // Admin who performed the action
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -33,10 +47,32 @@ export const insertTransactionSchema = createInsertSchema(transactions).omit({
   timestamp: true,
 });
 
+export const insertCoinTransactionSchema = createInsertSchema(coinTransactions).omit({
+  id: true,
+  timestamp: true,
+});
+
+// Admin operation schemas
+export const adminUserUpdateSchema = z.object({
+  isAdmin: z.boolean().optional(),
+  isOwner: z.boolean().optional(),
+  isBanned: z.boolean().optional(),
+});
+
+export const adminCoinAdjustmentSchema = z.object({
+  username: z.string(),
+  amount: z.number(), // Can be negative for removing coins
+  reason: z.string().min(1).max(500),
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type Transaction = typeof transactions.$inferSelect;
+export type InsertCoinTransaction = z.infer<typeof insertCoinTransactionSchema>;
+export type CoinTransaction = typeof coinTransactions.$inferSelect;
+export type AdminUserUpdate = z.infer<typeof adminUserUpdateSchema>;
+export type AdminCoinAdjustment = z.infer<typeof adminCoinAdjustmentSchema>;
 
 // Game related schemas
 export const betSchema = z.object({
