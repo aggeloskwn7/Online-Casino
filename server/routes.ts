@@ -20,7 +20,8 @@ import {
   CoinPackage, 
   subscriptionPlanSchema, 
   manageSubscriptionSchema,
-  SubscriptionPlan 
+  SubscriptionPlan,
+  banAppealSchema
 } from '@shared/schema';
 
 // Define our coin packages

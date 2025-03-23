@@ -115,41 +115,52 @@ export function setupAdminRoutes(app: Express) {
   });
   
   // Ban or unban a user (admin only)
-  app.patch("/api/admin/users/:userId/ban", authMiddleware, adminMiddleware, async (req, res) => {
+  app.post("/api/admin/users/:userId/ban", authMiddleware, adminMiddleware, async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
-      const { isBanned } = req.body;
       
-      if (typeof isBanned !== 'boolean') {
-        return res.status(400).json({ message: "isBanned field must be a boolean" });
-      }
+      // Validate request body against schema
+      const banData = adminBanUserSchema.parse(req.body);
       
-      // Prevent admin from banning themselves or an owner
+      // Prevent admin from banning themselves
       if (userId === req.user?.id) {
         return res.status(403).json({ message: "Cannot ban yourself" });
       }
       
-      // Check if target user is an owner
-      const targetUser = await storage.getUser(userId);
-      if (!targetUser) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      if (targetUser.isOwner) {
-        return res.status(403).json({ message: "Cannot ban an owner" });
-      }
-      
-      // Update user ban status
-      const updatedUser = await storage.updateUserAdminStatus(userId, { isBanned });
+      // Ban the user with reason
+      const updatedUser = await storage.banUser(userId, req.user!.id, banData.banReason);
       
       // Remove password from user object before sending
       const { password, ...safeUser } = updatedUser;
       
       res.json({ user: safeUser });
     } catch (error) {
-      console.error("Error updating user ban status:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input data", errors: error.errors });
+      }
+      
+      console.error("Error banning user:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      res.status(500).json({ message: "Failed to update user ban status", error: errorMessage });
+      res.status(500).json({ message: "Failed to ban user", error: errorMessage });
+    }
+  });
+  
+  // Unban a user (admin only)
+  app.post("/api/admin/users/:userId/unban", authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      // Unban the user
+      const updatedUser = await storage.unbanUser(userId);
+      
+      // Remove password from user object before sending
+      const { password, ...safeUser } = updatedUser;
+      
+      res.json({ user: safeUser });
+    } catch (error) {
+      console.error("Error unbanning user:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Failed to unban user", error: errorMessage });
     }
   });
 
@@ -635,6 +646,77 @@ export function setupAdminRoutes(app: Express) {
       console.error("Error removing subscription:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       res.status(500).json({ message: "Failed to remove subscription", error: errorMessage });
+    }
+  });
+  
+  // === BAN MANAGEMENT ENDPOINTS ===
+  
+  // Get all banned users (admin only)
+  app.get("/api/admin/banned-users", authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+      const page = req.query.page ? parseInt(req.query.page as string) : 1;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      const offset = (page - 1) * limit;
+      
+      const bannedUsers = await storage.getBannedUsers(limit, offset);
+      
+      // Remove passwords from user objects before sending
+      const safeBannedUsers = bannedUsers.map(user => {
+        const { password, ...safeUser } = user;
+        return safeUser;
+      });
+      
+      res.json({ users: safeBannedUsers });
+    } catch (error) {
+      console.error("Error fetching banned users:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Failed to fetch banned users", error: errorMessage });
+    }
+  });
+  
+  // Get all ban appeals (admin only)
+  app.get("/api/admin/ban-appeals", authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+      const status = req.query.status as string | undefined;
+      const page = req.query.page ? parseInt(req.query.page as string) : 1;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      const offset = (page - 1) * limit;
+      
+      const appeals = await storage.getBanAppeals(status, limit, offset);
+      
+      res.json({ appeals });
+    } catch (error) {
+      console.error("Error fetching ban appeals:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Failed to fetch ban appeals", error: errorMessage });
+    }
+  });
+  
+  // Respond to a ban appeal (admin only)
+  app.post("/api/admin/ban-appeals/:appealId/respond", authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+      const appealId = parseInt(req.params.appealId);
+      
+      // Validate request body
+      const responseData = adminBanAppealResponseSchema.parse(req.body);
+      
+      // Update the appeal with admin response
+      const updatedAppeal = await storage.respondToBanAppeal(
+        appealId,
+        req.user!.id,
+        responseData.status,
+        responseData.response
+      );
+      
+      res.json({ appeal: updatedAppeal });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input data", errors: error.errors });
+      }
+      
+      console.error("Error responding to ban appeal:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Failed to respond to ban appeal", error: errorMessage });
     }
   });
 }
