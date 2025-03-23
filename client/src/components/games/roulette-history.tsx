@@ -7,10 +7,12 @@ import { Transaction, RouletteResult } from "@shared/schema";
 import { ROULETTE_COLORS } from "@/lib/game-utils";
 
 export default function RouletteHistory() {
-  // Fetch the roulette game transactions
+  // Fetch the roulette game transactions with a short polling interval to keep history updated
   const { data: transactions, isLoading } = useQuery<Transaction[]>({
     queryKey: ["/api/transactions"],
     queryFn: getQueryFn({ on401: "returnNull" }),
+    refetchInterval: 3000, // Refetch every 3 seconds to update game history
+    refetchOnWindowFocus: true,
   });
 
   if (isLoading) {

@@ -52,6 +52,11 @@ export default function RouletteGame({ onSpin }: RouletteGameProps) {
   const [showWinMessage, setShowWinMessage] = useState(false);
   const [activeTab, setActiveTab] = useState('inside');
   
+  // State for the new outside betting system
+  const [selectedOutsideBets, setSelectedOutsideBets] = useState<{
+    [key in RouletteBetType]?: number[];
+  }>({});
+  
   // Calculate total bet amount and potential profit
   const totalBetAmount = activeBets.reduce((total, bet) => total + bet.amount, 0) + betAmount;
   
@@ -212,41 +217,54 @@ export default function RouletteGame({ onSpin }: RouletteGameProps) {
     return rows;
   };
   
+  // Function to handle outside bet clicks
+  const handleOutsideBetClick = (betType: RouletteBetType, numbers: number[]) => {
+    if (isSpinning) return;
+    
+    // Check if the bet already exists
+    const existingBetIndex = activeBets.findIndex(bet => bet.type === betType);
+    
+    if (existingBetIndex !== -1) {
+      // Remove the bet if it already exists
+      const newBets = [...activeBets];
+      newBets.splice(existingBetIndex, 1);
+      setActiveBets(newBets);
+      
+      toast({
+        title: 'Bet removed',
+        description: `${betType} bet has been removed`,
+      });
+    } else {
+      // Add the bet if it doesn't exist
+      if (betAmount <= 0) {
+        toast({
+          title: 'Invalid bet amount',
+          description: 'Please enter a bet amount greater than 0',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      const newBet: Bet = {
+        type: betType,
+        numbers: [...numbers],
+        amount: betAmount
+      };
+      
+      setActiveBets([...activeBets, newBet]);
+      
+      toast({
+        title: 'Bet added',
+        description: `${betType} bet for ${formatCurrency(betAmount)} added`,
+      });
+    }
+  };
+  
   // Outside bets (red/black, odd/even, etc.)
   const renderOutsideBets = () => {
     // Helper to determine if an outside bet is active in the active bets list
     const isBetActive = (betType: RouletteBetType) => {
       return activeBets.some(bet => bet.type === betType);
-    };
-    
-    // Function to handle clicking an outside bet option
-    const handleOutsideBetClick = (betType: RouletteBetType, numbers: number[]) => {
-      if (isSpinning) return;
-      
-      // Check if the bet already exists
-      if (isBetActive(betType)) {
-        // Remove the bet if it already exists
-        setActiveBets(activeBets.filter(bet => bet.type !== betType));
-        
-        toast({
-          title: 'Bet removed',
-          description: `${betType} bet has been removed`,
-        });
-      } else {
-        // Add the bet if it doesn't exist
-        const newBet: Bet = {
-          type: betType,
-          numbers: [...numbers],
-          amount: betAmount
-        };
-        
-        setActiveBets([...activeBets, newBet]);
-        
-        toast({
-          title: 'Bet added',
-          description: `${betType} bet for ${formatCurrency(betAmount)} added`,
-        });
-      }
     };
     
     // Get all red numbers
@@ -657,12 +675,15 @@ export default function RouletteGame({ onSpin }: RouletteGameProps) {
       onSpin();
     }
     
+    // If no bets are placed, throw an error
     if (!hasActiveBets && !hasCurrentSelection) {
+      // This is an error condition - force an error toast
       toast({
-        title: 'No bets placed',
-        description: 'Please place at least one bet',
+        title: 'No Bets Placed',
+        description: 'You must place at least one bet before spinning',
         variant: 'destructive',
       });
+      
       return;
     }
     
