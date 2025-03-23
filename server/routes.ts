@@ -15,7 +15,13 @@ import {
   blackjackAction
 } from "./games";
 import Stripe from 'stripe';
-import { createPaymentIntentSchema, CoinPackage } from '@shared/schema';
+import { 
+  createPaymentIntentSchema, 
+  CoinPackage, 
+  subscriptionPlanSchema, 
+  manageSubscriptionSchema,
+  SubscriptionPlan 
+} from '@shared/schema';
 
 // Define our coin packages
 const coinPackages: CoinPackage[] = [

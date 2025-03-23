@@ -4,6 +4,7 @@ import {
   coinTransactions, 
   payments,
   loginRewards,
+  subscriptions,
   User, 
   InsertUser, 
   Transaction, 
@@ -17,7 +18,10 @@ import {
   Payment,
   InsertPayment,
   LoginReward,
-  InsertLoginReward
+  InsertLoginReward,
+  Subscription,
+  InsertSubscription,
+  SubscriptionPlan
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql, like } from "drizzle-orm";
@@ -77,6 +81,14 @@ export interface IStorage {
   createSupportTicket(userId: number, subject: string, message: string): Promise<any>;
   addSupportTicketReply(ticketId: number, userId: number, message: string, isAdmin: boolean): Promise<any>;
   updateSupportTicketStatus(ticketId: number, status: string): Promise<any | undefined>;
+  
+  // Subscription operations
+  createSubscription(subscription: InsertSubscription): Promise<Subscription>;
+  getUserSubscription(userId: number): Promise<Subscription | undefined>;
+  updateSubscription(id: number, updates: Partial<Subscription>): Promise<Subscription>;
+  cancelSubscription(id: number): Promise<Subscription>;
+  getSubscriptionPlans(): Promise<SubscriptionPlan[]>;
+  updateUserSubscriptionTier(userId: number, tier: string | null): Promise<User>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -612,6 +624,125 @@ export class DatabaseStorage implements IStorage {
     this.supportTickets[ticketIndex].updatedAt = new Date();
     
     return this.supportTickets[ticketIndex];
+  }
+  
+  // === SUBSCRIPTION OPERATIONS ===
+  async createSubscription(subscription: InsertSubscription): Promise<Subscription> {
+    const [newSubscription] = await db
+      .insert(subscriptions)
+      .values(subscription)
+      .returning();
+    
+    // Update the user's subscription tier
+    await this.updateUserSubscriptionTier(subscription.userId, subscription.tier);
+    
+    return newSubscription;
+  }
+  
+  async getUserSubscription(userId: number): Promise<Subscription | undefined> {
+    const [subscription] = await db
+      .select()
+      .from(subscriptions)
+      .where(eq(subscriptions.userId, userId))
+      .orderBy(desc(subscriptions.createdAt))
+      .limit(1);
+    
+    return subscription;
+  }
+  
+  async updateSubscription(id: number, updates: Partial<Subscription>): Promise<Subscription> {
+    const [updatedSubscription] = await db
+      .update(subscriptions)
+      .set({ 
+        ...updates,
+        updatedAt: new Date() 
+      })
+      .where(eq(subscriptions.id, id))
+      .returning();
+    
+    if (!updatedSubscription) {
+      throw new Error("Subscription not found");
+    }
+    
+    // If tier is being updated, update the user's subscriptionTier as well
+    if (updates.tier && updatedSubscription.userId) {
+      await this.updateUserSubscriptionTier(updatedSubscription.userId, updates.tier);
+    }
+    
+    // If subscription is canceled, update user's subscription tier to null
+    if (updates.status === 'canceled' && updatedSubscription.userId) {
+      await this.updateUserSubscriptionTier(updatedSubscription.userId, null);
+    }
+    
+    return updatedSubscription;
+  }
+  
+  async cancelSubscription(id: number): Promise<Subscription> {
+    return this.updateSubscription(id, { 
+      status: 'canceled',
+      canceledAt: new Date()
+    });
+  }
+  
+  async getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+    // Define the available subscription plans
+    return [
+      {
+        id: 'bronze',
+        name: 'Bronze',
+        price: 2.99,
+        features: [
+          '300 daily coins',
+          'Bronze VIP badge',
+          'Basic support'
+        ],
+        stripePriceId: process.env.STRIPE_PRICE_ID_BRONZE
+      },
+      {
+        id: 'silver',
+        name: 'Silver',
+        price: 5.99,
+        features: [
+          '600 daily coins',
+          'Silver VIP badge',
+          '1.1x reward multiplier',
+          'Ad-free experience',
+          'Priority support'
+        ],
+        stripePriceId: process.env.STRIPE_PRICE_ID_SILVER
+      },
+      {
+        id: 'gold',
+        name: 'Gold',
+        price: 9.99,
+        features: [
+          '1000 daily coins',
+          'Gold VIP badge',
+          '1.25x reward multiplier',
+          'Ad-free experience',
+          'Access to premium games',
+          'Premium support'
+        ],
+        stripePriceId: process.env.STRIPE_PRICE_ID_GOLD
+      }
+    ];
+  }
+  
+  async updateUserSubscriptionTier(userId: number, tier: string | null): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({ 
+        subscriptionTier: tier,
+        updatedAt: new Date() 
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    if (!updatedUser) {
+      throw new Error("User not found");
+    }
+    
+    return updatedUser;
   }
 }
 
