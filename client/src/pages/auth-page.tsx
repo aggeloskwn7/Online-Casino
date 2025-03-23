@@ -148,18 +148,20 @@ export default function AuthPage() {
                         control={loginForm.control}
                         name="rememberMe"
                         render={({ field }) => (
-                          <FormItem className="flex flex-row items-center space-x-2">
-                            <FormControl>
-                              <Checkbox 
-                                checked={field.value} 
-                                onCheckedChange={field.onChange}
-                                className="data-[state=checked]:bg-[#5465FF] translate-y-0"
-                              />
-                            </FormControl>
-                            <Label htmlFor="remember" className="text-sm text-gray-400 cursor-pointer">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox 
+                              id="rememberMe"
+                              checked={field.value} 
+                              onCheckedChange={field.onChange}
+                              className="data-[state=checked]:bg-[#5465FF]"
+                            />
+                            <Label 
+                              htmlFor="rememberMe" 
+                              className="text-sm text-gray-400 cursor-pointer leading-none"
+                            >
                               Remember me
                             </Label>
-                          </FormItem>
+                          </div>
                         )}
                       />
                       
@@ -242,21 +244,23 @@ export default function AuthPage() {
                       control={registerForm.control}
                       name="agreeTerms"
                       render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-2">
-                          <FormControl>
+                        <div className="space-y-2">
+                          <div className="flex items-start space-x-2">
                             <Checkbox 
+                              id="agreeTerms"
                               checked={field.value} 
                               onCheckedChange={field.onChange}
-                              className="data-[state=checked]:bg-[#5465FF] translate-y-0 mt-0.5"
+                              className="data-[state=checked]:bg-[#5465FF] mt-0.5"
                             />
-                          </FormControl>
-                          <div className="space-y-1">
-                            <Label className="text-sm text-gray-400 cursor-pointer">
+                            <Label 
+                              htmlFor="agreeTerms" 
+                              className="text-sm text-gray-400 cursor-pointer"
+                            >
                               I agree to the Terms and Conditions and Privacy Policy
                             </Label>
-                            <FormMessage />
                           </div>
-                        </FormItem>
+                          <FormMessage className="ml-6" />
+                        </div>
                       )}
                     />
                     
