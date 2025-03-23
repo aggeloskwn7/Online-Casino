@@ -218,6 +218,65 @@ export default function RewardsPage() {
           Log in daily to receive increasing rewards for up to 30 days!
         </p>
 
+        {/* VIP Subscription Banner - only show if user doesn't have subscription */}
+        {!user?.subscriptionTier && (
+          <div className="mb-8">
+            <Card className="border-amber-500 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950 dark:to-yellow-950">
+              <CardContent className="p-6">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-xl font-bold flex items-center text-amber-800 dark:text-amber-400">
+                      <span className="bg-amber-100 dark:bg-amber-900 p-1.5 rounded-md mr-2 flex">
+                        <Trophy className="h-5 w-5 text-yellow-600 dark:text-yellow-500" />
+                      </span>
+                      Boost Your Daily Rewards with VIP
+                    </h3>
+                    <p className="mt-2 text-amber-800/80 dark:text-amber-400/80 max-w-xl">
+                      Unlock up to <span className="font-bold">1000 coins daily</span> and get up to <span className="font-bold">1.25x reward multipliers</span> with our VIP subscription plans.
+                    </p>
+                    
+                    <div className="mt-4 flex flex-wrap gap-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-amber-700/20 flex items-center justify-center">
+                          <span className="text-xs font-bold text-amber-700">B</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-amber-900 dark:text-amber-300">Bronze</p>
+                          <p className="text-xs text-amber-800/70 dark:text-amber-400/70">300 coins daily</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-gray-300/30 flex items-center justify-center">
+                          <span className="text-xs font-bold text-gray-500">S</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Silver</p>
+                          <p className="text-xs text-gray-600/70 dark:text-gray-400/70">600 coins daily + 1.1x</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-yellow-400/20 flex items-center justify-center">
+                          <span className="text-xs font-bold text-yellow-600">G</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-yellow-700 dark:text-yellow-400">Gold</p>
+                          <p className="text-xs text-yellow-600/70 dark:text-yellow-500/70">1000 coins daily + 1.25x</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Button variant="default" className="bg-amber-600 hover:bg-amber-500 text-white" asChild>
+                    <a href="/subscriptions">Upgrade to VIP</a>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      
         {/* Daily login reward card */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="md:col-span-2">

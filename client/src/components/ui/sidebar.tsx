@@ -93,6 +93,7 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
             <NavLink href="/history" icon="ri-history-line" label="History" />
             <NavLink href="/rewards" icon="ri-gift-2-line text-pink-500" label="Daily Rewards" />
             <NavLink href="/purchase" icon="ri-coins-line text-yellow-500" label="Buy Coins" />
+            <NavLink href="/subscriptions" icon="ri-vip-crown-2-line text-amber-500" label="VIP Subscriptions" />
             {user?.isAdmin && (
               <NavLink 
                 href="/admin" 
@@ -147,6 +148,15 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
                 <span className="font-medium">{user.username}</span>
                 {user.isOwner && <span className="text-xs text-purple-400">Owner</span>}
                 {user.isAdmin && !user.isOwner && <span className="text-xs text-blue-400">Admin</span>}
+                {user.subscriptionTier && (
+                  <span className={`text-xs font-semibold ${
+                    user.subscriptionTier === 'bronze' ? 'text-amber-700' :
+                    user.subscriptionTier === 'silver' ? 'text-gray-400' :
+                    'text-yellow-500'
+                  }`}>
+                    {user.subscriptionTier.charAt(0).toUpperCase() + user.subscriptionTier.slice(1)} VIP
+                  </span>
+                )}
               </div>
             </div>
             <button 

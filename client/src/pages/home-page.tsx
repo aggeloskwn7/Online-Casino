@@ -28,6 +28,44 @@ export default function HomePage() {
           </div>
         </div>
         
+        {/* VIP Membership Banner */}
+        {!user?.subscriptionTier && (
+          <div className="mb-10">
+            <div className="bg-gradient-to-r from-amber-900 to-yellow-800 border border-amber-700 p-6 rounded-xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-yellow-500 opacity-10 rounded-full -mr-16 -mt-16"></div>
+              <div className="absolute bottom-0 left-0 w-32 h-32 bg-amber-700 opacity-10 rounded-full -ml-10 -mb-10"></div>
+              
+              <div className="relative">
+                <div className="flex items-center mb-2">
+                  <i className="ri-vip-crown-2-line text-yellow-500 text-2xl mr-2"></i>
+                  <h2 className="text-xl md:text-2xl font-heading font-bold">Upgrade to VIP Membership</h2>
+                </div>
+                <p className="text-amber-100 max-w-xl mb-4">Enjoy exclusive benefits including daily coin bonuses, reward multipliers, and VIP status badges!</p>
+                <div className="flex flex-wrap gap-3 mb-4">
+                  <div className="flex items-center px-3 py-1 bg-black bg-opacity-30 rounded-full">
+                    <i className="ri-coin-line text-yellow-500 mr-1"></i>
+                    <span className="text-sm">Daily Coins</span>
+                  </div>
+                  <div className="flex items-center px-3 py-1 bg-black bg-opacity-30 rounded-full">
+                    <i className="ri-speed-up-line text-yellow-500 mr-1"></i>
+                    <span className="text-sm">Win Multipliers</span>
+                  </div>
+                  <div className="flex items-center px-3 py-1 bg-black bg-opacity-30 rounded-full">
+                    <i className="ri-award-line text-yellow-500 mr-1"></i>
+                    <span className="text-sm">VIP Badges</span>
+                  </div>
+                </div>
+                <Link href="/subscriptions">
+                  <Button className="bg-yellow-600 hover:bg-yellow-500 text-white font-medium py-2 px-6 rounded-lg transition duration-200 flex items-center">
+                    <i className="ri-vip-crown-2-line mr-2"></i>
+                    See VIP Plans
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Featured Games */}
         <div className="mb-10">
           <h2 className="text-xl font-heading font-bold mb-4">Featured Games</h2>
