@@ -578,7 +578,7 @@ export default function RouletteGame({ onSpin }: RouletteGameProps) {
               <div>
                 <label className="text-sm text-gray-400 mb-1 block">Total Bet</label>
                 <div className="h-10 flex items-center justify-center bg-[#222222] rounded-md border border-[#333333] font-mono text-lg">
-                  {formatCurrency(totalBetAmount)}
+                  {totalBetAmount > 0 ? formatCurrency(totalBetAmount) : "0.00"}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2 mt-2">

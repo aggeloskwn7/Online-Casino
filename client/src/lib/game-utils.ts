@@ -26,18 +26,24 @@ export const SLOT_PAYOUTS = {
 export const formatCurrency = (value: number | string) => {
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
   
-  // Handle zero/negative to always show at least -0.00 for losses
-  if (numValue <= 0) {
-    return `-${Math.abs(numValue).toLocaleString('en-US', {
+  // For positive values, format normally
+  if (numValue > 0) {
+    return numValue.toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
-    })}`;
+    });
   }
   
-  return numValue.toLocaleString('en-US', {
+  // For zero, just show 0.00
+  if (numValue === 0) {
+    return "0.00";
+  }
+  
+  // For negative values, add a negative sign and format the absolute value
+  return `-${Math.abs(numValue).toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
-  });
+  })}`;
 };
 
 // Format multiplier value

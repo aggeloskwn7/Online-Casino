@@ -115,7 +115,10 @@ export default function TransactionHistory({ gameType, maxItems = 20 }: Transact
                 </td>
                 <td className="py-3 px-4 whitespace-nowrap font-mono">
                   <span className={transaction.isWin ? 'text-[#00E701]' : 'text-[#FF3A5E]'}>
-                    {transaction.isWin ? formatCurrency(transaction.payout) : formatCurrency(-transaction.amount)}
+                    {transaction.isWin 
+                      ? formatCurrency(transaction.payout) 
+                      : `-${formatCurrency(parseFloat(transaction.amount.toString()))}`
+                    }
                   </span>
                 </td>
                 <td className="py-3 px-4 whitespace-nowrap text-gray-400 text-sm">
