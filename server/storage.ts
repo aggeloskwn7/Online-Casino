@@ -1,4 +1,6 @@
 import { users, transactions, User, InsertUser, Transaction, InsertTransaction } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -11,74 +13,62 @@ export interface IStorage {
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private transactions: Map<number, Transaction>;
-  currentId: number;
-  currentTransactionId: number;
-
-  constructor() {
-    this.users = new Map();
-    this.transactions = new Map();
-    this.currentId = 1;
-    this.currentTransactionId = 1;
-  }
-
+export class DatabaseStorage implements IStorage {
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentId++;
-    const user: User = { 
-      ...insertUser, 
-      id,
-      balance: "10000" // String to match the schema type
-    };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values({
+        ...insertUser,
+        balance: "10000", // Default starting balance
+      })
+      .returning();
     return user;
   }
 
   async updateUserBalance(userId: number, newBalance: number): Promise<User> {
-    const user = await this.getUser(userId);
-    if (!user) {
+    const [updatedUser] = await db
+      .update(users)
+      .set({ balance: String(newBalance) })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    if (!updatedUser) {
       throw new Error("User not found");
     }
     
-    const updatedUser = { ...user, balance: String(newBalance) }; // Convert to string to match schema
-    this.users.set(userId, updatedUser);
     return updatedUser;
   }
 
   async getUserTransactions(userId: number, limit = 10): Promise<Transaction[]> {
-    const userTransactions = Array.from(this.transactions.values())
-      .filter(transaction => transaction.userId === userId)
-      .sort((a, b) => {
-        // Sort by timestamp descending (most recent first)
-        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-      })
-      .slice(0, limit);
+    const userTransactions = await db
+      .select()
+      .from(transactions)
+      .where(eq(transactions.userId, userId))
+      .orderBy(desc(transactions.timestamp))
+      .limit(limit);
     
     return userTransactions;
   }
 
   async createTransaction(insertTransaction: InsertTransaction): Promise<Transaction> {
-    const id = this.currentTransactionId++;
-    const transaction: Transaction = {
-      ...insertTransaction,
-      id,
-      timestamp: new Date()
-    };
+    const [transaction] = await db
+      .insert(transactions)
+      .values(insertTransaction)
+      .returning();
     
-    this.transactions.set(id, transaction);
     return transaction;
   }
 }
 
-export const storage = new MemStorage();
+// Switch from MemStorage to DatabaseStorage
+export const storage = new DatabaseStorage();
