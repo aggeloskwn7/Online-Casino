@@ -37,9 +37,9 @@ export default function TransactionHistory({ gameType, maxItems = 20 }: Transact
   
   if (isLoading) {
     return (
-      <div className="bg-[#2A2A2A] rounded-xl border border-[#333333] overflow-hidden">
+      <div className="mx-auto max-w-5xl bg-[#2A2A2A] rounded-xl border border-[#333333] overflow-hidden shadow-lg">
         <div className="overflow-x-auto">
-          <table className="min-w-full">
+          <table className="w-full">
             <thead>
               <tr className="bg-[#1E1E1E]">
                 <th className="py-3 px-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Game</th>
@@ -78,24 +78,24 @@ export default function TransactionHistory({ gameType, maxItems = 20 }: Transact
   
   if (error) {
     return (
-      <div className="bg-[#2A2A2A] rounded-xl border border-[#333333] p-6 text-center">
-        <p className="text-[#FF3A5E]">Failed to load transaction history</p>
+      <div className="mx-auto max-w-5xl bg-[#2A2A2A] rounded-xl border border-[#333333] p-8 text-center shadow-lg">
+        <p className="text-[#FF3A5E] text-lg">Failed to load transaction history</p>
       </div>
     );
   }
   
   if (!filteredTransactions || filteredTransactions.length === 0) {
     return (
-      <div className="bg-[#2A2A2A] rounded-xl border border-[#333333] p-6 text-center">
-        <p className="text-gray-400">No transaction history yet</p>
+      <div className="mx-auto max-w-5xl bg-[#2A2A2A] rounded-xl border border-[#333333] p-8 text-center shadow-lg">
+        <p className="text-gray-400 text-lg">No transaction history yet</p>
       </div>
     );
   }
   
   return (
-    <div className="bg-[#2A2A2A] rounded-xl border border-[#333333] overflow-hidden">
+    <div className="mx-auto max-w-5xl bg-[#2A2A2A] rounded-xl border border-[#333333] overflow-hidden shadow-lg">
       <div className="overflow-x-auto">
-        <table className="min-w-full">
+        <table className="w-full">
           <thead>
             <tr className="bg-[#1E1E1E]">
               <th className="py-3 px-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Game</th>
