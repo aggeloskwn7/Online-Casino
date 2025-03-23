@@ -65,6 +65,28 @@ export const adminCoinAdjustmentSchema = z.object({
   reason: z.string().min(1).max(500),
 });
 
+// Schema for sending mass bonus to all users
+export const adminMassBonusSchema = z.object({
+  amount: z.number().positive().min(1).max(10000),
+  reason: z.string().min(3).max(200),
+  message: z.string().min(3).max(200),
+});
+
+// Schema for system announcements
+export const adminAnnouncementSchema = z.object({
+  title: z.string().min(3).max(100),
+  message: z.string().min(3).max(500),
+  type: z.enum(['info', 'warning', 'success', 'error']),
+  duration: z.number().int().min(5).max(300).default(30), // Display duration in seconds
+  isPinned: z.boolean().default(false), // Whether to pin the announcement
+});
+
+// Schema for game configuration updates
+export const adminGameConfigSchema = z.object({
+  gameType: z.enum(['slots', 'dice', 'crash', 'roulette', 'blackjack']),
+  config: z.record(z.any()), // Game-specific configuration as key-value pairs
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
@@ -73,6 +95,9 @@ export type InsertCoinTransaction = z.infer<typeof insertCoinTransactionSchema>;
 export type CoinTransaction = typeof coinTransactions.$inferSelect;
 export type AdminUserUpdate = z.infer<typeof adminUserUpdateSchema>;
 export type AdminCoinAdjustment = z.infer<typeof adminCoinAdjustmentSchema>;
+export type AdminMassBonus = z.infer<typeof adminMassBonusSchema>;
+export type AdminAnnouncement = z.infer<typeof adminAnnouncementSchema>;
+export type AdminGameConfig = z.infer<typeof adminGameConfigSchema>;
 
 // Game related schemas
 export const betSchema = z.object({
