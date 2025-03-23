@@ -85,6 +85,7 @@ export interface IStorage {
   // Subscription operations
   createSubscription(subscription: InsertSubscription): Promise<Subscription>;
   getUserSubscription(userId: number): Promise<Subscription | undefined>;
+  findSubscriptionByStripeId(stripeId: string): Promise<Subscription | undefined>;
   updateSubscription(id: number, updates: Partial<Subscription>): Promise<Subscription>;
   cancelSubscription(id: number): Promise<Subscription>;
   getSubscriptionPlans(): Promise<SubscriptionPlan[]>;
