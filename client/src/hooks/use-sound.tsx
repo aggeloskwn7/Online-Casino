@@ -19,15 +19,40 @@ type SoundEffects = {
 // Sound effect URLs
 // Using RoosterSounds for reliability
 const SOUND_EFFECTS: SoundEffects = {
-  win: "https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3",
+  // Basic game sounds
+  win: "https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3", 
   lose: "https://assets.mixkit.co/active_storage/sfx/2001/2001-preview.mp3",
   click: "https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3",
+  
+  // Slot machine sounds
   slotSpin: "https://assets.mixkit.co/active_storage/sfx/2017/2017-preview.mp3",
+  slotStop: "https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3",
+  slotLineWin: "https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3", 
+  slotJackpot: "https://assets.mixkit.co/active_storage/sfx/2020/2020-preview.mp3",
+  slotCoin: "https://assets.mixkit.co/active_storage/sfx/2073/2073-preview.mp3",
+  
+  // Dice sounds
   diceRoll: "https://assets.mixkit.co/active_storage/sfx/2007/2007-preview.mp3",
+  diceHit: "https://assets.mixkit.co/active_storage/sfx/2008/2008-preview.mp3",
+  
+  // Crash and cashout sounds
   cashout: "https://assets.mixkit.co/active_storage/sfx/2002/2002-preview.mp3",
   crash: "https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3",
+  
+  // Card game sounds
   cardDeal: "https://assets.mixkit.co/active_storage/sfx/2004/2004-preview.mp3",
   cardFlip: "https://assets.mixkit.co/active_storage/sfx/2005/2005-preview.mp3",
+  cardShuffle: "https://assets.mixkit.co/active_storage/sfx/2006/2006-preview.mp3",
+  
+  // Roulette sounds
+  rouletteStart: "https://assets.mixkit.co/active_storage/sfx/2009/2009-preview.mp3",
+  rouletteEnd: "https://assets.mixkit.co/active_storage/sfx/2010/2010-preview.mp3",
+  ballDrop: "https://assets.mixkit.co/active_storage/sfx/2011/2011-preview.mp3",
+  
+  // UI sounds
+  buttonClick: "https://assets.mixkit.co/active_storage/sfx/2680/2680-preview.mp3",
+  buttonHover: "https://assets.mixkit.co/active_storage/sfx/2682/2682-preview.mp3",
+  notification: "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3",
 };
 
 export function useSound() {
