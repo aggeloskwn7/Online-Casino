@@ -1282,7 +1282,10 @@ function GameConfigTab() {
   // Update game config mutation
   const updateConfig = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("PATCH", `/api/admin/game-config/${selectedGame}`, data);
+      const res = await apiRequest("PATCH", `/api/admin/game-config`, {
+        gameType: selectedGame,
+        config: data
+      });
       return await res.json();
     },
     onSuccess: () => {
@@ -1446,10 +1449,10 @@ function SupportTab() {
     error,
     refetch
   } = useQuery({
-    queryKey: ['/api/admin/support-tickets', statusFilter, page],
+    queryKey: ['/api/admin/support', statusFilter, page],
     queryFn: async () => {
       const status = statusFilter === 'all' ? '' : statusFilter;
-      const res = await apiRequest('GET', `/api/admin/support-tickets?status=${status}&page=${page}`);
+      const res = await apiRequest('GET', `/api/admin/support?status=${status}&page=${page}`);
       return await res.json();
     }
   });
@@ -1460,10 +1463,10 @@ function SupportTab() {
     isLoading: isLoadingTicket,
     refetch: refetchTicket
   } = useQuery({
-    queryKey: ['/api/admin/support-tickets/details', selectedTicket?.id],
+    queryKey: ['/api/admin/support/details', selectedTicket?.id],
     queryFn: async () => {
       if (!selectedTicket) return null;
-      const res = await apiRequest('GET', `/api/admin/support-tickets/${selectedTicket.id}`);
+      const res = await apiRequest('GET', `/api/admin/support/${selectedTicket.id}`);
       return await res.json();
     },
     enabled: !!selectedTicket
@@ -1472,7 +1475,7 @@ function SupportTab() {
   // Add reply mutation
   const addReply = useMutation({
     mutationFn: async ({ ticketId, message }: { ticketId: number, message: string }) => {
-      const res = await apiRequest("POST", `/api/admin/support-tickets/${ticketId}/reply`, { message });
+      const res = await apiRequest("POST", `/api/admin/support/${ticketId}/reply`, { message });
       return await res.json();
     },
     onSuccess: () => {
@@ -1496,7 +1499,7 @@ function SupportTab() {
   // Update ticket status mutation
   const updateStatus = useMutation({
     mutationFn: async ({ ticketId, status }: { ticketId: number, status: string }) => {
-      const res = await apiRequest("PATCH", `/api/admin/support-tickets/${ticketId}/status`, { status });
+      const res = await apiRequest("PATCH", `/api/admin/support/${ticketId}/status`, { status });
       return await res.json();
     },
     onSuccess: (data) => {
