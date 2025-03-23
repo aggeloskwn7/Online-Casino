@@ -23,6 +23,7 @@ import {
   SubscriptionPlan,
   banAppealSchema
 } from '@shared/schema';
+import { z } from 'zod';
 
 // Define our coin packages
 const coinPackages: CoinPackage[] = [
