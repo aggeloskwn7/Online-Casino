@@ -140,6 +140,41 @@ export class DatabaseStorage implements IStorage {
     
     return updatedUser;
   }
+  
+  async updateLoginStreak(userId: number, streak: number): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({ 
+        currentLoginStreak: streak,
+        lastRewardDate: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    if (!updatedUser) {
+      throw new Error("User not found");
+    }
+    
+    return updatedUser;
+  }
+  
+  async checkDailyRewardStatus(userId: number): Promise<boolean> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
+    // If no lastRewardDate, they have never claimed a reward
+    if (!user.lastRewardDate) {
+      return true;
+    }
+    
+    const lastReward = new Date(user.lastRewardDate);
+    const now = new Date();
+    
+    // Check if the last reward was claimed on a different day
+    return lastReward.toDateString() !== now.toDateString();
+  }
 
   // === TRANSACTION OPERATIONS ===
   async getUserTransactions(userId: number, limit = 10): Promise<Transaction[]> {
@@ -340,6 +375,54 @@ export class DatabaseStorage implements IStorage {
     }
     
     return updatedPayment;
+  }
+  
+  // === LOGIN REWARD OPERATIONS ===
+  async createLoginReward(reward: InsertLoginReward): Promise<LoginReward> {
+    const [newReward] = await db
+      .insert(loginRewards)
+      .values(reward)
+      .returning();
+    
+    return newReward;
+  }
+  
+  async getUserLoginRewards(userId: number, limit = 30): Promise<LoginReward[]> {
+    const rewards = await db
+      .select()
+      .from(loginRewards)
+      .where(eq(loginRewards.userId, userId))
+      .orderBy(desc(loginRewards.createdAt))
+      .limit(limit);
+    
+    return rewards;
+  }
+  
+  async getRewardAmountForDay(day: number): Promise<number> {
+    // Return increasing rewards for consecutive days
+    // Starting with 100 coins on day 1, up to 3000 coins on day 30
+    if (day <= 0 || day > 30) {
+      throw new Error("Invalid day number for login rewards");
+    }
+    
+    // Basic formula: 100 + (day - 1) * 100
+    // This gives: Day 1: 100, Day 2: 200, ... Day 30: 3000
+    const baseReward = 100 + (day - 1) * 100;
+    
+    // Add bonus for milestone days
+    let bonusMultiplier = 1;
+    if (day % 7 === 0) {
+      // Weekly milestone (days 7, 14, 21, 28) - 2x bonus
+      bonusMultiplier = 2;
+    } else if (day === 30) {
+      // Final milestone (day 30) - 3x bonus
+      bonusMultiplier = 3;
+    } else if (day % 5 === 0) {
+      // Every 5 days milestone (days 5, 10, 15, 20, 25) - 1.5x bonus
+      bonusMultiplier = 1.5;
+    }
+    
+    return baseReward * bonusMultiplier;
   }
   
   // === ANNOUNCEMENT OPERATIONS ===

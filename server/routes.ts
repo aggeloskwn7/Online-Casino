@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, authMiddleware } from "./auth";
 import { setupAdminRoutes } from "./admin";
+import { setupRewardRoutes } from "./rewards";
 import { 
   playSlots, 
   playDice, 
@@ -193,6 +194,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Set up admin routes
   setupAdminRoutes(app);
+  
+  // Set up daily login rewards routes
+  setupRewardRoutes(app);
 
   const httpServer = createServer(app);
 
