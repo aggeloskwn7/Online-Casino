@@ -679,8 +679,7 @@ export class DatabaseStorage implements IStorage {
   
   async cancelSubscription(id: number): Promise<Subscription> {
     return this.updateSubscription(id, { 
-      status: 'canceled',
-      canceledAt: new Date()
+      status: 'canceled'
     });
   }
   
@@ -689,19 +688,24 @@ export class DatabaseStorage implements IStorage {
     return [
       {
         id: 'bronze',
+        tier: 'bronze',
         name: 'Bronze',
         price: 2.99,
+        description: 'Basic tier with 300 daily coins and Bronze badge',
         features: [
           '300 daily coins',
           'Bronze VIP badge',
           'Basic support'
         ],
-        stripePriceId: process.env.STRIPE_PRICE_ID_BRONZE
+        priceId: process.env.STRIPE_PRICE_ID_BRONZE || '',
+        coinReward: 300
       },
       {
         id: 'silver',
+        tier: 'silver',
         name: 'Silver',
         price: 5.99,
+        description: 'Enhanced tier with 600 daily coins and multiplier benefits',
         features: [
           '600 daily coins',
           'Silver VIP badge',
@@ -709,12 +713,16 @@ export class DatabaseStorage implements IStorage {
           'Ad-free experience',
           'Priority support'
         ],
-        stripePriceId: process.env.STRIPE_PRICE_ID_SILVER
+        priceId: process.env.STRIPE_PRICE_ID_SILVER || '',
+        coinReward: 600,
+        multiplier: 1.1
       },
       {
         id: 'gold',
+        tier: 'gold',
         name: 'Gold',
         price: 9.99,
+        description: 'Premium tier with 1000 daily coins, higher multiplier, and exclusive content',
         features: [
           '1000 daily coins',
           'Gold VIP badge',
@@ -723,7 +731,9 @@ export class DatabaseStorage implements IStorage {
           'Access to premium games',
           'Premium support'
         ],
-        stripePriceId: process.env.STRIPE_PRICE_ID_GOLD
+        priceId: process.env.STRIPE_PRICE_ID_GOLD || '',
+        coinReward: 1000,
+        multiplier: 1.25
       }
     ];
   }
