@@ -1,22 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { 
-  PaymentElement, 
   useStripe, 
-  useElements,
+  useElements, 
+  PaymentElement,
   Elements
 } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { apiRequest, queryClient } from '@/lib/queryClient';
-import { useAuth } from '@/hooks/use-auth';
 import { CoinPackage } from '@shared/schema';
 
-// Make sure to call loadStripe outside of a component
-// to avoid recreating the Stripe object on every render
+// Make sure to call loadStripe outside of a component's render to avoid
+// recreating the Stripe object on every render
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
 interface CheckoutFormProps {
@@ -29,103 +27,95 @@ interface CheckoutFormProps {
 function CheckoutForm({ clientSecret, packageDetails, onSuccess, onCancel }: CheckoutFormProps) {
   const stripe = useStripe();
   const elements = useElements();
+  const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!stripe) {
-      return;
-    }
-
-    // Check to see if this is a redirect back from Stripe
-    const clientSecret = new URLSearchParams(window.location.search).get(
-      'payment_intent_client_secret'
-    );
-
-    if (!clientSecret) {
-      return;
-    }
-
-    stripe.retrievePaymentIntent(clientSecret).then(({ paymentIntent }) => {
-      if (paymentIntent) {
-        switch (paymentIntent.status) {
-          case 'succeeded':
-            setMessage('Payment succeeded!');
-            onSuccess();
-            break;
-          case 'processing':
-            setMessage('Your payment is processing.');
-            break;
-          case 'requires_payment_method':
-            setMessage('Please provide a payment method.');
-            break;
-          default:
-            setMessage('Something went wrong.');
-            break;
-        }
-      }
-    });
-  }, [stripe, onSuccess]);
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!stripe || !elements) {
-      // Stripe.js hasn't yet loaded
       return;
     }
 
-    setIsLoading(true);
+    setIsProcessing(true);
 
-    const { error } = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        return_url: window.location.origin,
-      },
-      redirect: 'if_required',
-    });
-
-    if (error) {
-      setMessage(error.message || 'An unexpected error occurred.');
-    } else {
-      // Payment succeeded
-      toast({
-        title: 'Payment Successful!',
-        description: `You have purchased ${packageDetails.coins.toLocaleString()} coins.`,
-        variant: 'default',
+    try {
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: window.location.origin + '/purchase',
+        },
+        redirect: 'if_required',
       });
-      onSuccess();
-      
-      // Invalidate queries to refresh user balance
-      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
-    }
 
-    setIsLoading(false);
+      if (error) {
+        toast({
+          title: 'Payment Failed',
+          description: error.message || 'Something went wrong with your payment.',
+          variant: 'destructive',
+        });
+      } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+        toast({
+          title: 'Payment Successful',
+          description: `You purchased ${packageDetails.coins.toLocaleString()} coins!`,
+        });
+        onSuccess();
+      } else {
+        toast({
+          title: 'Payment Status',
+          description: 'Your payment is processing.',
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: 'Error',
+        description: err.message || 'An unexpected error occurred.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
     <form onSubmit={handleSubmit}>
-      <PaymentElement />
-      {message && (
-        <Alert className="mt-4">
-          <AlertDescription>{message}</AlertDescription>
-        </Alert>
-      )}
-      <div className="flex justify-between mt-4">
+      <PaymentElement className="mb-6" />
+      
+      <div className="mt-4 border-t pt-4">
+        <div className="flex justify-between mb-2">
+          <span className="text-muted-foreground">Package:</span>
+          <span className="font-medium">{packageDetails.name}</span>
+        </div>
+        <div className="flex justify-between mb-2">
+          <span className="text-muted-foreground">Coins:</span>
+          <span className="font-medium">{packageDetails.coins.toLocaleString()}</span>
+        </div>
+        {packageDetails.discount > 0 && (
+          <div className="flex justify-between mb-2">
+            <span className="text-muted-foreground">Discount:</span>
+            <span className="font-medium text-green-500">{packageDetails.discount}% OFF</span>
+          </div>
+        )}
+        <div className="flex justify-between font-bold text-lg mt-2 pt-2 border-t">
+          <span>Total:</span>
+          <span>${packageDetails.price.toFixed(2)}</span>
+        </div>
+      </div>
+      
+      <div className="flex justify-between mt-6">
         <Button 
           type="button" 
           variant="outline" 
           onClick={onCancel}
-          disabled={isLoading}
+          disabled={isProcessing}
         >
-          Cancel
+          Back
         </Button>
         <Button 
           type="submit" 
-          disabled={!stripe || !elements || isLoading}
+          disabled={!stripe || !elements || isProcessing}
         >
-          {isLoading ? (
+          {isProcessing ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Processing...
@@ -146,71 +136,72 @@ interface CheckoutProps {
 }
 
 export default function Checkout({ packageId, onSuccess, onCancel }: CheckoutProps) {
-  const { toast } = useToast();
-  const { user } = useAuth();
   const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [packageDetails, setPackageDetails] = useState<CoinPackage | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!packageId || !user) return;
-
-    apiRequest('POST', '/api/coins/create-payment-intent', {
-      packageId
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        setClientSecret(data.clientSecret);
-        setPackageDetails(data.packageDetails);
-      })
-      .catch((err) => {
-        setError('Failed to initialize payment. Please try again.');
-        toast({
-          title: 'Payment Error',
-          description: err.message || 'Failed to initialize payment',
-          variant: 'destructive',
-        });
+  const { toast } = useToast();
+  
+  // Get package details
+  const { data: packages, isLoading: isPackagesLoading } = useQuery({
+    queryKey: ['/api/coins/packages'],
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+  
+  const packageDetails = packages?.find((pkg: CoinPackage) => pkg.id === packageId);
+  
+  // Create payment intent
+  const { mutate: createPaymentIntent, isPending: isCreatingPayment } = useMutation({
+    mutationFn: async () => {
+      if (!packageDetails) throw new Error('Package not found');
+      
+      const res = await apiRequest('POST', '/api/coins/create-payment-intent', {
+        packageId,
+        amount: packageDetails.price
       });
-  }, [packageId, user, toast]);
-
-  if (error) {
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to create payment');
+      }
+      
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      setClientSecret(data.clientSecret);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Payment Setup Failed',
+        description: error.message || 'Could not initialize payment. Please try again.',
+        variant: 'destructive',
+      });
+      onCancel();
+    }
+  });
+  
+  // When package details are loaded, create payment intent
+  useEffect(() => {
+    if (packageDetails && !clientSecret && !isCreatingPayment) {
+      createPaymentIntent();
+    }
+  }, [packageDetails, clientSecret, isCreatingPayment, createPaymentIntent]);
+  
+  // Show loading state
+  if (isPackagesLoading || isCreatingPayment || !clientSecret || !packageDetails) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Payment Error</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        </CardContent>
-        <CardFooter>
-          <Button onClick={onCancel} className="w-full">
-            Go Back
-          </Button>
-        </CardFooter>
-      </Card>
-    );
-  }
-
-  if (!clientSecret || !packageDetails) {
-    return (
-      <div className="flex justify-center items-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex flex-col items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground">Setting up payment...</p>
       </div>
     );
   }
 
-  const options = {
-    clientSecret,
-    appearance: {
-      theme: 'night',
-      labels: 'floating',
-    },
-  };
-
   return (
-    <Elements stripe={stripePromise} options={options}>
+    <Elements stripe={stripePromise} options={{ 
+      clientSecret,
+      appearance: {
+        theme: 'night',
+        labels: 'floating'
+      }
+    }}>
       <CheckoutForm 
         clientSecret={clientSecret} 
         packageDetails={packageDetails}

@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
+import { Card, CardContent } from '@/components/ui/card';
+import { Coins } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { CoinPackage } from '@shared/schema';
-import { Loader2, Coins } from 'lucide-react';
-import { formatCurrency } from '@/lib/game-utils';
+import { useToast } from '@/hooks/use-toast';
 
 interface CoinPackagesProps {
   onSelectPackage: (packageId: string) => void;
@@ -15,100 +15,91 @@ interface CoinPackagesProps {
 export default function CoinPackages({ onSelectPackage }: CoinPackagesProps) {
   const { toast } = useToast();
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
-  
-  const { data: packages, isLoading, error } = useQuery<CoinPackage[]>({
+
+  const { data: packages, isLoading, error } = useQuery({
     queryKey: ['/api/coins/packages'],
-    onError: (error: Error) => {
-      toast({
-        title: 'Failed to load coin packages',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
+    retry: 2,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnWindowFocus: false,
   });
-  
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-48">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+
+  if (error) {
+    toast({
+      title: 'Error loading packages',
+      description: 'Failed to load coin packages. Please try again later.',
+      variant: 'destructive',
+    });
   }
-  
-  if (error || !packages) {
-    return (
-      <div className="text-center p-4">
-        <p className="text-destructive">Failed to load coin packages</p>
-        <Button onClick={() => window.location.reload()} variant="outline" className="mt-2">
-          Try Again
-        </Button>
-      </div>
-    );
-  }
-  
-  const handleSelectPackage = (packageId: string) => {
+
+  const handleSelect = (packageId: string) => {
     setSelectedPackageId(packageId);
     onSelectPackage(packageId);
   };
-  
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      {packages.map((pkg) => {
-        // Calculate original price if there's a discount
-        const originalPrice = pkg.discount ? (pkg.price / (1 - pkg.discount / 100)).toFixed(2) : null;
-        
-        return (
-          <Card 
-            key={pkg.id} 
-            className={`overflow-hidden transition-all duration-300 ${
-              pkg.featured ? 'border-primary shadow-lg' : ''
-            } ${selectedPackageId === pkg.id ? 'ring-2 ring-primary' : ''}`}
-          >
-            {pkg.featured && (
-              <div className="bg-primary text-primary-foreground text-center py-1 text-sm font-medium">
-                MOST POPULAR
-              </div>
-            )}
-            <CardHeader>
-              <CardTitle className="flex justify-between items-center">
-                {pkg.name}
-                {pkg.discount > 0 && (
-                  <Badge variant="destructive" className="ml-2">
-                    {pkg.discount}% OFF
-                  </Badge>
-                )}
-              </CardTitle>
-              <CardDescription>Best value for casual players</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-center items-center mb-4">
-                <Coins className="h-10 w-10 text-yellow-500 mr-2" />
-                <span className="text-3xl font-bold">{pkg.coins.toLocaleString()}</span>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold">${pkg.price.toFixed(2)}</div>
-                {originalPrice && (
-                  <div className="text-sm text-muted-foreground line-through">
-                    ${originalPrice}
-                  </div>
-                )}
-                <div className="text-xs text-muted-foreground mt-1">
-                  {formatCurrency(pkg.coins / pkg.price)} coins per dollar
-                </div>
-              </div>
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <Card key={i} className="border shadow relative overflow-hidden">
+            <CardContent className="p-6 flex flex-col space-y-4">
+              <Skeleton className="h-6 w-3/4 mb-2" />
+              <Skeleton className="h-12 w-full my-2" />
+              <Skeleton className="h-10 w-full mt-4" />
             </CardContent>
-            <CardFooter>
-              <Button 
-                className="w-full" 
-                onClick={() => handleSelectPackage(pkg.id)}
-                variant={selectedPackageId === pkg.id ? "default" : pkg.featured ? "default" : "outline"}
-              >
-                {selectedPackageId === pkg.id ? 'Selected' : 'Select Package'}
-              </Button>
-            </CardFooter>
           </Card>
-        );
-      })}
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {packages && packages.map((pkg: CoinPackage) => (
+        <Card 
+          key={pkg.id}
+          className={`border relative overflow-hidden transition-all hover:shadow-lg cursor-pointer
+            ${selectedPackageId === pkg.id ? 'border-primary shadow-md' : 'border-border'}
+          `}
+          onClick={() => handleSelect(pkg.id)}
+        >
+          {pkg.featured && (
+            <div className="absolute top-0 right-0">
+              <Badge variant="default" className="rounded-none rounded-bl-lg">
+                Featured
+              </Badge>
+            </div>
+          )}
+          {pkg.discount > 0 && (
+            <div className="absolute top-0 left-0">
+              <Badge variant="destructive" className="rounded-none rounded-br-lg">
+                {pkg.discount}% OFF
+              </Badge>
+            </div>
+          )}
+          <CardContent className="p-6 pt-10">
+            <h3 className="text-lg font-semibold mb-2">{pkg.name}</h3>
+            <div className="flex items-center justify-center my-4 bg-muted/20 p-4 rounded-lg">
+              <Coins className="h-8 w-8 mr-2 text-yellow-500" />
+              <span className="text-3xl font-bold">{pkg.coins.toLocaleString()}</span>
+            </div>
+            <div className="flex items-center justify-center mb-4">
+              <span className="text-xl font-bold">${pkg.price.toFixed(2)}</span>
+              {pkg.discount > 0 && (
+                <span className="ml-2 text-muted-foreground line-through text-sm">
+                  ${(pkg.price / (1 - pkg.discount / 100)).toFixed(2)}
+                </span>
+              )}
+            </div>
+            <Button 
+              variant={selectedPackageId === pkg.id ? "default" : "outline"} 
+              className="w-full"
+              onClick={() => handleSelect(pkg.id)}
+            >
+              {selectedPackageId === pkg.id ? 'Selected' : 'Select Package'}
+            </Button>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }

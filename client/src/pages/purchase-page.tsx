@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import CoinPackages from '@/components/coin-packages';
 import Checkout from '@/components/checkout';
-import { useNavigate } from 'wouter';
+import { useLocation } from 'wouter';
 
 enum PurchaseStep {
   SELECT_PACKAGE = 'select_package',
@@ -24,7 +24,7 @@ enum PurchaseStep {
 
 export function PurchasePage() {
   const { toast } = useToast();
-  const navigate = useNavigate();
+  const [, navigate] = useLocation();
   const [step, setStep] = useState<PurchaseStep>(PurchaseStep.SELECT_PACKAGE);
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
 

@@ -23,6 +23,7 @@ const coinPackages: CoinPackage[] = [
     name: 'Starter Package',
     coins: 5000,
     price: 4.99,
+    featured: false,
     discount: 0
   },
   {
@@ -30,14 +31,15 @@ const coinPackages: CoinPackage[] = [
     name: 'Popular Package',
     coins: 15000,
     price: 9.99,
-    discount: 15,
-    featured: true
+    featured: true,
+    discount: 15
   },
   {
     id: 'large',
     name: 'Gold Package',
     coins: 50000,
     price: 24.99,
+    featured: false,
     discount: 20
   },
   {
@@ -45,13 +47,14 @@ const coinPackages: CoinPackage[] = [
     name: 'Whale Package',
     coins: 150000,
     price: 49.99,
+    featured: false,
     discount: 25
   }
 ];
 
 // Initialize Stripe with the secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16'
+  apiVersion: '2025-02-24.acacia'
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
