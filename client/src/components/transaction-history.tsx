@@ -16,6 +16,7 @@ export default function TransactionHistory({ gameType, maxItems = 20 }: Transact
   const { data: transactions, isLoading, error } = useQuery<Transaction[]>({
     queryKey: ['/api/transactions'],
     enabled: !!user,
+    refetchOnWindowFocus: true,
   });
   
   // Filter transactions by game type if specified
@@ -37,11 +38,11 @@ export default function TransactionHistory({ gameType, maxItems = 20 }: Transact
   
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-5xl bg-[#2A2A2A] rounded-xl border border-[#333333] overflow-hidden shadow-lg">
+      <div className="mx-auto max-w-5xl bg-[#1A1A25] rounded-xl border border-gray-800 overflow-hidden shadow-lg">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-[#1E1E1E]">
+              <tr className="bg-[#13131E]">
                 <th className="py-3 px-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Game</th>
                 <th className="py-3 px-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Bet</th>
                 <th className="py-3 px-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Multiplier</th>
@@ -49,9 +50,9 @@ export default function TransactionHistory({ gameType, maxItems = 20 }: Transact
                 <th className="py-3 px-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Time</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#333333]">
+            <tbody className="divide-y divide-gray-800">
               {Array(4).fill(0).map((_, index) => (
-                <tr key={index} className="hover:bg-[#1E1E1E]">
+                <tr key={index} className="hover:bg-[#1E1E2D]">
                   <td className="py-3 px-4 whitespace-nowrap">
                     <Skeleton className="h-6 w-20" />
                   </td>
@@ -78,26 +79,26 @@ export default function TransactionHistory({ gameType, maxItems = 20 }: Transact
   
   if (error) {
     return (
-      <div className="mx-auto max-w-5xl bg-[#2A2A2A] rounded-xl border border-[#333333] p-8 text-center shadow-lg">
-        <p className="text-[#FF3A5E] text-lg">Failed to load transaction history</p>
+      <div className="mx-auto max-w-5xl bg-[#1A1A25] rounded-xl border border-gray-800 p-8 text-center shadow-lg">
+        <p className="text-red-500 text-lg">Failed to load transaction history</p>
       </div>
     );
   }
   
   if (!filteredTransactions || filteredTransactions.length === 0) {
     return (
-      <div className="mx-auto max-w-5xl bg-[#2A2A2A] rounded-xl border border-[#333333] p-8 text-center shadow-lg">
+      <div className="mx-auto max-w-5xl bg-[#1A1A25] rounded-xl border border-gray-800 p-8 text-center shadow-lg">
         <p className="text-gray-400 text-lg">No transaction history yet</p>
       </div>
     );
   }
   
   return (
-    <div className="mx-auto max-w-5xl bg-[#2A2A2A] rounded-xl border border-[#333333] overflow-hidden shadow-lg">
+    <div className="mx-auto max-w-5xl bg-[#1A1A25] rounded-xl border border-gray-800 overflow-hidden shadow-lg">
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="bg-[#1E1E1E]">
+            <tr className="bg-[#13131E]">
               <th className="py-3 px-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Game</th>
               <th className="py-3 px-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Bet</th>
               <th className="py-3 px-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Multiplier</th>
@@ -105,9 +106,9 @@ export default function TransactionHistory({ gameType, maxItems = 20 }: Transact
               <th className="py-3 px-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Time</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#333333]">
+          <tbody className="divide-y divide-gray-800">
             {limitedTransactions.map((transaction) => (
-              <tr key={transaction.id} className="hover:bg-[#1E1E1E]">
+              <tr key={transaction.id} className="hover:bg-[#1E1E2D]">
                 <td className="py-3 px-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <i className={`${getGameIcon(transaction.gameType)} text-[#5465FF] mr-2`}></i>

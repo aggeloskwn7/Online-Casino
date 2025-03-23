@@ -48,9 +48,10 @@ function HistoryPageContent() {
   const [expandedTransaction, setExpandedTransaction] = useState<number | null>(null);
 
   // Fetch transaction history data
-  const { data: transactions, isLoading } = useQuery<Transaction[]>({
+  const { data: transactions, isLoading, error } = useQuery<Transaction[]>({
     queryKey: ['/api/transactions'],
     queryFn: getQueryFn({ on401: 'throw' }),
+    refetchOnWindowFocus: true,
   });
 
   // Filter transactions based on selected game
