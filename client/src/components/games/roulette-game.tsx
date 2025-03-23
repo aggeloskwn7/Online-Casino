@@ -32,7 +32,11 @@ type BetOption = {
   isActive: boolean;
 };
 
-export default function RouletteGame() {
+interface RouletteGameProps {
+  onSpin?: () => void;
+}
+
+export default function RouletteGame({ onSpin }: RouletteGameProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const { play } = useSound();
@@ -647,6 +651,11 @@ export default function RouletteGame() {
     // Check if we have active bets or a current selection
     const hasActiveBets = activeBets.length > 0;
     const hasCurrentSelection = selectedNumbers.length > 0 && betAmount > 0;
+    
+    // Call the onSpin callback if provided (for scrolling to top)
+    if (onSpin) {
+      onSpin();
+    }
     
     if (!hasActiveBets && !hasCurrentSelection) {
       toast({
