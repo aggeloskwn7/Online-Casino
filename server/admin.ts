@@ -622,17 +622,7 @@ export function setupAdminRoutes(app: Express) {
         adminId: req.user!.id
       });
       
-      // Create an announcement for the user
-      const announcement = {
-        title: "Subscription Status Update",
-        message: `Your subscription has been canceled by an administrator. Reason: ${auditReason}`,
-        type: "info" as const,
-        duration: 86400, // 24 hours in seconds
-        isPinned: true,
-        targetUserIds: [userId] // Only show to the affected user
-      };
-      
-      await storage.createAnnouncement(announcement, req.user!.id);
+      // No announcement will be created for subscription removal as requested
       
       res.json({ 
         message: `Successfully removed subscription from ${targetUser.username}`,
