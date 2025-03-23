@@ -61,6 +61,18 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
           <nav>
             <NavLink href="/" icon="ri-home-4-line" label="Home" />
             <NavLink href="#" icon="ri-exchange-dollar-line" label="Transactions" />
+            {user?.isAdmin && (
+              <Link href="/admin">
+                <a className={`flex items-center space-x-3 p-3 rounded-lg mb-1 ${
+                  location === '/admin' 
+                    ? 'text-white bg-[#5465FF] bg-opacity-20' 
+                    : 'text-gray-400 hover:text-white hover:bg-[#2A2A2A]'
+                }`} onClick={onClose}>
+                  <i className="ri-shield-keyhole-line text-lg text-purple-500"></i>
+                  <span>Admin Panel</span>
+                </a>
+              </Link>
+            )}
           </nav>
         </div>
         
@@ -143,7 +155,11 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
                   {user.username.substring(0, 2).toUpperCase()}
                 </span>
               </div>
-              <span className="font-medium">{user.username}</span>
+              <div className="flex flex-col">
+                <span className="font-medium">{user.username}</span>
+                {user.isOwner && <span className="text-xs text-purple-400">Owner</span>}
+                {user.isAdmin && !user.isOwner && <span className="text-xs text-blue-400">Admin</span>}
+              </div>
             </div>
             <button 
               className="text-gray-400 hover:text-white"
