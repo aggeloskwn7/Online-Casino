@@ -876,6 +876,163 @@ export class DatabaseStorage implements IStorage {
     
     return updatedUser;
   }
+
+  // === BAN MANAGEMENT OPERATIONS ===
+  async banUser(userId: number, adminId: number, reason: string): Promise<User> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
+    // Don't allow banning owners
+    if (user.isOwner) {
+      throw new Error("Cannot ban an owner account");
+    }
+    
+    const [updatedUser] = await db
+      .update(users)
+      .set({ 
+        isBanned: true,
+        banReason: reason,
+        bannedAt: new Date(),
+        bannedBy: adminId
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    if (!updatedUser) {
+      throw new Error("User not found");
+    }
+    
+    return updatedUser;
+  }
+  
+  async unbanUser(userId: number): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({ 
+        isBanned: false,
+        banReason: null,
+        bannedAt: null,
+        bannedBy: null
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    if (!updatedUser) {
+      throw new Error("User not found");
+    }
+    
+    return updatedUser;
+  }
+  
+  async getBannedUsers(limit = 50, offset = 0): Promise<User[]> {
+    const bannedUsers = await db
+      .select()
+      .from(users)
+      .where(eq(users.isBanned, true))
+      .orderBy(desc(users.bannedAt))
+      .limit(limit)
+      .offset(offset);
+    
+    return bannedUsers;
+  }
+  
+  // === BAN APPEAL OPERATIONS ===
+  async createBanAppeal(userId: number, reason: string): Promise<BanAppealType> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
+    if (!user.isBanned) {
+      throw new Error("User is not banned");
+    }
+    
+    // Check if user already has a pending or approved appeal
+    const existingAppeal = await this.getUserBanAppeal(userId);
+    if (existingAppeal && (existingAppeal.status === 'pending' || existingAppeal.status === 'approved')) {
+      throw new Error("User already has an active appeal");
+    }
+    
+    const [appeal] = await db
+      .insert(banAppeals)
+      .values({
+        userId,
+        reason,
+        status: 'pending',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    
+    return appeal;
+  }
+  
+  async getBanAppeals(status?: string, limit = 50, offset = 0): Promise<BanAppealType[]> {
+    if (status) {
+      return await db
+        .select()
+        .from(banAppeals)
+        .where(eq(banAppeals.status, status))
+        .orderBy(desc(banAppeals.createdAt))
+        .limit(limit)
+        .offset(offset);
+    } else {
+      return await db
+        .select()
+        .from(banAppeals)
+        .orderBy(desc(banAppeals.createdAt))
+        .limit(limit)
+        .offset(offset);
+    }
+  }
+  
+  async getUserBanAppeal(userId: number): Promise<BanAppealType | undefined> {
+    const [appeal] = await db
+      .select()
+      .from(banAppeals)
+      .where(eq(banAppeals.userId, userId))
+      .orderBy(desc(banAppeals.createdAt))
+      .limit(1);
+    
+    return appeal;
+  }
+  
+  async respondToBanAppeal(appealId: number, adminId: number, status: string, response: string): Promise<BanAppealType> {
+    // Validate status value
+    if (status !== 'approved' && status !== 'rejected') {
+      throw new Error("Invalid status. Must be 'approved' or 'rejected'");
+    }
+    
+    const [appeal] = await db
+      .select()
+      .from(banAppeals)
+      .where(eq(banAppeals.id, appealId));
+    
+    if (!appeal) {
+      throw new Error("Appeal not found");
+    }
+    
+    // Update the appeal
+    const [updatedAppeal] = await db
+      .update(banAppeals)
+      .set({
+        status,
+        adminResponse: response,
+        adminId,
+        updatedAt: new Date()
+      })
+      .where(eq(banAppeals.id, appealId))
+      .returning();
+    
+    // If approved, unban the user
+    if (status === 'approved') {
+      await this.unbanUser(appeal.userId);
+    }
+    
+    return updatedAppeal;
+  }
 }
 
 // Switch from MemStorage to DatabaseStorage

@@ -7,7 +7,10 @@ import {
   adminMassBonusSchema,
   adminAnnouncementSchema,
   adminGameConfigSchema,
-  adminAssignSubscriptionSchema
+  adminAssignSubscriptionSchema,
+  adminBanUserSchema,
+  adminBanAppealResponseSchema,
+  banAppealSchema
 } from "@shared/schema";
 import { z } from "zod";
 
