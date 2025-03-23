@@ -236,8 +236,13 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(coinTransactions.timestamp))
       .limit(limit);
     
-    if (userId) {
-      query = query.where(eq(coinTransactions.userId, userId));
+    if (userId !== undefined) {
+      return await db
+        .select()
+        .from(coinTransactions)
+        .where(eq(coinTransactions.userId, userId))
+        .orderBy(desc(coinTransactions.timestamp))
+        .limit(limit);
     }
     
     return await query;

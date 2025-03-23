@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, authMiddleware } from "./auth";
+import { setupAdminRoutes } from "./admin";
 import { 
   playSlots, 
   playDice, 
@@ -28,6 +29,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Transaction history - also protected
   app.get("/api/transactions", authMiddleware, getTransactions);
+  
+  // Set up admin routes
+  setupAdminRoutes(app);
 
   const httpServer = createServer(app);
 
