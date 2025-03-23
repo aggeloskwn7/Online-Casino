@@ -116,6 +116,8 @@ export default function SlotsGame() {
       } else {
         // Final row stops
         play('slotStop', { volume: 0.5 });
+        
+        // Stop the spinning sound
         stop('slotSpin');
         
         // Set all symbols to final
@@ -347,10 +349,10 @@ export default function SlotsGame() {
             ))}
           </div>
           
-          {/* Slot reels */}
-          <div className="grid grid-rows-3 gap-3 mb-2">
+          {/* Slot reels - Made much larger for better visibility */}
+          <div className="grid grid-rows-3 gap-4 mb-3">
             {symbols.map((row, rowIndex) => (
-              <div key={rowIndex} className="grid grid-cols-3 gap-3">
+              <div key={rowIndex} className="grid grid-cols-3 gap-4">
                 {row.map((symbol, colIndex) => (
                   <motion.div 
                     key={`${rowIndex}-${colIndex}`} 
@@ -377,7 +379,7 @@ export default function SlotsGame() {
                     
                     {/* Symbol with subtle bounce effect */}
                     <motion.div 
-                      className="slot-symbol text-5xl z-10"
+                      className="slot-symbol text-7xl md:text-8xl z-10"
                       animate={isCellHighlighted(rowIndex, colIndex) ? { 
                         scale: [1, 1.2, 1],
                         rotate: [0, 5, 0, -5, 0]
@@ -593,37 +595,7 @@ export default function SlotsGame() {
           </motion.div>
         )}
       </AnimatePresence>
-      
-      {/* Pay table */}
-      <div className="mt-6 p-4 bg-[#1A1A1A] rounded-lg">
-        <div className="text-center mb-3 text-sm uppercase text-gray-400 font-semibold">Pay Table</div>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div className="flex items-center gap-2">
-            <div className="flex">
-              <span className="text-xl">7️⃣ 7️⃣ 7️⃣</span>
-            </div>
-            <div className="text-yellow-400 font-mono">100x</div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex">
-              <span className="text-xl">💎 💎 💎</span>
-            </div>
-            <div className="text-yellow-400 font-mono">25x</div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex">
-              <span className="text-xl">🔔 🔔 🔔</span>
-            </div>
-            <div className="text-yellow-400 font-mono">15x</div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex">
-              <span className="text-xl">🍇 🍇 🍇</span>
-            </div>
-            <div className="text-yellow-400 font-mono">10x</div>
-          </div>
-        </div>
-      </div>
+
       
       {/* Custom styling for slot animations */}
       <style>{`
