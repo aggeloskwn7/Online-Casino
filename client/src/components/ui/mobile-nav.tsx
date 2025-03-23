@@ -78,9 +78,9 @@ export default function MobileNav({ type = 'top', onMenuClick }: MobileNavProps)
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-[#1E1E1E] border-t border-[#333333] flex justify-around py-2 z-10">
       <NavItem href="/" icon="ri-home-4-line" label="Home" />
       <NavItem href="/slots" icon="ri-slot-machine-line" label="Slots" />
-      <NavItem href="/dice" icon="ri-dice-line" label="Dice" />
-      <NavItem href="/crash" icon="ri-rocket-line" label="Crash" />
       <NavItem href="/blackjack" emoji="♠️" label="Cards" />
+      <NavItem href="/roulette" emoji="🎯" label="Wheel" />
+      <NavItem href="/crash" icon="ri-rocket-line" label="Crash" />
     </nav>
   );
 }

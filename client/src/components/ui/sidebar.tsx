@@ -105,10 +105,10 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
           <p className="text-gray-400 text-xs uppercase font-semibold mb-2 tracking-wider">Games</p>
           <nav>
             <GameLink href="/slots" emoji="🎰" label="Slots" />
-            <GameLink href="/dice" emoji="🎲" label="Dice" />
-            <GameLink href="/crash" emoji="🚀" label="Crash" />
-            <GameLink href="/roulette" emoji="🎯" label="Roulette" />
             <GameLink href="/blackjack" emoji="♠️" label="Blackjack" />
+            <GameLink href="/roulette" emoji="🎯" label="Roulette" />
+            <GameLink href="/crash" emoji="🚀" label="Crash" />
+            <GameLink href="/dice" emoji="🎲" label="Dice" />
           </nav>
         </div>
       </div>
