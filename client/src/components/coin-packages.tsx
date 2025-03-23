@@ -16,7 +16,7 @@ export default function CoinPackages({ onSelectPackage }: CoinPackagesProps) {
   const { toast } = useToast();
   const [selectedPackageId, setSelectedPackageId] = useState<string | null>(null);
 
-  const { data: packages, isLoading, error } = useQuery({
+  const { data: packages, isLoading, error } = useQuery<CoinPackage[]>({
     queryKey: ['/api/coins/packages'],
     retry: 2,
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -69,7 +69,7 @@ export default function CoinPackages({ onSelectPackage }: CoinPackagesProps) {
               </Badge>
             </div>
           )}
-          {pkg.discount > 0 && (
+          {pkg.discount && pkg.discount > 0 && (
             <div className="absolute top-0 left-0">
               <Badge variant="destructive" className="rounded-none rounded-br-lg">
                 {pkg.discount}% OFF
@@ -84,7 +84,7 @@ export default function CoinPackages({ onSelectPackage }: CoinPackagesProps) {
             </div>
             <div className="flex items-center justify-center mb-4">
               <span className="text-xl font-bold">${pkg.price.toFixed(2)}</span>
-              {pkg.discount > 0 && (
+              {pkg.discount && pkg.discount > 0 && (
                 <span className="ml-2 text-muted-foreground line-through text-sm">
                   ${(pkg.price / (1 - pkg.discount / 100)).toFixed(2)}
                 </span>

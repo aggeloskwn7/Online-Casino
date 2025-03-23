@@ -91,6 +91,7 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
           <nav>
             <NavLink href="/" icon="ri-home-4-line" label="Home" />
             <NavLink href="/history" icon="ri-history-line" label="History" />
+            <NavLink href="/purchase" icon="ri-coins-line text-yellow-500" label="Buy Coins" />
             {user?.isAdmin && (
               <NavLink 
                 href="/admin" 
@@ -119,12 +120,18 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
             <p className="text-sm text-gray-400">Balance</p>
             <span className="text-xs bg-[#5465FF] bg-opacity-20 text-[#5465FF] px-2 py-1 rounded">DEMO</span>
           </div>
-          <div className="flex items-center space-x-1">
+          <div className="flex items-center space-x-1 mb-3">
             <i className="ri-coin-line text-yellow-500"></i>
             <span className="font-mono text-xl font-medium">
               {user ? formatCurrency(user.balance) : '0.00'}
             </span>
           </div>
+          <Link href="/purchase" onClick={onClose}>
+            <Button variant="outline" size="sm" className="w-full">
+              <i className="ri-add-circle-line mr-1"></i>
+              Buy Coins
+            </Button>
+          </Link>
         </div>
         
         {user && (

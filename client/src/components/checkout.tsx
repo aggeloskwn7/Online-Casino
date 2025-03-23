@@ -90,7 +90,7 @@ function CheckoutForm({ clientSecret, packageDetails, onSuccess, onCancel }: Che
           <span className="text-muted-foreground">Coins:</span>
           <span className="font-medium">{packageDetails.coins.toLocaleString()}</span>
         </div>
-        {packageDetails.discount > 0 && (
+        {packageDetails.discount && packageDetails.discount > 0 && (
           <div className="flex justify-between mb-2">
             <span className="text-muted-foreground">Discount:</span>
             <span className="font-medium text-green-500">{packageDetails.discount}% OFF</span>
@@ -140,7 +140,7 @@ export default function Checkout({ packageId, onSuccess, onCancel }: CheckoutPro
   const { toast } = useToast();
   
   // Get package details
-  const { data: packages, isLoading: isPackagesLoading } = useQuery({
+  const { data: packages, isLoading: isPackagesLoading } = useQuery<CoinPackage[]>({
     queryKey: ['/api/coins/packages'],
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
@@ -198,7 +198,7 @@ export default function Checkout({ packageId, onSuccess, onCancel }: CheckoutPro
     <Elements stripe={stripePromise} options={{ 
       clientSecret,
       appearance: {
-        theme: 'night',
+        theme: 'night' as const,
         labels: 'floating'
       }
     }}>
