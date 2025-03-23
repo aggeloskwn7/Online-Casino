@@ -408,6 +408,28 @@ export default function RouletteGame({ onSpin }: RouletteGameProps) {
       
       // Hide win message during spinning
       setShowWinMessage(false);
+      
+      // Set timeout for the end of animation (matches the CSS transition duration)
+      setTimeout(() => {
+        if (pendingResultRef.current) {
+          // Now set the result after the animation completes
+          setLastResult(pendingResultRef.current);
+          setIsSpinning(false);
+          
+          // Update user data (balance) only now after animation is complete
+          queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+          
+          // Play sound based on win/lose
+          if (pendingResultRef.current.isWin) {
+            play('win');
+          } else {
+            play('lose');
+          }
+          
+          // Show win message
+          setShowWinMessage(true);
+        }
+      }, 4500); // 4.5 seconds animation time - matches the wheel rotation duration
     },
     onError: (error) => {
       toast({
