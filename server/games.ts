@@ -290,20 +290,39 @@ export async function playDice(req: Request, res: Response) {
       return res.status(400).json({ message: "Insufficient balance" });
     }
     
+    // Get play count for this user to adjust win rates
+    const playCount = await storage.getUserPlayCount(userId);
+    
+    // Determine the adjusted win chance based on play count
+    const diceWinChance = getAdjustedWinChance('dice', playCount);
+    
+    // Check if this should be a big win (special treatment)
+    const isBigWin = shouldBeBigWin(playCount);
+    
     // Generate random dice result (1-100)
     const result = Math.floor(Math.random() * 100) + 1;
     
     // Determine if it's a win (roll under target)
     const isWin = result <= target;
     
-    // Calculate multiplier and payout with extremely harsh casino odds
+    // Calculate multiplier and payout
     // Multiplier formula: (100 - house_edge) / target
-    // Massively increased house edge to 15% for much harder odds
-    const houseEdge = 15.0; 
-    const multiplier = isWin ? Number(((100 - houseEdge) / target).toFixed(4)) : 0;
+    // House edge varies based on player experience
+    const baseHouseEdge = 15.0;
+    // Reduce house edge for new players (better odds)
+    const adjustedHouseEdge = baseHouseEdge * (1 - (diceWinChance - 50) / 100);
+    let multiplier = isWin ? Number(((100 - adjustedHouseEdge) / target).toFixed(4)) : 0;
     
-    // Reduced chance of forced loss from 50% to 20% to make winning easier
-    if (isWin && Math.random() < 0.2) {
+    // For big wins, boost the multiplier
+    if (isWin && isBigWin) {
+      multiplier *= 1.0 + (Math.random() * 0.5); // 1-1.5x boost
+      multiplier = Number(multiplier.toFixed(4));
+    }
+    
+    // Chance of forced loss depends on player's experience
+    // New players have lower chance of forced loss
+    const forceLossChance = 0.2 * (100 - diceWinChance) / 100;
+    if (isWin && Math.random() < forceLossChance) {
         // Force a loss by overriding the result
         const forcedResult = target + Math.floor(Math.random() * (100 - target)) + 1; // A number higher than target
         const gameResult = diceRollSchema.parse({
@@ -327,6 +346,9 @@ export async function playDice(req: Request, res: Response) {
             payout: "0",
             isWin: false
         });
+        
+        // Increment user's play count
+        await storage.incrementPlayCount(userId);
         
         return res.status(200).json(gameResult);
     }
@@ -403,12 +425,18 @@ export async function startCrash(req: Request, res: Response) {
       return res.status(400).json({ message: "Insufficient balance" });
     }
     
-    // Generate crash point using an even tougher exponential distribution
+    // Get play count for this user to adjust win rates
+    const playCount = await storage.getUserPlayCount(userId);
+    
+    // Determine the adjusted win chance based on play count
+    const crashWinChance = getAdjustedWinChance('crash', playCount);
+    
+    // Check if this should be a big win (special treatment)
+    const isBigWin = shouldBeBigWin(playCount);
+    
+    // Generate crash point using an exponential distribution
     // This creates a curve similar to real crypto crash games with rare high multipliers
     // Formula: 0.95 / (1 - random^2.5)
-    // - House edge increased to 5% (down from 0.99 to 0.95)
-    // - Exponent increased from 2 to 2.5 for more frequent early crashes
-    // - Results pattern: ~60% crash below 2x, ~5% above 10x, ~0.5% above 100x
     const random = Math.random();
     // Ensure random is not 1 to avoid division by zero
     const safeRandom = random === 1 ? 0.999999 : random;
@@ -417,8 +445,16 @@ export async function startCrash(req: Request, res: Response) {
     const rawCrashPoint = 0.95 / (1 - Math.pow(safeRandom, 2.5));
     let crashPoint = Number(Math.min(1000, rawCrashPoint).toFixed(2));
     
-    // Reduced chance of immediate crash from 20% to 10% for more exciting gameplay
-    if (Math.random() < 0.1) {
+    // For big wins, boost the crash point significantly
+    if (isBigWin && crashPoint > 2.0) {
+      crashPoint *= getBigWinMultiplierBoost();
+      crashPoint = Number(Math.min(1000, crashPoint).toFixed(2));
+    }
+    
+    // Chance of immediate crash varies based on player's win rate
+    // New players have lower chance of immediate crash (better experience)
+    const immediateCrashChance = 0.1 * (100 - crashWinChance) / 100;
+    if (Math.random() < immediateCrashChance) {
       crashPoint = 1.00;
     }
     
@@ -611,6 +647,15 @@ export async function playRoulette(req: Request, res: Response) {
       return res.status(400).json({ message: "Insufficient balance" });
     }
     
+    // Get play count for this user to adjust win rates
+    const playCount = await storage.getUserPlayCount(userId);
+    
+    // Determine the adjusted win chance based on play count
+    const rouletteWinChance = getAdjustedWinChance('roulette', playCount);
+    
+    // Check if this should be a big win (special treatment)
+    const isBigWin = shouldBeBigWin(playCount);
+    
     // Generate random roulette spin (0-36)
     // Use the ROULETTE_NUMBERS array to pick a number in the correct sequence
     const randomIndex = Math.floor(Math.random() * ROULETTE_NUMBERS.length);
@@ -700,20 +745,31 @@ export async function playRoulette(req: Request, res: Response) {
           break;
       }
       
-      // Add additional random factor to balance winning chances
-      // 12% chance of forcing a loss on what would be a win
-      // This creates a more balanced house edge without being too punishing
-      if (isWin && Math.random() < 0.12) {
+      // Use dynamic win chance to determine odds based on player's play count
+      // New players have lower chance of forced loss, experienced players slightly higher
+      const forceLossFactor = 100 - rouletteWinChance; // Inverse of win chance (higher win chance = lower forced loss chance)
+      const forceLossChance = (forceLossFactor / 100) * 0.12; // Scale the base 12% by win factor
+      
+      if (isWin && Math.random() < forceLossChance) {
         isWin = false;
       }
       
-      // Very small chance (1%) of a "lucky win" on what would be a loss
+      // Chance of lucky win is higher for new players and lower for experienced ones
       // This adds excitement and occasional surprising wins
       let luckyMultiplier = 0;
-      if (!isWin && Math.random() < 0.01) {
+      const luckyWinChance = (rouletteWinChance / 100) * 0.02; // Up to 2% for new players
+      
+      if (!isWin && Math.random() < luckyWinChance) {
         isWin = true;
-        // Set a random multiplier between 2x and 5x for these surprise wins
-        luckyMultiplier = 2 + Math.floor(Math.random() * 3);
+        
+        // Set a higher multiplier for "big wins" designated by our algorithm
+        if (isBigWin) {
+          // Special big wins get higher multipliers (3-7x)
+          luckyMultiplier = 3 + Math.floor(Math.random() * 4);
+        } else {
+          // Normal lucky wins get 2-4x
+          luckyMultiplier = 2 + Math.floor(Math.random() * 2);
+        }
       }
       
       // Calculate payout for this bet
@@ -757,6 +813,9 @@ export async function playRoulette(req: Request, res: Response) {
       isWin: anyWin,
       metadata: JSON.stringify({ betResults })
     });
+    
+    // Increment user's play count
+    await storage.incrementPlayCount(userId);
     
     // Return result
     const gameResult = rouletteResultSchema.parse({
