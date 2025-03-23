@@ -82,7 +82,7 @@ export default function BlackjackGame() {
   
   // Handle player actions (hit, stand, double, split)
   const actionMutation = useMutation({
-    mutationFn: async (data: { action: BlackjackAction }) => {
+    mutationFn: async (data: BlackjackBet) => {
       const res = await apiRequest('POST', '/api/games/blackjack/action', data);
       return await res.json() as BlackjackState;
     },
@@ -164,7 +164,15 @@ export default function BlackjackGame() {
   // Handle player actions
   const handleAction = (action: BlackjackAction) => {
     if (gameState) {
-      actionMutation.mutate({ action });
+      const activeHand = getActiveHand();
+      if (!activeHand) return;
+      
+      // Include the amount in the request (required by the server)
+      actionMutation.mutate({ 
+        action, 
+        amount: activeHand.bet || 0,
+        handIndex: gameState.currentHandIndex || 0
+      });
     }
   };
   
@@ -180,15 +188,33 @@ export default function BlackjackGame() {
     return gameState.playerHands[activeHandIndex];
   };
   
+  // Helper function to get suit symbol
+  const getSuitSymbol = (suit: string): string => {
+    switch (suit) {
+      case 'hearts': return '♥';
+      case 'diamonds': return '♦';
+      case 'clubs': return '♣';
+      case 'spades': return '♠';
+      default: return '';
+    }
+  };
+  
+  // Helper function to get suit color
+  const getSuitColor = (suit: string): string => {
+    return suit === 'hearts' || suit === 'diamonds' ? 'text-red-600' : 'text-black';
+  };
+
   // Render a playing card
   const renderCard = (card: Card, index: number, isDealer = false, isLast = false) => {
     const isHidden = card.hidden;
+    const suitSymbol = getSuitSymbol(card.suit);
+    const suitColor = getSuitColor(card.suit);
     
     return (
       <div 
         key={`${card.suit}-${card.value}-${index}`}
         className={`relative w-16 h-24 md:w-20 md:h-32 rounded-md shadow-md 
-                   ${isHidden ? 'bg-blue-700' : 'bg-white'} 
+                   ${isHidden ? 'bg-gradient-to-br from-blue-700 to-blue-900' : 'bg-white border border-gray-300'} 
                    flex items-center justify-center
                    ${isLast && isDealing ? 'animate-slide-in-right' : ''}`}
         style={{
@@ -198,17 +224,29 @@ export default function BlackjackGame() {
       >
         {!isHidden && (
           <>
-            <div className={`absolute top-1 left-1 text-${getCardColor(card)}`}>
+            <div className={`absolute top-1 left-2 ${suitColor} font-bold`}>
               {getCardDisplayValue(card)}
             </div>
-            <div className="text-2xl">{card.suit}</div>
-            <div className={`absolute bottom-1 right-1 text-${getCardColor(card)}`}>
+            <div className={`absolute top-4 left-2 ${suitColor} text-lg`}>
+              {suitSymbol}
+            </div>
+            <div className={`text-4xl ${suitColor} font-bold`}>
+              {suitSymbol}
+            </div>
+            <div className={`absolute bottom-4 right-2 ${suitColor} text-lg`}>
+              {suitSymbol}
+            </div>
+            <div className={`absolute bottom-1 right-2 ${suitColor} font-bold`}>
               {getCardDisplayValue(card)}
             </div>
           </>
         )}
         {isHidden && (
-          <div className="text-white text-2xl font-bold">?</div>
+          <div className="flex flex-col items-center justify-center h-full w-full">
+            <div className="bg-white h-16 w-10 rounded-md flex items-center justify-center border-2 border-red-600 text-2xl text-center">
+              ?
+            </div>
+          </div>
         )}
       </div>
     );
