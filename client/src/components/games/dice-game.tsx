@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { useSound } from '@/hooks/use-sound';
@@ -9,7 +9,8 @@ import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { DiceRoll } from '@shared/schema';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useAnimation } from 'framer-motion';
+import { Sparkles, Trophy, Flame, TrendingUp, Zap } from 'lucide-react';
 
 export default function DiceGame() {
   const { user } = useAuth();
@@ -21,6 +22,10 @@ export default function DiceGame() {
   const [lastResult, setLastResult] = useState<DiceRoll | null>(null);
   const [diceValue, setDiceValue] = useState<number | null>(null);
   const [showWinMessage, setShowWinMessage] = useState(false);
+  const [showHotStreak, setShowHotStreak] = useState(false);
+  const diceControls = useAnimation();
+  const sparkleControls = useAnimation();
+  const diceRef = useRef<HTMLDivElement>(null);
   
   // Calculate profit on win
   const winChance = target;
@@ -53,10 +58,37 @@ export default function DiceGame() {
     },
   });
   
+  // Effect to check for consecutive wins
+  useEffect(() => {
+    // If we have a win, check if we should activate hot streak mode
+    if (lastResult?.isWin && multiplier >= 1.5) {
+      // Simulate a "hot streak" for high multipliers
+      setShowHotStreak(true);
+      
+      // Animate sparkles
+      sparkleControls.start({
+        opacity: [0, 1, 0],
+        scale: [0.8, 1.2, 0.8],
+        transition: { 
+          duration: 2,
+          repeat: 3,
+          repeatType: "reverse"
+        }
+      });
+      
+      // Reset hot streak after a few seconds
+      const timeout = setTimeout(() => {
+        setShowHotStreak(false);
+      }, 6000);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [lastResult, multiplier, sparkleControls]);
+
   const animateDiceRoll = (finalValue: number) => {
     let rolls = 0;
-    const maxRolls = 10;
-    const rollInterval = 100;
+    const maxRolls = 15; // Increased for longer animation
+    const rollInterval = 80; // Slightly faster
     
     // Hide win message during rolling
     setShowWinMessage(false);
@@ -64,26 +96,64 @@ export default function DiceGame() {
     // Reset any previous result to prevent glow during animation
     setLastResult(null);
     
+    // Start dice animation
+    diceControls.start({
+      rotate: [0, 360, 720, 1080, 1440, 1800],
+      scale: [1, 1.1, 0.9, 1.2, 0.95, 1],
+      transition: { 
+        duration: 1.5,
+        ease: "easeInOut"
+      }
+    });
+    
     const roll = () => {
       rolls++;
       
       if (rolls < maxRolls) {
         // Random dice value
         setDiceValue(Math.floor(Math.random() * 100) + 1);
+        
+        // Add small shake effect during mid-roll
+        if (rolls === Math.floor(maxRolls / 2)) {
+          diceControls.start({
+            x: [0, -5, 5, -3, 3, 0],
+            transition: { duration: 0.5 }
+          });
+        }
+        
         setTimeout(roll, rollInterval);
       } else {
         // Final dice value
         setDiceValue(finalValue);
         setIsRolling(false);
         
+        // Add impact animation when final value is shown
+        diceControls.start({
+          scale: [1, 1.2, 1],
+          transition: { duration: 0.3 }
+        });
+        
         // Show win message after rolling completes with a short delay
-        // Set the result with a delay to avoid spoiling via the glow effect
         setTimeout(() => {
           // Set the result to trigger the glow effect only after animation completes
           setLastResult(diceMutation.data as DiceRoll);
           
+          // Enhanced glow
+          if (diceMutation.data?.isWin) {
+            diceControls.start({
+              scale: [1, 1.1, 1],
+              boxShadow: ["0 0 0px rgba(84,101,255,0)", "0 0 20px rgba(84,101,255,0.8)", "0 0 15px rgba(84,101,255,0.6)"],
+              transition: { duration: 0.5, repeat: 3, repeatType: "reverse" }
+            });
+          } else {
+            diceControls.start({
+              scale: [1, 0.95, 1],
+              boxShadow: ["0 0 0px rgba(255,58,94,0)", "0 0 20px rgba(255,58,94,0.8)", "0 0 15px rgba(255,58,94,0.6)"],
+              transition: { duration: 0.5 }
+            });
+          }
+          
           // Update user data (balance) only now after animation is complete
-          // This prevents spoiling the win/loss by seeing balance change early
           queryClient.invalidateQueries({ queryKey: ['/api/user'] });
           
           // Play sound based on win/lose
@@ -125,40 +195,80 @@ export default function DiceGame() {
     setTarget(value[0]);
   };
   
-  // Render dice dots based on value
+  // Render dice with fancy styling and effects
   const renderDiceFace = () => {
+    const isLowNumber = diceValue !== null && diceValue <= target;
+    const fgColor = isLowNumber ? "#00E701" : "#ffffff";
+    const textSize = diceValue !== null && diceValue >= 100 ? "text-xl" : "text-2xl";
+    
     if (diceValue === null) {
-      // Default dice face (4)
+      // Default dice face with improved styling
       return (
-        <>
-          <div className="absolute w-3 h-3 rounded-full bg-white top-3 left-3"></div>
-          <div className="absolute w-3 h-3 rounded-full bg-white top-3 right-3"></div>
-          <div className="absolute w-3 h-3 rounded-full bg-white bottom-3 left-3"></div>
-          <div className="absolute w-3 h-3 rounded-full bg-white bottom-3 right-3"></div>
-        </>
+        <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] rounded-lg border border-[#333] flex items-center justify-center">
+          <div className="grid grid-cols-2 gap-1 p-1">
+            <div className="w-3 h-3 rounded-full bg-white"></div>
+            <div className="w-3 h-3 rounded-full bg-white"></div>
+            <div className="w-3 h-3 rounded-full bg-white"></div>
+            <div className="w-3 h-3 rounded-full bg-white"></div>
+          </div>
+        </div>
       );
     }
     
-    // For dice game, we'll show a number instead of dots
+    // Enhanced dice face with gradient and shadow
     return (
-      <div className="absolute inset-0 flex items-center justify-center text-white font-mono font-bold">
-        {diceValue}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] rounded-lg border border-[#333] flex items-center justify-center overflow-hidden">
+        {/* Number display with conditional styling based on win state */}
+        <div className={`${textSize} font-mono font-bold flex items-center justify-center`} 
+             style={{ color: fgColor }}>
+          {diceValue}
+        </div>
+        
+        {/* Light reflection effect */}
+        <div className="absolute top-0 left-0 w-full h-1/4 bg-gradient-to-b from-[rgba(255,255,255,0.15)] to-transparent"></div>
       </div>
     );
   };
   
   return (
-    <div className="bg-[#2A2A2A] p-4 rounded-xl">
-      <div className="flex justify-center mb-6">
-        <div className={`dice w-16 h-16 bg-[#121212] rounded-lg flex items-center justify-center relative ${
-          lastResult?.isWin 
-            ? 'neon-glow' 
-            : lastResult && !lastResult.isWin 
-              ? 'lose-glow' 
-              : ''
-        }`}>
-          {renderDiceFace()}
+    <div className="bg-gradient-to-b from-[#2A2A2A] to-[#222222] p-5 rounded-xl shadow-lg">
+      {/* Hot streak indicator */}
+      {showHotStreak && (
+        <div className="flex items-center justify-center mb-2 text-amber-400 text-sm font-bold">
+          <Flame className="w-4 h-4 mr-1" />
+          <span>HOT STREAK!</span>
         </div>
+      )}
+      
+      <div className="flex justify-center mb-6 relative">
+        {/* Sparkle effect for high-multiplier wins */}
+        <motion.div 
+          animate={sparkleControls}
+          className="absolute inset-0 pointer-events-none flex items-center justify-center"
+          style={{ opacity: 0 }}
+        >
+          <Sparkles className="w-12 h-12 text-amber-400" />
+        </motion.div>
+        
+        {/* 3D dice with animated glow */}
+        <motion.div 
+          ref={diceRef}
+          animate={diceControls}
+          className={`dice w-20 h-20 bg-[#121212] rounded-lg shadow-xl flex items-center justify-center relative
+            ${lastResult?.isWin ? 'win-glow' : lastResult && !lastResult.isWin ? 'lose-glow' : ''}
+          `}
+          style={{ 
+            transformStyle: 'preserve-3d',
+            perspective: '1000px',
+            boxShadow: lastResult?.isWin 
+              ? '0 0 20px rgba(84, 101, 255, 0.7)' 
+              : lastResult && !lastResult.isWin 
+                ? '0 0 20px rgba(255, 58, 94, 0.7)' 
+                : '0 5px 15px rgba(0, 0, 0, 0.5)'
+          }}
+        >
+          {renderDiceFace()}
+        </motion.div>
       </div>
       
       <div className="mb-4">
@@ -224,47 +334,144 @@ export default function DiceGame() {
         </div>
       </div>
       
-      <Button
-        className="w-full bg-[#5465FF] hover:bg-[#6677FF] text-white font-bold py-3 px-4 rounded-lg transition duration-200"
-        onClick={handleRoll}
-        disabled={isRolling || !user || betAmount > Number(user.balance)}
-      >
-        {isRolling ? 'ROLLING...' : 'ROLL DICE'}
-      </Button>
+      <motion.div className="relative">
+        {/* Pulsing background for button when not rolling */}
+        {!isRolling && (
+          <motion.div 
+            className="absolute inset-0 rounded-lg bg-[#5465FF] opacity-30"
+            animate={{ 
+              scale: [1, 1.05, 1],
+            }}
+            transition={{ 
+              duration: 1.5, 
+              repeat: Infinity,
+              repeatType: "mirror" 
+            }}
+          />
+        )}
+        
+        <Button
+          className={`w-full relative ${
+            isRolling 
+              ? 'bg-gradient-to-r from-[#444] to-[#333] text-gray-300' 
+              : 'bg-gradient-to-r from-[#5465FF] to-[#6677FF] hover:from-[#6677FF] hover:to-[#7788FF] text-white'
+          } font-bold py-4 px-4 rounded-lg shadow-lg transition duration-200`}
+          onClick={handleRoll}
+          disabled={isRolling || !user || betAmount > Number(user.balance)}
+        >
+          <div className="flex items-center justify-center">
+            {isRolling ? (
+              <>
+                <div className="mr-2 w-5 h-5 rounded-full border-2 border-t-transparent border-white animate-spin"></div>
+                <span className="tracking-wider">ROLLING...</span>
+              </>
+            ) : (
+              <>
+                <i className="ri-dice-line mr-2"></i>
+                <span className="tracking-wider">ROLL DICE</span>
+              </>
+            )}
+          </div>
+        </Button>
+      </motion.div>
+      
+      {/* Win chance and odds display */}
+      <div className="flex justify-between items-center mb-4 px-2">
+        <div className="flex items-center text-sm">
+          <TrendingUp className="w-4 h-4 mr-1 text-[#5465FF]" />
+          <span className="text-gray-400">Win Chance: <span className="text-white font-bold">{target}%</span></span>
+        </div>
+        <div className="flex items-center text-sm">
+          <Zap className="w-4 h-4 mr-1 text-amber-400" />
+          <span className="text-gray-400">Multiplier: <span className="text-white font-bold">{multiplier.toFixed(2)}x</span></span>
+        </div>
+      </div>
       
       <AnimatePresence>
         {lastResult && lastResult.isWin && lastResult.payout > betAmount && showWinMessage && (
           <motion.div 
-            className="mt-4 p-3 bg-[#121212] rounded-lg text-center"
+            className="mt-4 p-4 bg-gradient-to-r from-[#121212] to-[#1a1a1a] rounded-lg text-center shadow-lg border border-[#333333]"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
           >
+            {/* Win header */}
             <motion.div 
-              className="text-[#00E701] font-bold mb-1"
+              className="flex items-center justify-center gap-2 text-[#00E701] font-bold mb-2"
               initial={{ scale: 0.8 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.1, duration: 0.2 }}
             >
-              YOU WON!
+              <Trophy className="h-5 w-5" />
+              <span className="text-lg uppercase tracking-wider">YOU WON!</span>
+              <Trophy className="h-5 w-5" />
             </motion.div>
+            
+            {/* Win amount with particle effects */}
             <motion.div 
-              className="font-mono text-lg"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3, duration: 0.3 }}
+              className="font-mono text-2xl font-bold relative"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3, duration: 0.5, type: "spring" }}
             >
+              {/* Sparkle effect behind amount */}
+              <motion.div 
+                className="absolute inset-0 flex items-center justify-center" 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: [0, 1, 0] }}
+                transition={{ delay: 0.6, duration: 1.5, repeat: 2, repeatType: "mirror" }}
+              >
+                <Sparkles className="w-8 h-8 text-amber-400" />
+              </motion.div>
+              
               {formatCurrency(lastResult.payout)}
             </motion.div>
-            <motion.div 
-              className="text-sm text-gray-400 mt-1"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5, duration: 0.3 }}
-            >
-              Multiplier: {multiplier.toFixed(2)}x
-            </motion.div>
+            
+            {/* Additional win details */}
+            <div className="mt-3 pt-2 border-t border-[#333333] flex justify-between">
+              <motion.div 
+                className="text-sm text-gray-400"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.7, duration: 0.3 }}
+              >
+                Target: <span className="text-white">{lastResult.target}</span>
+              </motion.div>
+              
+              <motion.div 
+                className="text-sm text-gray-400"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.8, duration: 0.3 }}
+              >
+                Result: <span className="text-[#00E701]">{lastResult.result}</span>
+              </motion.div>
+              
+              <motion.div 
+                className="text-sm text-gray-400"
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.9, duration: 0.3 }}
+              >
+                Multiplier: <span className="text-amber-400">{multiplier.toFixed(2)}x</span>
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+        
+        {/* Loss message, more subtle than win */}
+        {lastResult && !lastResult.isWin && showWinMessage && (
+          <motion.div 
+            className="mt-4 p-3 bg-[#121212] rounded-lg text-center opacity-80"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 0.8, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="text-gray-400 text-sm">
+              Try again! You rolled <span className="text-white font-mono">{lastResult.result}</span> but needed below <span className="text-white font-mono">{lastResult.target}</span>.
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
