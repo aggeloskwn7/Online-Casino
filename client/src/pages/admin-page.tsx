@@ -1042,7 +1042,8 @@ function AnnouncementsTab() {
       setTitle("");
       setMessage("");
       setIsPinned(false);
-      setDuration("3600");
+      setDuration("60");
+      setType("info");
     },
     onError: (error: Error) => {
       toast({
@@ -1082,7 +1083,8 @@ function AnnouncementsTab() {
       title,
       message,
       isPinned,
-      duration: parseInt(duration)
+      duration: parseInt(duration),
+      type
     };
     
     createAnnouncement.mutate(data);
@@ -1200,6 +1202,24 @@ function AnnouncementsTab() {
                 />
               </div>
               
+              <div>
+                <Label htmlFor="type">Announcement Type</Label>
+                <Select
+                  value={type}
+                  onValueChange={setType}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="info">Info</SelectItem>
+                    <SelectItem value="success">Success</SelectItem>
+                    <SelectItem value="warning">Warning</SelectItem>
+                    <SelectItem value="error">Error</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="flex items-center space-x-2">
                 <input
                   type="checkbox"
@@ -1222,14 +1242,14 @@ function AnnouncementsTab() {
                     <SelectValue placeholder="Select duration" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="3600">1 hour</SelectItem>
-                    <SelectItem value="86400">1 day</SelectItem>
-                    <SelectItem value="604800">1 week</SelectItem>
-                    <SelectItem value="2592000">30 days</SelectItem>
+                    <SelectItem value="60">60 seconds</SelectItem>
+                    <SelectItem value="300">5 minutes</SelectItem>
+                    <SelectItem value="180">3 minutes</SelectItem>
+                    <SelectItem value="120">2 minutes</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {isPinned ? "Pinned announcements don't expire" : "How long this announcement will be visible"}
+                  {isPinned ? "Pinned announcements don't expire" : "How long this announcement will be visible (5-300 seconds)"}
                 </p>
               </div>
             </div>
