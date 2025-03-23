@@ -588,4 +588,60 @@ export function setupAdminRoutes(app: Express) {
       res.status(500).json({ message: "Failed to fetch user subscription", error: errorMessage });
     }
   });
+
+  // Remove a user's subscription (owner only)
+  app.delete("/api/admin/users/:userId/subscription", authMiddleware, ownerMiddleware, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      // Verify target user exists
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Get user's active subscription
+      const subscription = await storage.getUserSubscription(userId);
+      
+      if (!subscription) {
+        return res.status(404).json({ message: "User has no active subscription" });
+      }
+      
+      // Add reason to audit trail
+      const { reason } = req.body;
+      const auditReason = reason || "Removed by owner";
+      
+      // Cancel the subscription
+      const updatedSubscription = await storage.cancelSubscription(subscription.id);
+      
+      // Record this action in coin transactions for audit trail
+      await storage.createCoinTransaction({
+        userId,
+        amount: "0", // No coins directly affected
+        reason: `Subscription removed by owner: ${auditReason}`,
+        adminId: req.user!.id
+      });
+      
+      // Create an announcement for the user
+      const announcement = {
+        title: "Subscription Status Update",
+        message: `Your subscription has been canceled by an administrator. Reason: ${auditReason}`,
+        type: "info" as const,
+        duration: 86400, // 24 hours in seconds
+        isPinned: true,
+        targetUserIds: [userId] // Only show to the affected user
+      };
+      
+      await storage.createAnnouncement(announcement, req.user!.id);
+      
+      res.json({ 
+        message: `Successfully removed subscription from ${targetUser.username}`,
+        subscription: updatedSubscription
+      });
+    } catch (error) {
+      console.error("Error removing subscription:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Failed to remove subscription", error: errorMessage });
+    }
+  });
 }
