@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { RouletteResult, RouletteBet, RouletteBetType, SingleBet } from '@shared/schema';
+import { useRouletteState } from '@/hooks/use-roulette-state';
 
 // Define a bet object type - matches the SingleBet schema type
 type Bet = SingleBet;
