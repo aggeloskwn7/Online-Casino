@@ -662,8 +662,11 @@ export class DatabaseStorage implements IStorage {
       .values(subscription)
       .returning();
     
-    // Update the user's subscription tier
-    await this.updateUserSubscriptionTier(subscription.userId, subscription.tier);
+    // Only update the user's subscription tier if status is active
+    // This prevents automatic tier updates for incomplete/pending subscriptions
+    if (subscription.status === 'active') {
+      await this.updateUserSubscriptionTier(subscription.userId, subscription.tier);
+    }
     
     return newSubscription;
   }
@@ -675,6 +678,15 @@ export class DatabaseStorage implements IStorage {
       .where(eq(subscriptions.userId, userId))
       .orderBy(desc(subscriptions.createdAt))
       .limit(1);
+    
+    return subscription;
+  }
+  
+  async findSubscriptionByStripeId(stripeId: string): Promise<Subscription | undefined> {
+    const [subscription] = await db
+      .select()
+      .from(subscriptions)
+      .where(eq(subscriptions.stripeSubscriptionId, stripeId));
     
     return subscription;
   }
@@ -698,9 +710,16 @@ export class DatabaseStorage implements IStorage {
       await this.updateUserSubscriptionTier(updatedSubscription.userId, updates.tier);
     }
     
-    // If subscription is canceled, update user's subscription tier to null
-    if (updates.status === 'canceled' && updatedSubscription.userId) {
-      await this.updateUserSubscriptionTier(updatedSubscription.userId, null);
+    // Handle subscription status changes
+    if (updates.status && updatedSubscription.userId) {
+      // If status is active, set the user's subscription tier
+      if (updates.status === 'active') {
+        await this.updateUserSubscriptionTier(updatedSubscription.userId, updatedSubscription.tier);
+      }
+      // If subscription is canceled, past_due, unpaid, or incomplete_expired, remove the tier
+      else if (['canceled', 'past_due', 'unpaid', 'incomplete_expired'].includes(updates.status)) {
+        await this.updateUserSubscriptionTier(updatedSubscription.userId, null);
+      }
     }
     
     return updatedSubscription;
