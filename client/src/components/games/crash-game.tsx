@@ -485,9 +485,6 @@ export default function CrashGame() {
             )}
           </div>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <DollarSign className="h-4 w-4 text-gray-400" />
-            </div>
             <Input
               type="text"
               value={betAmount.toString()}
@@ -498,7 +495,7 @@ export default function CrashGame() {
                 const sanitized = parts[0] + (parts.length > 1 ? '.' + parts.slice(1).join('') : '');
                 setBetAmount(Number(sanitized) || 0);
               }}
-              className="w-full bg-[#0A0A12] rounded-lg border border-indigo-900/30 py-2 pl-10 pr-20 font-mono"
+              className="w-full bg-[#0A0A12] rounded-lg border border-indigo-900/30 py-2 px-4 pr-20 font-mono"
               disabled={gameState !== 'idle'}
             />
             <button 
@@ -518,9 +515,6 @@ export default function CrashGame() {
             </span>
           </div>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <TrendingUp className="h-4 w-4 text-gray-400" />
-            </div>
             <Input
               type="text"
               value={autoCashout.toString()}
@@ -528,7 +522,7 @@ export default function CrashGame() {
                 const val = e.target.value.replace(/[^0-9.]/g, '');
                 setAutoCashout(Number(val) || 0);
               }}
-              className="w-full bg-[#0A0A12] rounded-lg border border-indigo-900/30 py-2 pl-10 pr-10 font-mono"
+              className="w-full bg-[#0A0A12] rounded-lg border border-indigo-900/30 py-2 px-4 pr-10 font-mono"
               disabled={gameState !== 'idle'}
             />
             <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
