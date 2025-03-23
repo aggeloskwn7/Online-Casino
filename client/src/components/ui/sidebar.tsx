@@ -67,10 +67,46 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
         <div className="mb-6">
           <p className="text-gray-400 text-xs uppercase font-semibold mb-2 tracking-wider">Games</p>
           <nav>
-            <NavLink href="/slots" icon="ri-slot-machine-line" label="Slots" />
-            <NavLink href="/dice" icon="ri-dice-line" label="Dice" />
-            <NavLink href="/crash" icon="ri-rocket-line" label="Crash" />
-            <NavLink href="/roulette" icon="ri-focus-3-line" label="Roulette" />
+            <Link href="/slots">
+              <a className={`flex items-center space-x-3 p-3 rounded-lg mb-1 ${
+                location === '/slots' 
+                  ? 'text-white bg-[#5465FF] bg-opacity-20' 
+                  : 'text-gray-400 hover:text-white hover:bg-[#2A2A2A]'
+              }`} onClick={onClose}>
+                <i className="ri-gamepad-line text-lg text-amber-400"></i>
+                <span>Slots</span>
+              </a>
+            </Link>
+            <Link href="/dice">
+              <a className={`flex items-center space-x-3 p-3 rounded-lg mb-1 ${
+                location === '/dice' 
+                  ? 'text-white bg-[#5465FF] bg-opacity-20' 
+                  : 'text-gray-400 hover:text-white hover:bg-[#2A2A2A]'
+              }`} onClick={onClose}>
+                <i className="ri-dice-line text-lg text-[#5465FF]"></i>
+                <span>Dice</span>
+              </a>
+            </Link>
+            <Link href="/crash">
+              <a className={`flex items-center space-x-3 p-3 rounded-lg mb-1 ${
+                location === '/crash' 
+                  ? 'text-white bg-[#5465FF] bg-opacity-20' 
+                  : 'text-gray-400 hover:text-white hover:bg-[#2A2A2A]'
+              }`} onClick={onClose}>
+                <i className="ri-rocket-line text-lg text-green-500"></i>
+                <span>Crash</span>
+              </a>
+            </Link>
+            <Link href="/roulette">
+              <a className={`flex items-center space-x-3 p-3 rounded-lg mb-1 ${
+                location === '/roulette' 
+                  ? 'text-white bg-[#5465FF] bg-opacity-20' 
+                  : 'text-gray-400 hover:text-white hover:bg-[#2A2A2A]'
+              }`} onClick={onClose}>
+                <i className="ri-focus-3-line text-lg text-red-500"></i>
+                <span>Roulette</span>
+              </a>
+            </Link>
           </nav>
         </div>
       </div>
