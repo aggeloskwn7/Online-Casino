@@ -941,9 +941,9 @@ function BonusesTab() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Users</SelectItem>
-                    <SelectItem value="new">New Users (&lt; 10 games played)</SelectItem>
-                    <SelectItem value="active">Active Users (10-100 games played)</SelectItem>
-                    <SelectItem value="veteran">Veteran Users (&gt; 100 games played)</SelectItem>
+                    <SelectItem value="new">New Users (less than 10 games)</SelectItem>
+                    <SelectItem value="active">Active Users (10-100 games)</SelectItem>
+                    <SelectItem value="veteran">Veteran Users (over 100 games)</SelectItem>
                     <SelectItem value="custom">Custom Filter</SelectItem>
                   </SelectContent>
                 </Select>
