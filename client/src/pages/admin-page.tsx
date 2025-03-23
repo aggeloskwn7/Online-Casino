@@ -1007,7 +1007,8 @@ function AnnouncementsTab() {
   const [title, setTitle] = useState<string>("");
   const [message, setMessage] = useState<string>("");
   const [isPinned, setIsPinned] = useState<boolean>(false);
-  const [duration, setDuration] = useState<string>("3600"); // Default 1 hour
+  const [duration, setDuration] = useState<string>("60"); // Default 60 seconds
+  const [type, setType] = useState<string>("info"); // Default type
   
   // Fetch announcements
   const {
