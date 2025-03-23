@@ -26,12 +26,9 @@ export const SLOT_PAYOUTS = {
 export const formatCurrency = (value: number | string) => {
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
   
-  // For positive values, format normally
-  if (numValue > 0) {
-    return numValue.toLocaleString('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
+  // Handle NaN or undefined
+  if (isNaN(numValue)) {
+    return "0.00";
   }
   
   // For zero, just show 0.00
@@ -39,11 +36,11 @@ export const formatCurrency = (value: number | string) => {
     return "0.00";
   }
   
-  // For negative values, add a negative sign and format the absolute value
-  return `-${Math.abs(numValue).toLocaleString('en-US', {
+  // For all other values (positive and negative), use consistent formatting
+  return numValue.toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
-  })}`;
+  });
 };
 
 // Format multiplier value
