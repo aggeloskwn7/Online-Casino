@@ -1835,8 +1835,8 @@ function SubscriptionsTab() {
   const [reason, setReason] = useState<string>('');
   
   // Search users
-  const searchUsers = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const searchUsers = async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
     if (username.length >= 2) {
       setIsSearching(true);
       try {
@@ -1935,7 +1935,7 @@ function SubscriptionsTab() {
           <div className="space-y-2">
             <Label htmlFor="username">Username</Label>
             <div className="relative">
-              <form onSubmit={searchUsers} className="flex gap-2">
+              <div className="flex gap-2">
                 <Input 
                   id="username"
                   value={username}
@@ -1943,15 +1943,22 @@ function SubscriptionsTab() {
                   placeholder="Search by username"
                   className="flex-1"
                   disabled={assignSubscription.isPending}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && username.length >= 2 && !isSearching) {
+                      e.preventDefault();
+                      searchUsers();
+                    }
+                  }}
                 />
                 <Button 
-                  type="submit" 
+                  type="button" 
                   variant="outline"
+                  onClick={searchUsers}
                   disabled={isSearching || username.length < 2 || assignSubscription.isPending}
                 >
                   {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                 </Button>
-              </form>
+              </div>
               
               {username.length >= 2 && searchResults && searchResults.users && searchResults.users.length > 0 && (
                 <div className="mt-2 border rounded-md max-h-40 overflow-y-auto">
