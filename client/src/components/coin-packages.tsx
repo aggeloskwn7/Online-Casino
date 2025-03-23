@@ -101,20 +101,24 @@ export default function CoinPackages({ onSelectPackage }: CoinPackagesProps) {
               </div>
               
               <div className="flex items-center justify-center my-6 bg-background p-5 rounded-xl shadow-inner">
-                <div className="relative">
-                  <Coins className="h-10 w-10 mr-2 text-yellow-500 absolute -left-12 top-1/2 transform -translate-y-1/2" />
-                  <span className="text-4xl font-bold">{pkg.coins.toLocaleString()}</span>
-                  <span className="text-sm ml-2 text-muted-foreground">coins</span>
+                <div className="flex items-center">
+                  <Coins className="h-10 w-10 mr-3 text-yellow-500" />
+                  <div>
+                    <span className="text-4xl font-bold">{pkg.coins.toLocaleString()}</span>
+                    <span className="text-sm ml-2 text-muted-foreground">coins</span>
+                  </div>
                 </div>
               </div>
               
               <div className="flex items-center justify-center mb-6">
-                <span className="text-2xl font-bold">${pkg.price.toFixed(2)}</span>
-                {pkg.discount && pkg.discount > 0 && (
-                  <span className="ml-2 text-muted-foreground line-through text-sm">
-                    ${originalPrice}
-                  </span>
-                )}
+                <div>
+                  <span className="text-2xl font-bold">${pkg.price.toFixed(2)}</span>
+                  {pkg.discount && pkg.discount > 0 && (
+                    <span className="ml-2 text-muted-foreground line-through text-sm">
+                      ${originalPrice}
+                    </span>
+                  )}
+                </div>
               </div>
               
               {isSelected && (
