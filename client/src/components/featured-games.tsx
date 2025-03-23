@@ -5,12 +5,43 @@ import { Button } from '@/components/ui/button';
 // Define featured games
 const featuredGames = [
   {
+    id: 'blackjack',
+    name: 'Casino Blackjack',
+    description: 'Beat the dealer with cards as close to 21 as possible',
+    path: '/blackjack',
+    icon: 'ri-heart-fill',
+    rating: 5.0,
+    tag: 'NEW',
+    tagColor: '#FFD700',
+    preview: (
+      <div className="flex space-x-[-10px] transform rotate-6">
+        <div className="w-16 h-24 bg-white rounded-lg flex items-center justify-center text-xl relative border border-gray-300 shadow-lg">
+          <div className="absolute top-1 left-2 text-black font-bold">A</div>
+          <div className="absolute top-5 left-2 text-red-600">♥</div>
+          <div className="absolute text-3xl text-red-600">♥</div>
+          <div className="absolute bottom-5 right-2 text-red-600">♥</div>
+          <div className="absolute bottom-1 right-2 text-black font-bold">A</div>
+        </div>
+        <div className="w-16 h-24 bg-white rounded-lg flex items-center justify-center text-xl relative border border-gray-300 shadow-lg transform rotate-12">
+          <div className="absolute top-1 left-2 text-black font-bold">K</div>
+          <div className="absolute top-5 left-2 text-black">♠</div>
+          <div className="absolute text-3xl text-black">♠</div>
+          <div className="absolute bottom-5 right-2 text-black">♠</div>
+          <div className="absolute bottom-1 right-2 text-black font-bold">K</div>
+        </div>
+        <div className="absolute top-[-8px] right-[10px] font-bold bg-yellow-400 text-black px-2 rounded-full text-xs py-1 animate-pulse">
+          NEW!
+        </div>
+      </div>
+    )
+  },
+  {
     id: 'slots',
     name: 'Lucky Slots',
     description: 'Classic slot machine with multiple paylines',
     path: '/slots',
     icon: 'ri-slot-machine-line',
-    rating: 4.5,
+    rating: 4.8,
     tag: 'Popular',
     tagColor: '#5465FF',
     preview: (
@@ -22,44 +53,30 @@ const featuredGames = [
     )
   },
   {
-    id: 'dice',
-    name: 'Crypto Dice',
-    description: 'Bet on dice rolls with customizable odds',
-    path: '/dice',
-    icon: 'ri-dice-line',
-    rating: 4.0,
-    preview: (
-      <div className="flex space-x-4">
-        <div className="w-16 h-16 bg-[#2A2A2A] rounded-lg flex items-center justify-center text-3xl relative">
-          <div className="absolute w-4 h-4 rounded-full bg-white top-2 left-2"></div>
-          <div className="absolute w-4 h-4 rounded-full bg-white bottom-2 right-2"></div>
-        </div>
-        <div className="w-16 h-16 bg-[#2A2A2A] rounded-lg flex items-center justify-center text-3xl relative">
-          <div className="absolute w-4 h-4 rounded-full bg-white top-2 left-2"></div>
-          <div className="absolute w-4 h-4 rounded-full bg-white top-2 right-2"></div>
-          <div className="absolute w-4 h-4 rounded-full bg-white bottom-2 left-2"></div>
-          <div className="absolute w-4 h-4 rounded-full bg-white bottom-2 right-2"></div>
-          <div className="absolute w-4 h-4 rounded-full bg-white m-auto inset-0"></div>
-        </div>
-      </div>
-    )
-  },
-  {
-    id: 'crash',
-    name: 'Rocket Crash',
-    description: 'Cash out before the rocket crashes',
-    path: '/crash',
-    icon: 'ri-rocket-line',
-    rating: 5.0,
-    tag: 'Trending',
-    tagColor: '#00E701',
+    id: 'roulette',
+    name: 'VIP Roulette',
+    description: 'Bet on numbers, colors, or sections and watch the wheel spin',
+    path: '/roulette',
+    icon: 'ri-checkbox-blank-circle-line',
+    rating: 4.9,
+    tag: 'Hot',
+    tagColor: '#FF5555',
     preview: (
       <div className="relative">
-        <div className="w-20 h-20 rounded-full bg-[#5465FF] bg-opacity-20 flex items-center justify-center">
-          <i className="ri-rocket-line text-3xl text-[#5465FF]"></i>
-        </div>
-        <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 font-mono font-bold text-[#00E701] text-xl">
-          2.35x
+        <div className="w-24 h-24 rounded-full bg-gradient-to-r from-red-600 to-green-600 flex items-center justify-center relative overflow-hidden">
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-20 h-20 rounded-full bg-[#2A2A2A] flex items-center justify-center">
+              <div className="w-2 h-12 bg-white absolute transform -translate-y-2 rotate-[30deg]"></div>
+              <div className="absolute w-4 h-4 rounded-full bg-white"></div>
+            </div>
+          </div>
+          <div className="absolute -bottom-1 w-full text-center font-bold text-white text-xs">
+            <div className="flex justify-center">
+              <span className="bg-black rounded-full px-2 mx-1">0</span>
+              <span className="bg-red-600 rounded-full px-2 mx-1">32</span>
+              <span className="bg-black rounded-full px-2 mx-1">15</span>
+            </div>
+          </div>
         </div>
       </div>
     )
