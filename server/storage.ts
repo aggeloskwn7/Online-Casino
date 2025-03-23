@@ -285,6 +285,53 @@ export class DatabaseStorage implements IStorage {
     return coinTransaction;
   }
   
+  // === PAYMENT OPERATIONS ===
+  async createPayment(payment: InsertPayment): Promise<Payment> {
+    const [newPayment] = await db
+      .insert(payments)
+      .values(payment)
+      .returning();
+    
+    return newPayment;
+  }
+  
+  async getUserPayments(userId: number, limit = 10): Promise<Payment[]> {
+    const userPayments = await db
+      .select()
+      .from(payments)
+      .where(eq(payments.userId, userId))
+      .orderBy(desc(payments.createdAt))
+      .limit(limit);
+    
+    return userPayments;
+  }
+  
+  async getPaymentBySessionId(sessionId: string): Promise<Payment | undefined> {
+    const [payment] = await db
+      .select()
+      .from(payments)
+      .where(eq(payments.stripeSessionId, sessionId));
+    
+    return payment;
+  }
+  
+  async updatePaymentStatus(id: number, status: string): Promise<Payment> {
+    const [updatedPayment] = await db
+      .update(payments)
+      .set({ 
+        status, 
+        updatedAt: new Date() 
+      })
+      .where(eq(payments.id, id))
+      .returning();
+    
+    if (!updatedPayment) {
+      throw new Error("Payment not found");
+    }
+    
+    return updatedPayment;
+  }
+  
   // === ANNOUNCEMENT OPERATIONS ===
   // Since we don't have a dedicated table for announcements yet, we'll store in memory
   private announcements: any[] = [];
