@@ -77,6 +77,34 @@ export default function BlackjackGame() {
       // Simulate dealing animation
       setTimeout(() => {
         setIsDealing(false);
+        
+        // Check if there's an immediate blackjack or game completion
+        if (data.status === 'complete' || 
+            (data.playerHands && 
+             data.playerHands[0] && 
+             isBlackjack(data.playerHands[0].cards) && 
+             !data.playerHands[0].isSplit)) {
+          
+          // Play appropriate sound for the result
+          if (data.result === 'win') {
+            play('win');
+          } else if (data.result === 'lose') {
+            play('lose');
+          }
+          
+          // Show outcome dialog
+          setTimeout(() => {
+            setShowOutcomeDialog(true);
+            
+            // Auto reset after a short delay
+            setTimeout(() => {
+              setShowOutcomeDialog(false);
+              if (data.status === 'complete') {
+                setGameState(null);
+              }
+            }, 2000);
+          }, 500);
+        }
       }, 1000);
       
       queryClient.invalidateQueries({ queryKey: ['/api/user'] });
