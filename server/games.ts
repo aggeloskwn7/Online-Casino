@@ -132,9 +132,9 @@ export async function playSlots(req: Request, res: Response) {
       const symbol2 = symbols[row2][col2];
       const symbol3 = symbols[row3][col3];
       
-      // Check for 3 of a kind but with EXTREME luck factor
-      // Only 10% of legitimate 3-of-a-kind matches will actually pay out
-      if (symbol1 === symbol2 && symbol2 === symbol3 && Math.random() < 0.1) {
+      // Check for 3 of a kind with more reasonable odds
+      // Now 85% of legitimate 3-of-a-kind matches will pay out (increased from 10%)
+      if (symbol1 === symbol2 && symbol2 === symbol3 && Math.random() < 0.85) {
         // Get the base multiplier for this symbol
         const baseMultiplier = SYMBOL_MULTIPLIERS[symbol1 as keyof typeof SYMBOL_MULTIPLIERS];
         
@@ -156,8 +156,8 @@ export async function playSlots(req: Request, res: Response) {
         isWin = true;
         winningLines.push([row1, col1, row2, col2, row3, col3]);
       }
-      // Extreme reduction in chances of winning with pairs (only 2% chance of counting)
-      else if (Math.random() < 0.02 && ((symbol1 === symbol2 && symbol1 !== symbol3) || 
+      // Better chances of winning with pairs (increased to 25% chance from 2%)
+      else if (Math.random() < 0.25 && ((symbol1 === symbol2 && symbol1 !== symbol3) || 
                (symbol2 === symbol3 && symbol1 !== symbol2) ||
                (symbol1 === symbol3 && symbol1 !== symbol2))) {
         // Much smaller win for pairs
@@ -182,8 +182,8 @@ export async function playSlots(req: Request, res: Response) {
       if (!allSame) break;
     }
     
-    // Even if all symbols match, only 5% chance of actually getting the win
-    if (allSame && Math.random() < 0.05) {
+    // Increased chance to win on full grid match (increased to 30% from 5%)
+    if (allSame && Math.random() < 0.30) {
       // Massive multiplier for full grid of the same symbol
       // Base symbol multiplier * full grid bonus
       multiplier = SYMBOL_MULTIPLIERS[firstSymbol as keyof typeof SYMBOL_MULTIPLIERS] * PATTERN_MULTIPLIERS.full_grid;
@@ -269,9 +269,8 @@ export async function playDice(req: Request, res: Response) {
     const houseEdge = 15.0; 
     const multiplier = isWin ? Number(((100 - houseEdge) / target).toFixed(4)) : 0;
     
-    // Add additional random factor to make winning much harder (50% chance of forced loss)
-    // This creates a hidden double-house edge that makes winning rare
-    if (isWin && Math.random() < 0.5) {
+    // Reduced chance of forced loss from 50% to 20% to make winning easier
+    if (isWin && Math.random() < 0.2) {
         // Force a loss by overriding the result
         const forcedResult = target + Math.floor(Math.random() * (100 - target)) + 1; // A number higher than target
         const gameResult = diceRollSchema.parse({
@@ -382,8 +381,8 @@ export async function startCrash(req: Request, res: Response) {
     const rawCrashPoint = 0.95 / (1 - Math.pow(safeRandom, 2.5));
     let crashPoint = Number(Math.min(1000, rawCrashPoint).toFixed(2));
     
-    // Additional 20% chance for an immediate crash (1.00x) for even more frequent losses
-    if (Math.random() < 0.2) {
+    // Reduced chance of immediate crash from 20% to 10% for more exciting gameplay
+    if (Math.random() < 0.1) {
       crashPoint = 1.00;
     }
     
