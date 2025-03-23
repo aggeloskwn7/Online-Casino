@@ -1,16 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
-import { Card } from "@/components/ui/card";
 import { formatCurrency, formatMultiplier } from "@/lib/game-utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
 import { getQueryFn } from "@/lib/queryClient";
-import { Transaction } from "@shared/schema";
+import { Transaction, RouletteResult } from "@shared/schema";
 import { ROULETTE_COLORS } from "@/lib/game-utils";
 
 export default function RouletteHistory() {
   // Fetch the roulette game transactions
   const { data: transactions, isLoading } = useQuery<Transaction[]>({
-    queryKey: ["/api/transactions", "roulette"],
+    queryKey: ["/api/transactions"],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
 
@@ -41,12 +40,24 @@ export default function RouletteHistory() {
   return (
     <div className="divide-y divide-[#333333]">
       {rouletteGames.map((game, index) => {
-        const gameData = JSON.parse(game.metadata || "{}");
-        const isWin = game.amount > 0;
-        const spin = gameData.spin || 0;
-        const color = gameData.color || "black";
-        const multiplier = gameData.multiplier || 1;
-        const betType = gameData.betType || "unknown";
+        const isWin = game.isWin;
+        // Default values for display if we can't infer from the transaction
+        let spin = 0;
+        let color: 'red' | 'black' | 'green' = 'black';
+        let betType = 'unknown';
+        
+        // Try to determine the result from the game's last spin
+        if (Number(game.multiplier) > 0) {
+          // Get approximate bet type based on multiplier
+          const multiplierNum = Number(game.multiplier);
+          if (multiplierNum >= 35) betType = 'straight';
+          else if (multiplierNum >= 17) betType = 'split';
+          else if (multiplierNum >= 11) betType = 'street';
+          else if (multiplierNum >= 8) betType = 'corner';
+          else if (multiplierNum >= 5) betType = 'line';
+          else if (multiplierNum >= 2) betType = 'dozen';
+          else betType = 'outside';
+        }
         
         return (
           <motion.div 
@@ -58,12 +69,10 @@ export default function RouletteHistory() {
           >
             <div className="flex justify-between items-center">
               <div className="flex items-center space-x-3">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
-                  color === 'red' ? 'bg-gradient-to-b from-[#E03C3C] to-[#C92A2A]' : 
-                  color === 'black' ? 'bg-gradient-to-b from-[#222222] to-[#121212]' :
-                  'bg-gradient-to-b from-[#00A000] to-[#008000]'
+                <div className={`w-10 h-10 flex items-center justify-center text-white font-bold rounded-full ${
+                  isWin ? 'bg-gradient-to-b from-[#00A000] to-[#008000]' : 'bg-gradient-to-b from-[#E03C3C] to-[#C92A2A]'
                 }`}>
-                  {spin}
+                  {isWin ? '✓' : '✗'}
                 </div>
                 <div>
                   <div className="font-medium">
@@ -76,10 +85,10 @@ export default function RouletteHistory() {
               </div>
               <div className="text-right">
                 <div className={`font-mono font-medium ${isWin ? 'text-[#00E701]' : 'text-[#E03C3C]'}`}>
-                  {isWin ? '+' : ''}{formatCurrency(game.amount)}
+                  {isWin ? '+' : '-'}{formatCurrency(Math.abs(Number(game.payout)))}
                 </div>
                 <div className="text-xs text-gray-400">
-                  {formatMultiplier(multiplier)}x multiplier
+                  {formatMultiplier(Number(game.multiplier))}x multiplier
                 </div>
               </div>
             </div>
