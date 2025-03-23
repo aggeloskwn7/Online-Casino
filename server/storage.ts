@@ -2,6 +2,7 @@ import {
   users, 
   transactions, 
   coinTransactions, 
+  payments,
   User, 
   InsertUser, 
   Transaction, 
@@ -11,7 +12,9 @@ import {
   AdminUserUpdate,
   AdminAnnouncement,
   AdminGameConfig,
-  AdminMassBonus
+  AdminMassBonus,
+  Payment,
+  InsertPayment
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql, like } from "drizzle-orm";
@@ -42,6 +45,12 @@ export interface IStorage {
   adjustUserBalance(userId: number, amount: number, adminId: number, reason: string): Promise<User>;
   getCoinTransactions(userId?: number, limit?: number): Promise<CoinTransaction[]>;
   createCoinTransaction(transaction: InsertCoinTransaction): Promise<CoinTransaction>;
+  
+  // Payment operations
+  createPayment(payment: InsertPayment): Promise<Payment>;
+  getUserPayments(userId: number, limit?: number): Promise<Payment[]>;
+  getPaymentBySessionId(sessionId: string): Promise<Payment | undefined>;
+  updatePaymentStatus(id: number, status: string): Promise<Payment>;
   
   // Announcement operations
   createAnnouncement(announcement: AdminAnnouncement, adminId: number): Promise<any>;

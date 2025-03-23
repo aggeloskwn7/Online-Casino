@@ -33,8 +33,19 @@ export const coinTransactions = pgTable("coin_transactions", {
   userId: integer("user_id").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(), // Positive for adding coins, negative for removing
   reason: text("reason").notNull(),
-  adminId: integer("admin_id").notNull(), // Admin who performed the action
+  adminId: integer("admin_id").notNull(), // Admin who performed the action, or 0 for system (purchases)
   timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
+export const payments = pgTable("payments", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(), // Amount in USD
+  coins: decimal("coins", { precision: 10, scale: 2 }).notNull(), // Number of coins purchased
+  stripeSessionId: text("stripe_session_id").notNull(),
+  status: text("status").notNull().default("pending"), // pending, completed, failed, refunded
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -50,6 +61,12 @@ export const insertTransactionSchema = createInsertSchema(transactions).omit({
 export const insertCoinTransactionSchema = createInsertSchema(coinTransactions).omit({
   id: true,
   timestamp: true,
+});
+
+export const insertPaymentSchema = createInsertSchema(payments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 // Admin operation schemas
@@ -87,6 +104,21 @@ export const adminGameConfigSchema = z.object({
   config: z.record(z.any()), // Game-specific configuration as key-value pairs
 });
 
+// Schema for coin purchase packages
+export const coinPackageSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  coins: z.number().int().positive(),
+  price: z.number().positive(), // Price in USD
+  discount: z.number().min(0).max(100).optional(), // Optional discount percentage
+  featured: z.boolean().default(false),
+});
+
+// Schema for creating a payment intent
+export const createPaymentIntentSchema = z.object({
+  packageId: z.string(),
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
@@ -98,6 +130,10 @@ export type AdminCoinAdjustment = z.infer<typeof adminCoinAdjustmentSchema>;
 export type AdminMassBonus = z.infer<typeof adminMassBonusSchema>;
 export type AdminAnnouncement = z.infer<typeof adminAnnouncementSchema>;
 export type AdminGameConfig = z.infer<typeof adminGameConfigSchema>;
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type Payment = typeof payments.$inferSelect;
+export type CoinPackage = z.infer<typeof coinPackageSchema>;
+export type CreatePaymentIntent = z.infer<typeof createPaymentIntentSchema>;
 
 // Game related schemas
 export const betSchema = z.object({
