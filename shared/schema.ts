@@ -15,6 +15,11 @@ export const users = pgTable("users", {
   lastRewardDate: timestamp("last_reward_date"),
   currentLoginStreak: integer("current_login_streak").default(0).notNull(),
   isBanned: boolean("is_banned").default(false).notNull(),
+  subscriptionTier: text("subscription_tier").default("none"), // none, bronze, silver, gold
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  subscriptionStatus: text("subscription_status").default("inactive"), // active, inactive, past_due, canceled, etc.
+  subscriptionEndsAt: timestamp("subscription_ends_at"),
 });
 
 export const transactions = pgTable("transactions", {
@@ -58,6 +63,21 @@ export const loginRewards = pgTable("login_rewards", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const subscriptions = pgTable("subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  tier: text("tier").notNull(), // bronze, silver, gold
+  stripeSubscriptionId: text("stripe_subscription_id").notNull(),
+  status: text("status").notNull(), // active, canceled, past_due, etc.
+  startDate: timestamp("start_date").defaultNow().notNull(),
+  endDate: timestamp("end_date"),
+  priceId: text("price_id").notNull(), // Stripe price ID
+  priceAmount: decimal("price_amount", { precision: 10, scale: 2 }).notNull(), // Price in USD
+  metadata: text("metadata"), // Any additional details as JSON
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -82,6 +102,12 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
 export const insertLoginRewardSchema = createInsertSchema(loginRewards).omit({
   id: true,
   createdAt: true,
+});
+
+export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 // Admin operation schemas
@@ -134,6 +160,24 @@ export const createPaymentIntentSchema = z.object({
   packageId: z.string(),
 });
 
+// Schema for subscription plans
+export const subscriptionPlanSchema = z.object({
+  id: z.string(),
+  tier: z.enum(['bronze', 'silver', 'gold']),
+  name: z.string(),
+  price: z.number().positive(),
+  priceId: z.string(), // Stripe price ID
+  features: z.array(z.string()),
+  description: z.string(),
+  coinReward: z.number().int().positive(), // Daily coin reward
+  multiplier: z.number().positive().optional(), // Win multiplier (if applicable)
+});
+
+// Schema for creating/updating a subscription
+export const manageSubscriptionSchema = z.object({
+  tier: z.enum(['bronze', 'silver', 'gold']),
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
@@ -149,8 +193,12 @@ export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type Payment = typeof payments.$inferSelect;
 export type InsertLoginReward = z.infer<typeof insertLoginRewardSchema>;
 export type LoginReward = typeof loginRewards.$inferSelect;
+export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
+export type Subscription = typeof subscriptions.$inferSelect;
 export type CoinPackage = z.infer<typeof coinPackageSchema>;
 export type CreatePaymentIntent = z.infer<typeof createPaymentIntentSchema>;
+export type SubscriptionPlan = z.infer<typeof subscriptionPlanSchema>;
+export type ManageSubscription = z.infer<typeof manageSubscriptionSchema>;
 
 // Game related schemas
 export const betSchema = z.object({
