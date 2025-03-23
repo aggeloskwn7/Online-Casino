@@ -340,22 +340,22 @@ export default function RouletteGame({ onSpin }: RouletteGameProps) {
               </div>
             );
           })}
-          <div className="w-30 h-30 rounded-full bg-gradient-to-b from-[#333333] to-[#222222] flex items-center justify-center z-10 shadow-[inset_0_0_15px_rgba(0,0,0,0.6)] border-2 border-[#5465FF]">
-            {lastResult ? (
+          <div className="w-30 h-30 rounded-full bg-gradient-to-b from-[#333333] to-[#222222] flex items-center justify-center z-10 shadow-[inset_0_0_15px_rgba(0,0,0,0.6)] border-2 border-[#5465FF]" ref={resultRef}>
+            {/* Only show result when not spinning and we have a result */}
+            {lastResult && !isSpinning ? (
               <motion.div 
                 className={`w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg ${
                   lastResult.color === 'red' ? 'bg-gradient-to-b from-[#E03C3C] to-[#C92A2A] border border-[#FF5555]' : 
                   lastResult.color === 'black' ? 'bg-gradient-to-b from-[#222222] to-[#121212] border border-[#333333]' :
                   'bg-gradient-to-b from-[#00A000] to-[#008000] border border-[#00C000]'
                 }`}
-                ref={resultRef}
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ 
                   type: "spring",
                   stiffness: 400,
                   damping: 15,
-                  delay: 4.1 // Slightly after the wheel stops
+                  delay: 0.1 // Quick animation after the wheel stops
                 }}
               >
                 {lastResult.spin}
@@ -391,9 +391,7 @@ export default function RouletteGame({ onSpin }: RouletteGameProps) {
     onSuccess: (data: RouletteResult) => {
       // Save the result in a ref but don't set it to state yet
       // This will prevent the result from showing before the animation completes
-      
-      // Animate the wheel spinning
-      animateRouletteWheel(data);
+      pendingResultRef.current = data;
       
       // Save metadata about the result to be used in transaction history
       data.metadata = JSON.stringify({
@@ -401,6 +399,15 @@ export default function RouletteGame({ onSpin }: RouletteGameProps) {
         color: data.color,
         betType: activeBets.map(bet => bet.type).join(', ')
       });
+      
+      // Start the animation to spin the wheel
+      const numberIndex = ROULETTE_NUMBERS.indexOf(data.spin);
+      const numberAngle = (numberIndex * (360 / ROULETTE_NUMBERS.length));
+      const targetAngle = (360 * 5) + numberAngle + 180;
+      setRotationAngle(targetAngle);
+      
+      // Hide win message during spinning
+      setShowWinMessage(false);
     },
     onError: (error) => {
       toast({
@@ -412,47 +419,7 @@ export default function RouletteGame({ onSpin }: RouletteGameProps) {
     },
   });
   
-  // Animate the roulette wheel spinning
-  const animateRouletteWheel = (result: RouletteResult) => {
-    // Hide win message during spinning
-    setShowWinMessage(false);
-    
-    // Auto-scroll to top when spinning
-    if (resultRef.current) {
-      resultRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-    
-    // Calculate the angle to land on the specific number
-    const numberIndex = ROULETTE_NUMBERS.indexOf(result.spin);
-    const numberAngle = (numberIndex * (360 / ROULETTE_NUMBERS.length));
-    
-    // Add multiple full rotations plus the specific angle to land on the number
-    // The marker is at the top, so add 180 degrees to make the number land at the marker
-    const targetAngle = (360 * 5) + numberAngle + 180;
-    
-    // Set the rotation angle with CSS transition for smooth animation
-    setRotationAngle(targetAngle);
-    
-    // Set timeout for the end of animation (matches the CSS transition duration)
-    setTimeout(() => {
-      // Now set the result after the animation completes
-      setLastResult(result);
-      setIsSpinning(false);
-      
-      // Update user data (balance) only now after animation is complete
-      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
-      
-      // Play sound based on win/lose
-      if (result.isWin) {
-        play('win');
-      } else {
-        play('lose');
-      }
-      
-      // Show win message
-      setShowWinMessage(true);
-    }, 4500); // 4.5 seconds animation time
-  };
+  // We don't need a separate animation function anymore, it's integrated into the mutation success handler
   
   // Handle spinning the wheel
   const handleSpin = () => {
@@ -478,8 +445,14 @@ export default function RouletteGame({ onSpin }: RouletteGameProps) {
       return;
     }
     
-    // Set spinning state
+    // Set spinning state and reset any previous results
     setIsSpinning(true);
+    setShowWinMessage(false);
+    
+    // Auto-scroll to top when spinning starts
+    if (resultRef.current) {
+      resultRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
     
     // Call the onSpin callback if provided
     if (onSpin) {
