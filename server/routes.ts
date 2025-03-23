@@ -231,6 +231,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up daily login rewards routes
   setupRewardRoutes(app);
   
+  // Ban appeal endpoints
+  app.get("/api/user/ban-status", authMiddleware, async (req: Request, res: Response) => {
+    try {
+      const userId = req.user!.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      if (!user.isBanned) {
+        return res.json({ 
+          isBanned: false 
+        });
+      }
+      
+      // User is banned, check if they have any appeals
+      const appeal = await storage.getUserBanAppeal(userId);
+      
+      res.json({
+        isBanned: true,
+        banReason: user.banReason,
+        bannedAt: user.bannedAt,
+        appeal: appeal || null
+      });
+    } catch (error) {
+      console.error("Error checking ban status:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Failed to check ban status", error: errorMessage });
+    }
+  });
+  
+  // Submit ban appeal
+  app.post("/api/user/ban-appeal", authMiddleware, async (req: Request, res: Response) => {
+    try {
+      const userId = req.user!.id;
+      
+      // Validate request body
+      const appealData = banAppealSchema.parse(req.body);
+      
+      // Create the appeal
+      const appeal = await storage.createBanAppeal(userId, appealData.reason);
+      
+      res.status(201).json({ appeal });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input data", errors: error.errors });
+      }
+      
+      console.error("Error creating ban appeal:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Failed to create ban appeal", error: errorMessage });
+    }
+  });
+  
   // Subscription related endpoints
   
   // Get available subscription plans
