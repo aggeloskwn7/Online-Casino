@@ -80,14 +80,14 @@ export default function CoinPackages({ onSelectPackage }: CoinPackagesProps) {
                 </Badge>
               </div>
             )}
-            {pkg.discount && pkg.discount > 0 && (
+            {pkg.discount && pkg.discount > 0 ? (
               <div className="absolute top-0 left-0 z-10">
                 <Badge variant="destructive" className="rounded-none rounded-br-lg px-3 py-1.5 font-semibold">
                   <TrendingUp className="h-3.5 w-3.5 mr-1" />
                   {pkg.discount}% OFF
                 </Badge>
               </div>
-            )}
+            ) : null}
             
             <div className={cn(
               "absolute inset-0 bg-gradient-to-b opacity-0 transition-opacity duration-300",
@@ -113,9 +113,13 @@ export default function CoinPackages({ onSelectPackage }: CoinPackagesProps) {
               <div className="flex items-center justify-center mb-6">
                 <div>
                   <span className="text-2xl font-bold">${pkg.price.toFixed(2)}</span>
-                  {pkg.discount && pkg.discount > 0 && (
+                  {pkg.discount && pkg.discount > 0 ? (
                     <span className="ml-2 text-muted-foreground line-through text-sm">
                       ${originalPrice}
+                    </span>
+                  ) : (
+                    <span className="ml-2 text-muted-foreground text-sm opacity-0">
+                      spacer
                     </span>
                   )}
                 </div>
