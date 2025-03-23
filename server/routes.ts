@@ -67,6 +67,19 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
   setupAuth(app);
+  
+  // Public routes - no authentication required
+  app.get("/api/announcements", async (_req, res) => {
+    try {
+      // Get only non-expired announcements
+      const announcements = await storage.getAnnouncements(false);
+      res.json(announcements);
+    } catch (error) {
+      console.error("Error fetching announcements:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Failed to fetch announcements", error: errorMessage });
+    }
+  });
 
   // Protected Game routes - all require authentication
   app.post("/api/games/slots", authMiddleware, playSlots);

@@ -1,6 +1,7 @@
 import { ReactNode, useState } from 'react';
 import Sidebar from '@/components/ui/sidebar';
 import MobileNav from '@/components/ui/mobile-nav';
+import { AnnouncementBanner } from '@/components/announcement-banner';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -15,6 +16,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
   return (
     <div className="flex flex-col lg:flex-row min-h-screen bg-[#121212] text-white">
+      {/* Announcement Banner */}
+      <AnnouncementBanner />
+      
       {/* Sidebar (desktop) */}
       <Sidebar />
       

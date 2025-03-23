@@ -29,7 +29,7 @@ export function AnnouncementBanner() {
     refetchInterval: 30000, // Refetch every 30 seconds
   });
 
-  const announcements: Announcement[] = data?.announcements || [];
+  const announcements: Announcement[] = data || [];
   
   // If there are multiple announcements, rotate through them
   useEffect(() => {
