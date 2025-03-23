@@ -2016,7 +2016,7 @@ function SubscriptionsTab() {
   }
   
   return (
-    <div className="grid gap-8">
+    <div className="space-y-8">
       <UICard>
         <CardHeader>
           <CardTitle className="flex items-center">
@@ -2185,80 +2185,144 @@ function SubscriptionsTab() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="subscriptionTier">Subscription Tier</Label>
-                  <Select 
-                    defaultValue={subscriptionTier} 
-                    onValueChange={setSubscriptionTier}
-                    disabled={assignSubscription.isPending}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select subscription tier" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="bronze">Bronze</SelectItem>
-                      <SelectItem value="silver">Silver</SelectItem>
-                      <SelectItem value="gold">Gold</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="durationMonths">Duration (months)</Label>
-                  <Select 
-                    defaultValue={durationMonths} 
-                    onValueChange={setDurationMonths}
-                    disabled={assignSubscription.isPending}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select duration" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">1 month</SelectItem>
-                      <SelectItem value="3">3 months</SelectItem>
-                      <SelectItem value="6">6 months</SelectItem>
-                      <SelectItem value="12">12 months</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="reason">Reason (optional)</Label>
-                <Textarea 
-                  id="reason"
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  placeholder="Enter reason for subscription assignment"
-                  className="resize-none"
+            <form onSubmit={handleSubmit} className="space-y-6">>
+          <div className="space-y-2">
+            <Label htmlFor="username">Username</Label>
+            <div className="relative">
+              <div className="flex gap-2">
+                <Input 
+                  id="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Search by username"
+                  className="flex-1"
                   disabled={assignSubscription.isPending}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && username.length >= 2 && !isSearching) {
+                      e.preventDefault();
+                      searchUsers();
+                    }
+                  }}
                 />
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={searchUsers}
+                  disabled={isSearching || username.length < 2 || assignSubscription.isPending}
+                >
+                  {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                </Button>
               </div>
               
-              <Button 
-                type="submit" 
-                className="w-full"
-                disabled={!selectedUser || assignSubscription.isPending}
-              >
-                {assignSubscription.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Assigning Subscription...
-                  </>
-                ) : (
-                  <>
-                    <Crown className="mr-2 h-4 w-4" />
-                    Assign Subscription
-                  </>
+              {username.length >= 2 && searchResults && searchResults.users && searchResults.users.length > 0 && (
+                <div className="mt-2 border rounded-md max-h-40 overflow-y-auto">
+                  <div className="p-1">
+                    {searchResults.users.map((user: any) => (
+                      <div
+                        key={user.id}
+                        className="p-2 hover:bg-accent rounded-sm cursor-pointer flex items-center justify-between"
+                        onClick={() => handleSelectUser(user)}
+                      >
+                        <div className="flex items-center">
+                          <div>
+                            <div className="font-medium">{user.username}</div>
+                            <div className="text-xs text-muted-foreground">ID: {user.id}</div>
+                          </div>
+                        </div>
+                        {user.subscriptionTier && (
+                          <Badge className="ml-2 capitalize">
+                            {user.subscriptionTier}
+                          </Badge>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            {selectedUser && (
+              <div className="mt-1 text-sm text-muted-foreground">
+                Selected: <span className="font-medium">{selectedUser.username}</span>
+                {selectedUser.subscriptionTier && (
+                  <span className="ml-2">
+                    Current subscription: <Badge className="ml-1 capitalize">{selectedUser.subscriptionTier}</Badge>
+                  </span>
                 )}
-              </Button>
-            </form>
-          </CardContent>
-        </UICard>
-      )}
-    </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="subscriptionTier">Subscription Tier</Label>
+              <Select 
+                defaultValue={subscriptionTier} 
+                onValueChange={setSubscriptionTier}
+                disabled={assignSubscription.isPending}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select subscription tier" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bronze">Bronze</SelectItem>
+                  <SelectItem value="silver">Silver</SelectItem>
+                  <SelectItem value="gold">Gold</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="durationMonths">Duration (months)</Label>
+              <Select 
+                defaultValue={durationMonths} 
+                onValueChange={setDurationMonths}
+                disabled={assignSubscription.isPending}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select duration" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 month</SelectItem>
+                  <SelectItem value="3">3 months</SelectItem>
+                  <SelectItem value="6">6 months</SelectItem>
+                  <SelectItem value="12">12 months</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="reason">Reason (optional)</Label>
+            <Textarea 
+              id="reason"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Enter reason for subscription assignment"
+              className="resize-none"
+              disabled={assignSubscription.isPending}
+            />
+          </div>
+          
+          <Button 
+            type="submit" 
+            className="w-full"
+            disabled={!selectedUser || assignSubscription.isPending}
+          >
+            {assignSubscription.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Assigning Subscription...
+              </>
+            ) : (
+              <>
+                <Crown className="mr-2 h-4 w-4" />
+                Assign Subscription
+              </>
+            )}
+          </Button>
+        </form>
+      </CardContent>
+    </UICard>
   );
 }
 
