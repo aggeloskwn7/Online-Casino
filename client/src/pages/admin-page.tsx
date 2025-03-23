@@ -270,7 +270,8 @@ function UsersTab() {
                           </Button>
                         )}
                         
-                        {!user.isOwner && (
+                        {/* Only owner can manage admin privileges */}
+                        {!user.isOwner && currentUser?.isOwner && (
                           <Button
                             variant={user.isAdmin ? "default" : "outline"}
                             size="sm"
