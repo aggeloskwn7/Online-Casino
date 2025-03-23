@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
-import { formatCurrency, getGameIcon, timeAgo } from '@/lib/game-utils';
+import { Link } from 'wouter';
+import { formatCurrency, formatMultiplier, getGameIcon, timeAgo } from '@/lib/game-utils';
 import { ProtectedRoute } from '@/lib/protected-route';
 import { useToast } from '@/hooks/use-toast';
 import { getQueryFn } from '@/lib/queryClient';
@@ -136,6 +137,15 @@ function HistoryPageContent() {
 
   return (
     <div className="container py-6 max-w-4xl">
+      <div className="flex items-center mb-4 text-sm">
+        <Link href="/" className="text-gray-400 hover:text-white flex items-center gap-1">
+          <i className="ri-home-4-line"></i>
+          <span>Home</span>
+        </Link>
+        <i className="ri-arrow-right-s-line mx-2 text-gray-600"></i>
+        <span className="text-white font-medium">History</span>
+      </div>
+      
       <Card className="bg-[#1A1A25] border-gray-800">
         <CardHeader className="border-b border-gray-800">
           <div className="flex items-center justify-between">
