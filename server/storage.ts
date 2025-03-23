@@ -742,8 +742,7 @@ export class DatabaseStorage implements IStorage {
     const [updatedUser] = await db
       .update(users)
       .set({ 
-        subscriptionTier: tier,
-        updatedAt: new Date() 
+        subscriptionTier: tier
       })
       .where(eq(users.id, userId))
       .returning();

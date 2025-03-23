@@ -15,6 +15,7 @@ import AdminPage from "@/pages/admin-page";
 import HistoryPage from "@/pages/history-page";
 import PurchasePage from "@/pages/purchase-page";
 import RewardsPage from "@/pages/rewards-page";
+import SubscriptionPage from "@/pages/subscription-page";
 import { ProtectedRoute } from "./lib/protected-route";
 
 function Router() {
@@ -29,6 +30,7 @@ function Router() {
       <ProtectedRoute path="/history" component={HistoryPage} />
       <ProtectedRoute path="/purchase" component={PurchasePage} />
       <ProtectedRoute path="/rewards" component={RewardsPage} />
+      <ProtectedRoute path="/subscriptions" component={SubscriptionPage} />
       <ProtectedRoute path="/admin" component={AdminPage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />

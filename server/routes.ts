@@ -203,6 +203,195 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Set up daily login rewards routes
   setupRewardRoutes(app);
+  
+  // Subscription related endpoints
+  
+  // Get available subscription plans
+  app.get("/api/subscriptions/plans", async (req: Request, res: Response) => {
+    try {
+      const plans = await storage.getSubscriptionPlans();
+      res.json(plans);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Get user's current subscription
+  app.get("/api/subscriptions/current", authMiddleware, async (req: Request, res: Response) => {
+    try {
+      const userId = req.user!.id;
+      const subscription = await storage.getUserSubscription(userId);
+      
+      if (!subscription) {
+        return res.json({ active: false });
+      }
+      
+      res.json({
+        ...subscription,
+        active: subscription.status === 'active'
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Create a new subscription
+  app.post("/api/subscriptions/create", authMiddleware, async (req: Request, res: Response) => {
+    try {
+      const { tier } = manageSubscriptionSchema.parse(req.body);
+      const userId = req.user!.id;
+      
+      // Check if user already has an active subscription
+      const existingSubscription = await storage.getUserSubscription(userId);
+      if (existingSubscription && existingSubscription.status === 'active') {
+        return res.status(400).json({ message: "User already has an active subscription" });
+      }
+      
+      // Get the selected plan
+      const plans = await storage.getSubscriptionPlans();
+      const selectedPlan = plans.find(plan => plan.tier === tier);
+      
+      if (!selectedPlan) {
+        return res.status(400).json({ message: "Invalid subscription tier" });
+      }
+      
+      // Create a Stripe customer if needed
+      let user = req.user!;
+      let customerId = user.stripeCustomerId;
+      
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: user.email || `${user.username}@example.com`,
+          name: user.username,
+          metadata: {
+            userId: user.id.toString()
+          }
+        });
+        
+        customerId = customer.id;
+        // Update user with Stripe customer ID
+        // This would need to be added to the storage interface
+      }
+      
+      // Create the subscription in Stripe
+      const subscription = await stripe.subscriptions.create({
+        customer: customerId,
+        items: [{
+          price: selectedPlan.priceId,
+        }],
+        payment_behavior: 'default_incomplete',
+        expand: ['latest_invoice.payment_intent'],
+      });
+      
+      const latestInvoice = subscription.latest_invoice as Stripe.Invoice;
+      const paymentIntent = latestInvoice.payment_intent as Stripe.PaymentIntent;
+      
+      // Save subscription info in our database
+      await storage.createSubscription({
+        userId,
+        tier: selectedPlan.tier as "bronze" | "silver" | "gold",
+        status: subscription.status,
+        stripeSubscriptionId: subscription.id,
+        priceId: selectedPlan.priceId,
+        priceAmount: selectedPlan.price.toString(),
+        startDate: new Date(),
+        metadata: JSON.stringify({
+          planName: selectedPlan.name,
+          features: selectedPlan.features
+        })
+      });
+      
+      // Update user's subscription tier
+      await storage.updateUserSubscriptionTier(userId, selectedPlan.tier);
+      
+      res.json({
+        subscriptionId: subscription.id,
+        clientSecret: paymentIntent.client_secret,
+      });
+    } catch (error: any) {
+      console.error('Subscription creation error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Cancel a subscription
+  app.post("/api/subscriptions/cancel", authMiddleware, async (req: Request, res: Response) => {
+    try {
+      const userId = req.user!.id;
+      
+      // Get user's active subscription
+      const subscription = await storage.getUserSubscription(userId);
+      
+      if (!subscription || subscription.status !== 'active') {
+        return res.status(400).json({ message: "No active subscription found" });
+      }
+      
+      // Cancel in Stripe
+      await stripe.subscriptions.cancel(subscription.stripeSubscriptionId);
+      
+      // Update in our database
+      const updatedSubscription = await storage.cancelSubscription(subscription.id);
+      
+      // Remove subscription tier from user
+      await storage.updateUserSubscriptionTier(userId, null);
+      
+      res.json({
+        message: "Subscription cancelled successfully",
+        subscription: updatedSubscription
+      });
+    } catch (error: any) {
+      console.error('Subscription cancellation error:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Stripe webhook handler for subscription events
+  app.post("/api/subscriptions/webhook", async (req: Request, res: Response) => {
+    const sig = req.headers['stripe-signature'] as string;
+    
+    try {
+      const event = stripe.webhooks.constructEvent(
+        req.body,
+        sig,
+        process.env.STRIPE_WEBHOOK_SECRET || 'whsec_test'
+      );
+      
+      // Handle the event
+      switch (event.type) {
+        case 'customer.subscription.created':
+        case 'customer.subscription.updated':
+        case 'customer.subscription.deleted':
+          const subscription = event.data.object as Stripe.Subscription;
+          // Update subscription status in your database
+          console.log(`Subscription ${subscription.id} was ${event.type.split('.')[2]}`);
+          // You would update your database here
+          break;
+        case 'invoice.payment_succeeded':
+          const invoice = event.data.object as Stripe.Invoice;
+          if (invoice.subscription) {
+            // Handle successful subscription payment
+            console.log(`Payment succeeded for subscription ${invoice.subscription}`);
+            // You would update your database here
+          }
+          break;
+        case 'invoice.payment_failed':
+          const failedInvoice = event.data.object as Stripe.Invoice;
+          if (failedInvoice.subscription) {
+            // Handle failed subscription payment
+            console.log(`Payment failed for subscription ${failedInvoice.subscription}`);
+            // You would update your database here
+          }
+          break;
+        default:
+          console.log(`Unhandled event type ${event.type}`);
+      }
+      
+      res.json({ received: true });
+    } catch (err: any) {
+      console.error('Webhook error:', err.message);
+      res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+  });
 
   const httpServer = createServer(app);
 
