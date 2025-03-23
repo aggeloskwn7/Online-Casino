@@ -6,6 +6,7 @@ import DiceGame from '@/components/games/dice-game';
 import CrashGame from '@/components/games/crash-game';
 import TransactionHistory from '@/components/transaction-history';
 import { Button } from '@/components/ui/button';
+import { Trophy, Award, CreditCard, Zap, Crown, Gift } from 'lucide-react';
 import { Link } from 'wouter';
 
 export default function HomePage() {
@@ -20,11 +21,46 @@ export default function HomePage() {
           <div className="absolute bottom-0 left-0 w-32 h-32 bg-[#00E701] opacity-10 rounded-full -ml-10 -mb-10"></div>
           
           <div className="relative">
-            <h2 className="text-2xl md:text-3xl font-heading font-bold mb-2">Welcome to Crypto Casino</h2>
-            <p className="text-gray-400 max-w-xl mb-4">Experience the thrill of crypto casino games with our virtual currency. Play responsibly!</p>
-            <Button className="bg-[#5465FF] hover:bg-[#6677FF] text-white font-medium py-2 px-6 rounded-lg transition duration-200">
-              Get Started
-            </Button>
+            <div className="flex items-center gap-3 mb-2">
+              <h2 className="text-2xl md:text-3xl font-heading font-bold">Welcome to Crypto Casino</h2>
+              
+              {/* VIP Badge if user has subscription */}
+              {user?.subscriptionTier && (
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full 
+                  bg-gradient-to-r from-amber-900/60 to-yellow-800/60 border border-amber-700/60 text-amber-300 text-sm font-medium">
+                  <Trophy className="h-3.5 w-3.5 text-yellow-500" />
+                  {user.subscriptionTier === 'bronze' && 'Bronze VIP'}
+                  {user.subscriptionTier === 'silver' && 'Silver VIP'}
+                  {user.subscriptionTier === 'gold' && 'Gold VIP'}
+                </div>
+              )}
+            </div>
+            
+            <p className="text-gray-400 max-w-xl mb-4">
+              Experience the thrill of crypto casino games with our virtual currency. Play responsibly!
+              {user?.subscriptionTier && (
+                <span className="block mt-1 text-yellow-500/80">
+                  {user.subscriptionTier === 'bronze' && 'Your Bronze VIP status grants you 300 daily coins and exclusive benefits!'}
+                  {user.subscriptionTier === 'silver' && 'Your Silver VIP status grants you 600 daily coins and a 1.1x win multiplier!'}
+                  {user.subscriptionTier === 'gold' && 'Your Gold VIP status grants you 1000 daily coins and a 1.25x win multiplier!'}
+                </span>
+              )}
+            </p>
+            
+            <div className="flex flex-wrap gap-3">
+              <Button className="bg-[#5465FF] hover:bg-[#6677FF] text-white font-medium py-2 px-6 rounded-lg transition duration-200">
+                Get Started
+              </Button>
+              
+              {user?.subscriptionTier && (
+                <Link href="/rewards">
+                  <Button variant="outline" className="border-amber-600 text-amber-400 hover:bg-amber-900/30">
+                    <Gift className="h-4 w-4 mr-2" />
+                    Claim Daily Reward
+                  </Button>
+                </Link>
+              )}
+            </div>
           </div>
         </div>
         
@@ -37,27 +73,65 @@ export default function HomePage() {
               
               <div className="relative">
                 <div className="flex items-center mb-2">
-                  <i className="ri-vip-crown-2-line text-yellow-500 text-2xl mr-2"></i>
+                  <Crown className="text-yellow-500 h-6 w-6 mr-2" />
                   <h2 className="text-xl md:text-2xl font-heading font-bold">Upgrade to VIP Membership</h2>
                 </div>
                 <p className="text-amber-100 max-w-xl mb-4">Enjoy exclusive benefits including daily coin bonuses, reward multipliers, and VIP status badges!</p>
                 <div className="flex flex-wrap gap-3 mb-4">
                   <div className="flex items-center px-3 py-1 bg-black bg-opacity-30 rounded-full">
-                    <i className="ri-coin-line text-yellow-500 mr-1"></i>
+                    <CreditCard className="text-yellow-500 h-4 w-4 mr-1.5" />
                     <span className="text-sm">Daily Coins</span>
                   </div>
                   <div className="flex items-center px-3 py-1 bg-black bg-opacity-30 rounded-full">
-                    <i className="ri-speed-up-line text-yellow-500 mr-1"></i>
+                    <Zap className="text-yellow-500 h-4 w-4 mr-1.5" />
                     <span className="text-sm">Win Multipliers</span>
                   </div>
                   <div className="flex items-center px-3 py-1 bg-black bg-opacity-30 rounded-full">
-                    <i className="ri-award-line text-yellow-500 mr-1"></i>
+                    <Award className="text-yellow-500 h-4 w-4 mr-1.5" />
                     <span className="text-sm">VIP Badges</span>
                   </div>
                 </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                  <div className="bg-black/20 p-3 rounded-lg border border-amber-800/30">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-6 h-6 rounded-full bg-amber-700/30 flex items-center justify-center">
+                        <span className="text-xs font-bold text-amber-500">B</span>
+                      </div>
+                      <span className="font-medium text-amber-300">Bronze</span>
+                    </div>
+                    <p className="text-xs text-amber-200/80">300 daily coins</p>
+                    <p className="text-xs text-amber-200/80">$2.99/month</p>
+                  </div>
+                  
+                  <div className="bg-black/20 p-3 rounded-lg border border-gray-400/30">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-6 h-6 rounded-full bg-gray-500/30 flex items-center justify-center">
+                        <span className="text-xs font-bold text-gray-300">S</span>
+                      </div>
+                      <span className="font-medium text-gray-300">Silver</span>
+                    </div>
+                    <p className="text-xs text-gray-300/80">600 daily coins</p>
+                    <p className="text-xs text-gray-300/80">1.1x multiplier</p>
+                    <p className="text-xs text-gray-300/80">$5.99/month</p>
+                  </div>
+                  
+                  <div className="bg-black/20 p-3 rounded-lg border border-yellow-500/30">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-6 h-6 rounded-full bg-yellow-600/30 flex items-center justify-center">
+                        <span className="text-xs font-bold text-yellow-400">G</span>
+                      </div>
+                      <span className="font-medium text-yellow-300">Gold</span>
+                    </div>
+                    <p className="text-xs text-yellow-200/80">1000 daily coins</p>
+                    <p className="text-xs text-yellow-200/80">1.25x multiplier</p>
+                    <p className="text-xs text-yellow-200/80">$9.99/month</p>
+                  </div>
+                </div>
+                
                 <Link href="/subscriptions">
                   <Button className="bg-yellow-600 hover:bg-yellow-500 text-white font-medium py-2 px-6 rounded-lg transition duration-200 flex items-center">
-                    <i className="ri-vip-crown-2-line mr-2"></i>
+                    <Crown className="h-4 w-4 mr-2" />
                     See VIP Plans
                   </Button>
                 </Link>
