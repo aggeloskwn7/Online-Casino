@@ -14,22 +14,22 @@ const featuredGames = [
     tag: 'NEW',
     tagColor: '#FFD700',
     preview: (
-      <div className="flex space-x-[-10px] transform rotate-6">
-        <div className="w-16 h-24 bg-white rounded-lg flex items-center justify-center text-xl relative border border-gray-300 shadow-lg">
+      <div className="flex space-x-[-15px] transform rotate-6 scale-90">
+        <div className="w-14 h-20 bg-white rounded-lg flex items-center justify-center text-xl relative border border-gray-300 shadow-lg">
           <div className="absolute top-1 left-2 text-black font-bold">A</div>
           <div className="absolute top-5 left-2 text-red-600">♥</div>
           <div className="absolute text-3xl text-red-600">♥</div>
           <div className="absolute bottom-5 right-2 text-red-600">♥</div>
           <div className="absolute bottom-1 right-2 text-black font-bold">A</div>
         </div>
-        <div className="w-16 h-24 bg-white rounded-lg flex items-center justify-center text-xl relative border border-gray-300 shadow-lg transform rotate-12">
+        <div className="w-14 h-20 bg-white rounded-lg flex items-center justify-center text-xl relative border border-gray-300 shadow-lg transform rotate-12">
           <div className="absolute top-1 left-2 text-black font-bold">K</div>
           <div className="absolute top-5 left-2 text-black">♠</div>
           <div className="absolute text-3xl text-black">♠</div>
           <div className="absolute bottom-5 right-2 text-black">♠</div>
           <div className="absolute bottom-1 right-2 text-black font-bold">K</div>
         </div>
-        <div className="absolute top-[-8px] right-[10px] font-bold bg-yellow-400 text-black px-2 rounded-full text-xs py-1 animate-pulse">
+        <div className="absolute top-[-8px] right-[5px] font-bold bg-yellow-400 text-black px-2 rounded-full text-xs py-1 animate-pulse">
           NEW!
         </div>
       </div>
@@ -45,10 +45,10 @@ const featuredGames = [
     tag: 'Popular',
     tagColor: '#5465FF',
     preview: (
-      <div className="flex space-x-2">
-        <div className="w-16 h-28 bg-[#2A2A2A] rounded-lg flex items-center justify-center text-4xl">🍒</div>
-        <div className="w-16 h-28 bg-[#2A2A2A] rounded-lg flex items-center justify-center text-4xl">7️⃣</div>
-        <div className="w-16 h-28 bg-[#2A2A2A] rounded-lg flex items-center justify-center text-4xl">💎</div>
+      <div className="flex space-x-2 scale-90">
+        <div className="w-14 h-24 bg-[#2A2A2A] rounded-lg flex items-center justify-center text-4xl">🍒</div>
+        <div className="w-14 h-24 bg-[#2A2A2A] rounded-lg flex items-center justify-center text-4xl">7️⃣</div>
+        <div className="w-14 h-24 bg-[#2A2A2A] rounded-lg flex items-center justify-center text-4xl">💎</div>
       </div>
     )
   },
@@ -62,7 +62,7 @@ const featuredGames = [
     tag: 'Hot',
     tagColor: '#FF5555',
     preview: (
-      <div className="relative">
+      <div className="relative scale-90">
         <div className="w-24 h-24 rounded-full bg-gradient-to-r from-red-600 to-green-600 flex items-center justify-center relative overflow-hidden">
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-20 h-20 rounded-full bg-[#2A2A2A] flex items-center justify-center">
@@ -85,14 +85,14 @@ const featuredGames = [
 
 export default function FeaturedGames() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-full overflow-hidden">
       {featuredGames.map((game) => (
         <div 
           key={game.id}
           className="bg-[#2A2A2A] rounded-xl overflow-hidden border border-[#333333] hover:border-[#5465FF] transition duration-200 flex flex-col h-full"
         >
           <div className="h-40 relative overflow-hidden bg-[#1E1E1E]">
-            <div className="absolute inset-0 flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center justify-center px-2">
               {game.preview}
             </div>
             {game.tag && (
