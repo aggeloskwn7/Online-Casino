@@ -167,12 +167,11 @@ export default function BlackjackGame() {
       const activeHand = getActiveHand();
       if (!activeHand) return;
       
-      // Include the amount and current game state in the request (required by the server)
+      // Include the amount and current hand index in the request
       actionMutation.mutate({ 
         action, 
         amount: activeHand.bet || 0,
-        handIndex: gameState.currentHandIndex || 0,
-        gameState: gameState // Pass the entire game state as required by the server
+        handIndex: gameState.currentHandIndex || 0
       });
     }
   };
