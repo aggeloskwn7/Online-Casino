@@ -285,18 +285,22 @@ export default function BlackjackGame() {
       const activeHand = getActiveHand();
       if (!activeHand) return null;
       
+      // Get default actions if not provided by server
+      const defaultActions: BlackjackAction[] = ['hit', 'stand'];
+      const actions = gameState.allowedActions || defaultActions;
+      
       return (
         <div className="flex flex-wrap gap-2">
-          {gameState.allowedActions && gameState.allowedActions.includes('hit') && (
+          {actions.includes('hit') && (
             <Button onClick={() => handleAction('hit')} disabled={actionMutation.isPending}>Hit</Button>
           )}
-          {gameState.allowedActions && gameState.allowedActions.includes('stand') && (
+          {actions.includes('stand') && (
             <Button onClick={() => handleAction('stand')} disabled={actionMutation.isPending}>Stand</Button>
           )}
-          {gameState.allowedActions && gameState.allowedActions.includes('double') && (
+          {actions.includes('double') && (
             <Button onClick={() => handleAction('double')} disabled={actionMutation.isPending}>Double</Button>
           )}
-          {gameState.allowedActions && gameState.allowedActions.includes('split') && (
+          {actions.includes('split') && (
             <Button onClick={() => handleAction('split')} disabled={actionMutation.isPending}>Split</Button>
           )}
         </div>

@@ -107,6 +107,16 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
                 <span>Roulette</span>
               </a>
             </Link>
+            <Link href="/blackjack">
+              <a className={`flex items-center space-x-3 p-3 rounded-lg mb-1 ${
+                location === '/blackjack' 
+                  ? 'text-white bg-[#5465FF] bg-opacity-20' 
+                  : 'text-gray-400 hover:text-white hover:bg-[#2A2A2A]'
+              }`} onClick={onClose}>
+                <span className="text-lg font-bold">🃏</span>
+                <span>Blackjack</span>
+              </a>
+            </Link>
           </nav>
         </div>
       </div>
