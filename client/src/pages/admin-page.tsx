@@ -861,13 +861,13 @@ function BonusesTab() {
   // Send mass bonus mutation
   const sendBonus = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/admin/bonuses", data);
+      const res = await apiRequest("POST", "/api/admin/mass-bonus", data);
       return await res.json();
     },
     onSuccess: (data) => {
       toast({
         title: "Bonus Sent",
-        description: `Successfully sent ${data.userCount} bonus payments`,
+        description: `Successfully sent ${data.results.success} of ${data.results.totalUsers} bonus payments`,
       });
     },
     onError: (error: Error) => {
@@ -885,6 +885,7 @@ function BonusesTab() {
     const data = {
       amount: parseFloat(amount),
       reason,
+      message: reason, // Server expects a message field according to adminMassBonusSchema
       targetType,
       filters: {
         minPlayCount: parseInt(minPlayCount),
