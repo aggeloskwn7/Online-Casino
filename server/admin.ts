@@ -235,19 +235,52 @@ export function setupAdminRoutes(app: Express) {
       // Validate request body
       const bonusData = adminMassBonusSchema.parse(req.body);
       
-      // Get all users
-      const users = await storage.getAllUsers(1000, 0); // Get up to 1000 users
+      // Get all users - up to 1000 users
+      const allUsers = await storage.getAllUsers(1000, 0);
       const adminId = req.user!.id;
       
       // Track success and failures
       const results = {
         success: 0,
         failed: 0,
-        totalUsers: users.length
+        totalUsers: 0,
+        targetedUsers: [] // Keep track of who received the bonus
       };
       
-      // Apply bonus to each user
-      for (const user of users) {
+      // Filter users based on targetType and filters
+      let targetUsers = [...allUsers];
+      
+      // Filter users based on the targetType if specified
+      if (bonusData.targetType) {
+        switch (bonusData.targetType) {
+          case 'new':
+            targetUsers = targetUsers.filter(user => user.playCount < 10);
+            break;
+          case 'active':
+            targetUsers = targetUsers.filter(user => user.playCount >= 10 && user.playCount <= 100);
+            break;
+          case 'veteran':
+            targetUsers = targetUsers.filter(user => user.playCount > 100);
+            break;
+          case 'custom':
+            if (bonusData.filters) {
+              const { minPlayCount, maxPlayCount } = bonusData.filters;
+              if (minPlayCount !== undefined) {
+                targetUsers = targetUsers.filter(user => user.playCount >= minPlayCount);
+              }
+              if (maxPlayCount !== undefined) {
+                targetUsers = targetUsers.filter(user => user.playCount <= maxPlayCount);
+              }
+            }
+            break;
+          // 'all' case - keep all users
+        }
+      }
+      
+      results.totalUsers = targetUsers.length;
+      
+      // Apply bonus to filtered users
+      for (const user of targetUsers) {
         try {
           // Skip banned users
           if (user.isBanned) continue;
@@ -261,6 +294,7 @@ export function setupAdminRoutes(app: Express) {
           );
           
           results.success++;
+          results.targetedUsers.push(user.id); // Track who received the bonus
         } catch (err) {
           console.error(`Failed to add bonus to user ${user.id}:`, err);
           results.failed++;
@@ -272,8 +306,9 @@ export function setupAdminRoutes(app: Express) {
         title: "Bonus coins added!",
         message: bonusData.message,
         type: "success" as const,
-        duration: 60,
-        isPinned: true
+        duration: 3600, // 1 hour in seconds
+        isPinned: true,
+        targetUserIds: results.targetedUsers // Only show to users who received the bonus
       };
       
       await storage.createAnnouncement(announcement, adminId);
