@@ -50,8 +50,28 @@ export async function claimDailyReward(req: Request, res: Response) {
       newStreak = 1; // Reset back to day 1 after completing the 30-day cycle
     }
     
-    // Calculate reward amount for this day
-    const rewardAmount = await storage.getRewardAmountForDay(newStreak);
+    // Calculate base reward amount for this day
+    let rewardAmount = await storage.getRewardAmountForDay(newStreak);
+    
+    // Apply VIP subscription multipliers if applicable
+    if (req.user.subscriptionTier) {
+      // Get subscription plans to retrieve multipliers
+      const subscriptionPlans = await storage.getSubscriptionPlans();
+      const userPlan = subscriptionPlans.find(plan => plan.tier === req.user!.subscriptionTier);
+      
+      if (userPlan) {
+        // Apply multiplier if available, otherwise give subscription coin reward
+        if (userPlan.multiplier) {
+          // Apply multiplier to the reward amount
+          rewardAmount = Math.round(rewardAmount * userPlan.multiplier);
+          console.log(`Applied ${userPlan.tier} multiplier (${userPlan.multiplier}x) to daily reward: ${rewardAmount}`);
+        } else if (userPlan.coinReward > 0) {
+          // Use subscription coin reward if it's higher than the calculated amount
+          rewardAmount = Math.max(rewardAmount, userPlan.coinReward);
+          console.log(`Applied ${userPlan.tier} fixed reward: ${rewardAmount}`);
+        }
+      }
+    }
     
     // Update user's streak and last reward date
     await storage.updateLoginStreak(userId, newStreak);
@@ -115,9 +135,45 @@ export async function getRewardHistory(req: Request, res: Response) {
 export async function getRewardSchedule(req: Request, res: Response) {
   try {
     const rewardSchedule = [];
+    let multiplier = 1; // Default multiplier
+    let minimumReward = 0; // Minimum reward from subscription
+    
+    // If user is authenticated and has a subscription, apply their tier bonuses
+    if (req.user && req.user.subscriptionTier) {
+      // Get the subscription plans to find user's plan details
+      const subscriptionPlans = await storage.getSubscriptionPlans();
+      const userPlan = subscriptionPlans.find(plan => plan.tier === req.user!.subscriptionTier);
+      
+      if (userPlan) {
+        // Apply the VIP multiplier if exists
+        if (userPlan.multiplier) {
+          multiplier = userPlan.multiplier;
+        }
+        
+        // Set minimum reward from subscription
+        if (userPlan.coinReward) {
+          minimumReward = userPlan.coinReward;
+        }
+      }
+    }
     
     for (let day = 1; day <= 30; day++) {
-      const amount = await storage.getRewardAmountForDay(day);
+      // Get base reward amount for this day
+      let amount = await storage.getRewardAmountForDay(day);
+      
+      // Apply multiplier and minimum rewards if user has subscription
+      if (multiplier !== 1 || minimumReward > 0) {
+        // Apply multiplier
+        if (multiplier !== 1) {
+          amount = Math.round(amount * multiplier);
+        }
+        
+        // Apply minimum reward if subscription reward is higher
+        if (minimumReward > 0) {
+          amount = Math.max(amount, minimumReward);
+        }
+      }
+      
       rewardSchedule.push({
         day,
         amount,

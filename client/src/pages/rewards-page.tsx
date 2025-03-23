@@ -214,8 +214,29 @@ export default function RewardsPage() {
     <MainLayout>
       <div className="w-full max-w-[1400px] px-4 md:px-6 py-8 mx-auto">
         <h1 className="text-3xl font-bold tracking-tight mb-1">Daily Rewards</h1>
-        <p className="text-gray-500 dark:text-gray-400 mb-6">
+        <p className="text-gray-500 dark:text-gray-400 mb-2">
           Log in daily to receive increasing rewards for up to 30 days!
+        </p>
+        
+        {/* VIP Status Display - only show if user has a subscription */}
+        {user?.subscriptionTier && (
+          <div className="mb-4 inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r 
+            from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/30 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+            <Trophy className="h-4 w-4 mr-1.5 text-amber-600 dark:text-amber-400" />
+            {user.subscriptionTier === 'bronze' && 'Bronze VIP'}
+            {user.subscriptionTier === 'silver' && 'Silver VIP'}
+            {user.subscriptionTier === 'gold' && 'Gold VIP'}
+            <span className="ml-1.5 text-amber-700/70 dark:text-amber-400/70">
+              {user.subscriptionTier === 'bronze' && '(300 daily coins)'}
+              {user.subscriptionTier === 'silver' && '(600 daily coins + 1.1x multiplier)'}
+              {user.subscriptionTier === 'gold' && '(1000 daily coins + 1.25x multiplier)'}
+            </span>
+          </div>
+        )}
+        <p className="text-gray-500 dark:text-gray-400 mb-6">
+          {user?.subscriptionTier ? 
+            `Your ${user.subscriptionTier.charAt(0).toUpperCase() + user.subscriptionTier.slice(1)} VIP status enhances your daily rewards!` : 
+            'Upgrade to VIP to earn even more daily rewards!'}
         </p>
 
         {/* VIP Subscription Banner - only show if user doesn't have subscription */}
@@ -468,6 +489,20 @@ export default function RewardsPage() {
                   </p>
                 </div>
               </div>
+              
+              <div className="flex items-start">
+                <div className="mt-1 mr-4 flex-shrink-0 w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                  <Trophy size={14} />
+                </div>
+                <div>
+                  <h3 className="font-medium">VIP Subscription Benefits</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    VIP members receive enhanced daily rewards! Bronze VIPs get a minimum of 300 coins daily, 
+                    Silver VIPs get 600 coins daily plus a 1.1x multiplier on streak rewards, and 
+                    Gold VIPs get 1000 coins daily plus a 1.25x multiplier on all streak rewards.
+                  </p>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -500,6 +535,17 @@ export default function RewardsPage() {
                 {formatCurrency(rewardAmount)}
               </p>
               <p className="text-white/80">Day {rewardStatus?.streak} completed!</p>
+              
+              {/* Show VIP badge if user has subscription */}
+              {user?.subscriptionTier && (
+                <div className="mt-3 inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium 
+                  bg-white/20 text-white border border-white/30">
+                  <Trophy className="h-4 w-4 mr-1.5 text-white" />
+                  {user.subscriptionTier === 'bronze' && 'Bronze VIP Bonus'}
+                  {user.subscriptionTier === 'silver' && 'Silver VIP Bonus (1.1x)'}
+                  {user.subscriptionTier === 'gold' && 'Gold VIP Bonus (1.25x)'}
+                </div>
+              )}
             </motion.div>
           </motion.div>
         </div>
