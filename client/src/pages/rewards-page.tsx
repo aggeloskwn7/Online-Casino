@@ -87,11 +87,31 @@ export default function RewardsPage() {
   const [showAnimation, setShowAnimation] = useState(false);
   const [rewardAmount, setRewardAmount] = useState(0);
 
+  interface RewardStatus {
+    isEligible: boolean;
+    streak: number;
+    nextRewardDay: number;
+  }
+
+  interface RewardItem {
+    day: number;
+    amount: number;
+    isMilestone: boolean;
+  }
+
+  interface RewardHistoryItem {
+    id: number;
+    userId: number;
+    day: number;
+    amount: string;
+    createdAt: string;
+  }
+
   // Fetch the daily reward check
   const { 
     data: rewardStatus, 
     isLoading: isCheckingReward 
-  } = useQuery({ 
+  } = useQuery<RewardStatus>({ 
     queryKey: ['/api/rewards/check'],
     queryFn: getQueryFn({ on401: "throw" }),
     refetchOnWindowFocus: true
@@ -101,7 +121,7 @@ export default function RewardsPage() {
   const { 
     data: rewardSchedule, 
     isLoading: isLoadingSchedule 
-  } = useQuery({ 
+  } = useQuery<RewardItem[]>({ 
     queryKey: ['/api/rewards/schedule'],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
@@ -110,7 +130,7 @@ export default function RewardsPage() {
   const { 
     data: rewardHistory, 
     isLoading: isLoadingHistory 
-  } = useQuery({ 
+  } = useQuery<RewardHistoryItem[]>({ 
     queryKey: ['/api/rewards/history'],
     queryFn: getQueryFn({ on401: "throw" }),
   });
@@ -135,7 +155,6 @@ export default function RewardsPage() {
         toast({
           title: "Daily Reward Claimed!",
           description: `You received ${formatCurrency(data.rewardAmount)} coins!`,
-          variant: "success",
         });
       }, 1500);
     },

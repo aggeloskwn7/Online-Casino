@@ -91,6 +91,7 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
           <nav>
             <NavLink href="/" icon="ri-home-4-line" label="Home" />
             <NavLink href="/history" icon="ri-history-line" label="History" />
+            <NavLink href="/rewards" icon="ri-gift-2-line text-pink-500" label="Daily Rewards" />
             <NavLink href="/purchase" icon="ri-coins-line text-yellow-500" label="Buy Coins" />
             {user?.isAdmin && (
               <NavLink 
