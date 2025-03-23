@@ -25,6 +25,15 @@ export const SLOT_PAYOUTS = {
 // Format currency value
 export const formatCurrency = (value: number | string) => {
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  
+  // Handle zero/negative to always show at least -0.00 for losses
+  if (numValue <= 0) {
+    return `-${Math.abs(numValue).toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })}`;
+  }
+  
   return numValue.toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
@@ -34,6 +43,12 @@ export const formatCurrency = (value: number | string) => {
 // Format multiplier value
 export const formatMultiplier = (value: number | string) => {
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  
+  // For zero multipliers (losses), show 0.00×
+  if (numValue <= 0) {
+    return '0.00×';
+  }
+  
   return `${numValue.toFixed(2)}×`;
 };
 
