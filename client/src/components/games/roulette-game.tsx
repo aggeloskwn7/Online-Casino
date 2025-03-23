@@ -37,6 +37,7 @@ export default function RouletteGame({ onSpin }: RouletteGameProps) {
   const [activeBets, setActiveBets] = useState<Bet[]>([]);
   const [rotationAngle, setRotationAngle] = useState(0);
   const [showWinMessage, setShowWinMessage] = useState(false);
+  const pendingResultRef = useRef<RouletteResult | null>(null);
 
   // Calculate total bet amount
   const totalBetAmount = activeBets.reduce((total, bet) => total + bet.amount, 0);
@@ -388,11 +389,11 @@ export default function RouletteGame({ onSpin }: RouletteGameProps) {
       return await res.json();
     },
     onSuccess: (data: RouletteResult) => {
-      // Set the result but don't update balance yet (will do after animation)
-      setLastResult(data);
+      // Save the result in a ref but don't set it to state yet
+      // This will prevent the result from showing before the animation completes
       
       // Animate the wheel spinning
-      animateRouletteWheel(data.spin);
+      animateRouletteWheel(data);
       
       // Save metadata about the result to be used in transaction history
       data.metadata = JSON.stringify({
@@ -412,7 +413,7 @@ export default function RouletteGame({ onSpin }: RouletteGameProps) {
   });
   
   // Animate the roulette wheel spinning
-  const animateRouletteWheel = (landingNumber: number) => {
+  const animateRouletteWheel = (result: RouletteResult) => {
     // Hide win message during spinning
     setShowWinMessage(false);
     
@@ -422,7 +423,7 @@ export default function RouletteGame({ onSpin }: RouletteGameProps) {
     }
     
     // Calculate the angle to land on the specific number
-    const numberIndex = ROULETTE_NUMBERS.indexOf(landingNumber);
+    const numberIndex = ROULETTE_NUMBERS.indexOf(result.spin);
     const numberAngle = (numberIndex * (360 / ROULETTE_NUMBERS.length));
     
     // Add multiple full rotations plus the specific angle to land on the number
@@ -434,13 +435,15 @@ export default function RouletteGame({ onSpin }: RouletteGameProps) {
     
     // Set timeout for the end of animation (matches the CSS transition duration)
     setTimeout(() => {
+      // Now set the result after the animation completes
+      setLastResult(result);
       setIsSpinning(false);
       
       // Update user data (balance) only now after animation is complete
       queryClient.invalidateQueries({ queryKey: ['/api/user'] });
       
       // Play sound based on win/lose
-      if (lastResult?.isWin) {
+      if (result.isWin) {
         play('win');
       } else {
         play('lose');
