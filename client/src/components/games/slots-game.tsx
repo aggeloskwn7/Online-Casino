@@ -15,7 +15,7 @@ import { Sparkles } from 'lucide-react';
 export default function SlotsGame() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { play } = useSound();
+  const { play, stop } = useSound();
   const [betAmount, setBetAmount] = useState(1);
   const [symbols, setSymbols] = useState<string[][]>([
     ['🍒', '🍋', '🍊'],
