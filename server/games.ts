@@ -1351,7 +1351,7 @@ export async function playRoulette(req: Request, res: Response) {
       gameType: "roulette",
       amount: totalAmount.toString(),
       multiplier: (biggestMultiplier || 0).toString(), 
-      payout: totalPayout.toString(),
+      payout: anyWin ? totalPayout.toString() : (-totalAmount).toString(), // For losses, payout is negative bet amount
       isWin: anyWin,
       metadata: JSON.stringify({ betResults })
     });
