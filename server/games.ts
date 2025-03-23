@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { storage } from "./storage";
 import { betSchema, slotsPayoutSchema, diceRollSchema, crashGameSchema, rouletteBetSchema, rouletteResultSchema, RouletteBetType } from "@shared/schema";
 import { z } from "zod";
+import { getAdjustedWinChance, shouldBeBigWin, getBigWinMultiplierBoost } from "./win-rate";
 
 // Declare global type extension for Request to include user
 declare global {
@@ -79,6 +80,15 @@ export async function playSlots(req: Request, res: Response) {
       return res.status(400).json({ message: "Insufficient balance" });
     }
     
+    // Get play count for this user to adjust win rates
+    const playCount = await storage.getUserPlayCount(userId);
+    
+    // Determine the adjusted win chance based on play count
+    const slotWinChance = getAdjustedWinChance('slots', playCount);
+    
+    // Check if this should be a big win (special treatment)
+    const isBigWin = shouldBeBigWin(playCount);
+    
     // Helper function to get a weighted random symbol
     const getWeightedRandomSymbol = () => {
       // Calculate total weight
@@ -132,14 +142,18 @@ export async function playSlots(req: Request, res: Response) {
       const symbol2 = symbols[row2][col2];
       const symbol3 = symbols[row3][col3];
       
-      // Check for 3 of a kind with more reasonable odds
-      // Now 85% of legitimate 3-of-a-kind matches will pay out (increased from 10%)
-      if (symbol1 === symbol2 && symbol2 === symbol3 && Math.random() < 0.85) {
+      // Check for 3 of a kind with dynamically adjusted odds based on play count
+      if (symbol1 === symbol2 && symbol2 === symbol3 && Math.random() * 100 < slotWinChance) {
         // Get the base multiplier for this symbol
         const baseMultiplier = SYMBOL_MULTIPLIERS[symbol1 as keyof typeof SYMBOL_MULTIPLIERS];
         
         // Add additional multiplier based on line type
         let lineMultiplier = baseMultiplier;
+        
+        // Apply big win boost if this is designated as a big win
+        if (isBigWin) {
+          lineMultiplier *= getBigWinMultiplierBoost();
+        }
         
         // Check if it's a diagonal line
         if ((row1 === 0 && col1 === 0 && row3 === 2 && col3 === 2) || 
@@ -156,12 +170,19 @@ export async function playSlots(req: Request, res: Response) {
         isWin = true;
         winningLines.push([row1, col1, row2, col2, row3, col3]);
       }
-      // Better chances of winning with pairs (increased to 25% chance from 2%)
-      else if (Math.random() < 0.25 && ((symbol1 === symbol2 && symbol1 !== symbol3) || 
+      // Better chances of winning with pairs based on dynamic win rate (scaled down version of main win rate)
+      else if (Math.random() * 100 < (slotWinChance / 2) && ((symbol1 === symbol2 && symbol1 !== symbol3) || 
                (symbol2 === symbol3 && symbol1 !== symbol2) ||
                (symbol1 === symbol3 && symbol1 !== symbol2))) {
         // Much smaller win for pairs
-        multiplier += PATTERN_MULTIPLIERS.pair;
+        let pairMultiplier = PATTERN_MULTIPLIERS.pair;
+        
+        // Apply a smaller boost for big wins on pairs
+        if (isBigWin) {
+          pairMultiplier *= 1.5;
+        }
+        
+        multiplier += pairMultiplier;
         isWin = true;
         // Don't add to winning lines for pairs - only show for 3 of a kind
       }
@@ -182,11 +203,20 @@ export async function playSlots(req: Request, res: Response) {
       if (!allSame) break;
     }
     
-    // Increased chance to win on full grid match (increased to 30% from 5%)
-    if (allSame && Math.random() < 0.30) {
+    // Chance to win on full grid match based on player's dynamically adjusted win rate
+    // New players get a higher chance of this jackpot win
+    const fullGridWinChance = (slotWinChance / 2) + (isBigWin ? 20 : 0);
+    if (allSame && Math.random() * 100 < fullGridWinChance) {
       // Massive multiplier for full grid of the same symbol
       // Base symbol multiplier * full grid bonus
-      multiplier = SYMBOL_MULTIPLIERS[firstSymbol as keyof typeof SYMBOL_MULTIPLIERS] * PATTERN_MULTIPLIERS.full_grid;
+      let jackpotMultiplier = SYMBOL_MULTIPLIERS[firstSymbol as keyof typeof SYMBOL_MULTIPLIERS] * PATTERN_MULTIPLIERS.full_grid;
+      
+      // For big wins, increase the jackpot multiplier even more
+      if (isBigWin) {
+        jackpotMultiplier *= getBigWinMultiplierBoost();
+      }
+      
+      multiplier = jackpotMultiplier;
       isWin = true;
       // Don't add specific winning lines for full grid - it's obvious
     }
@@ -206,6 +236,9 @@ export async function playSlots(req: Request, res: Response) {
       payout: payout.toString(),
       isWin
     });
+    
+    // Increment user's play count
+    await storage.incrementPlayCount(userId);
     
     // Return result
     const result = slotsPayoutSchema.parse({
@@ -316,6 +349,9 @@ export async function playDice(req: Request, res: Response) {
       payout: payout.toString(),
       isWin
     });
+    
+    // Increment user's play count
+    await storage.incrementPlayCount(userId);
     
     // Return result
     const gameResult = diceRollSchema.parse({
@@ -449,6 +485,9 @@ export async function crashCashout(req: Request, res: Response) {
       payout: payout.toString(),
       isWin
     });
+    
+    // Increment user's play count
+    await storage.incrementPlayCount(userId);
     
     // Return result
     const gameResult = crashGameSchema.parse({
