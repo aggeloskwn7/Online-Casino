@@ -8,7 +8,10 @@ import {
   InsertTransaction, 
   CoinTransaction, 
   InsertCoinTransaction,
-  AdminUserUpdate
+  AdminUserUpdate,
+  AdminAnnouncement,
+  AdminGameConfig,
+  AdminMassBonus
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql, like } from "drizzle-orm";

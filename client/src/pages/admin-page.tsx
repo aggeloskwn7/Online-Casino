@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/use-auth';
@@ -41,7 +41,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, Search, UserCog, CoinsIcon, History, Ban, BadgeCheck, ShieldAlert, Info, Coins, RefreshCw } from 'lucide-react';
+import { 
+  Loader2, 
+  Search, 
+  UserCog, 
+  CoinsIcon, 
+  History, 
+  Ban, 
+  BadgeCheck, 
+  ShieldAlert, 
+  Info, 
+  Coins, 
+  RefreshCw,
+  Gift,
+  Megaphone,
+  Settings,
+  LifeBuoy
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/game-utils';
 
@@ -832,6 +848,976 @@ function CoinsTab() {
   );
 }
 
+// Component for bonuses tab
+function BonusesTab() {
+  const { toast } = useToast();
+  const [amount, setAmount] = useState<string>("100");
+  const [reason, setReason] = useState<string>("Welcome Bonus");
+  const [targetType, setTargetType] = useState<string>("all");
+  const [minPlayCount, setMinPlayCount] = useState<string>("0");
+  const [maxPlayCount, setMaxPlayCount] = useState<string>("1000");
+  
+  // Send mass bonus mutation
+  const sendBonus = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/admin/mass-bonus", data);
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Bonus Sent",
+        description: `Successfully sent ${data.userCount} bonus payments`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `Failed to send bonus: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const data = {
+      amount: parseFloat(amount),
+      reason,
+      targetType,
+      filters: {
+        minPlayCount: parseInt(minPlayCount),
+        maxPlayCount: parseInt(maxPlayCount),
+      }
+    };
+    
+    sendBonus.mutate(data);
+  };
+  
+  return (
+    <div>
+      <UICard>
+        <CardHeader>
+          <CardTitle>Send Mass Bonus</CardTitle>
+          <CardDescription>
+            Send coins to multiple users at once based on criteria
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="amount">Bonus Amount</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  min="1"
+                  className="w-full"
+                  required
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="reason">Reason</Label>
+                <Input
+                  id="reason"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  className="w-full"
+                  required
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  Users will see this as the reason for receiving coins
+                </p>
+              </div>
+              
+              <div>
+                <Label htmlFor="targetType">Target Users</Label>
+                <Select value={targetType} onValueChange={setTargetType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select target users" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Users</SelectItem>
+                    <SelectItem value="new">New Users (&lt; 10 games played)</SelectItem>
+                    <SelectItem value="active">Active Users (10-100 games played)</SelectItem>
+                    <SelectItem value="veteran">Veteran Users (&gt; 100 games played)</SelectItem>
+                    <SelectItem value="custom">Custom Filter</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {targetType === "custom" && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="minPlayCount">Min Play Count</Label>
+                    <Input
+                      id="minPlayCount"
+                      type="number"
+                      value={minPlayCount}
+                      onChange={(e) => setMinPlayCount(e.target.value)}
+                      min="0"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="maxPlayCount">Max Play Count</Label>
+                    <Input
+                      id="maxPlayCount"
+                      type="number"
+                      value={maxPlayCount}
+                      onChange={(e) => setMaxPlayCount(e.target.value)}
+                      min="0"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <Button 
+              type="submit" 
+              className="w-full"
+              disabled={sendBonus.isPending}
+            >
+              {sendBonus.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Gift className="mr-2 h-4 w-4" />
+                  Send Bonus
+                </>
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </UICard>
+    </div>
+  );
+}
+
+// Component for announcements tab
+function AnnouncementsTab() {
+  const { toast } = useToast();
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [title, setTitle] = useState<string>("");
+  const [message, setMessage] = useState<string>("");
+  const [isPinned, setIsPinned] = useState<boolean>(false);
+  const [duration, setDuration] = useState<string>("3600"); // Default 1 hour
+  
+  // Fetch announcements
+  const {
+    data: announcements,
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['/api/admin/announcements'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/admin/announcements?includeExpired=true');
+      return await res.json();
+    }
+  });
+  
+  // Create announcement mutation
+  const createAnnouncement = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/admin/announcements", data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Announcement Created",
+        description: "Your announcement has been created successfully",
+      });
+      setIsCreateDialogOpen(false);
+      refetch();
+      
+      // Reset form
+      setTitle("");
+      setMessage("");
+      setIsPinned(false);
+      setDuration("3600");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `Failed to create announcement: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Delete announcement mutation
+  const deleteAnnouncement = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/admin/announcements/${id}`);
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Announcement Deleted",
+        description: "Announcement has been deleted successfully",
+      });
+      refetch();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `Failed to delete announcement: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const data = {
+      title,
+      message,
+      isPinned,
+      duration: parseInt(duration)
+    };
+    
+    createAnnouncement.mutate(data);
+  };
+  
+  if (error) {
+    return (
+      <div className="text-center p-8">
+        <p className="text-red-500">Error loading announcements: {(error as Error).message}</p>
+        <Button onClick={() => refetch()} className="mt-4">
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Retry
+        </Button>
+      </div>
+    );
+  }
+  
+  return (
+    <div>
+      <div className="flex justify-between mb-6">
+        <h2 className="text-2xl font-bold">Announcements</h2>
+        <Button onClick={() => setIsCreateDialogOpen(true)}>
+          <Megaphone className="mr-2 h-4 w-4" />
+          Create Announcement
+        </Button>
+      </div>
+      
+      {isLoading ? (
+        <div className="flex justify-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {announcements && announcements.length === 0 ? (
+            <div className="col-span-2 text-center p-12 border rounded-lg">
+              <p className="text-muted-foreground">No announcements yet</p>
+            </div>
+          ) : (
+            announcements && announcements.map((announcement: any) => (
+              <UICard key={announcement.id}>
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between">
+                    <div>
+                      <CardTitle>{announcement.title}</CardTitle>
+                      <CardDescription>
+                        {new Date(announcement.createdAt).toLocaleString()}
+                      </CardDescription>
+                    </div>
+                    {announcement.isPinned && (
+                      <Badge className="h-6">Pinned</Badge>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="whitespace-pre-line">{announcement.message}</p>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                  <div className="text-sm text-muted-foreground">
+                    {announcement.expiresAt ? (
+                      <>Expires: {new Date(announcement.expiresAt).toLocaleString()}</>
+                    ) : (
+                      <>Never expires</>
+                    )}
+                  </div>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => deleteAnnouncement.mutate(announcement.id)}
+                    disabled={deleteAnnouncement.isPending}
+                  >
+                    {deleteAnnouncement.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Delete"
+                    )}
+                  </Button>
+                </CardFooter>
+              </UICard>
+            ))
+          )}
+        </div>
+      )}
+      
+      {/* Create Announcement Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Announcement</DialogTitle>
+            <DialogDescription>
+              Create a new announcement for all users. Announcements appear on the site banner.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-4 py-2">
+              <div>
+                <Label htmlFor="title">Title</Label>
+                <Input
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full"
+                  required
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="message">Message</Label>
+                <Textarea
+                  id="message"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  className="w-full h-24"
+                  required
+                />
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="isPinned"
+                  checked={isPinned}
+                  onChange={(e) => setIsPinned(e.target.checked)}
+                  className="h-4 w-4"
+                />
+                <Label htmlFor="isPinned">Pin to top</Label>
+              </div>
+              
+              <div>
+                <Label htmlFor="duration">Duration (seconds)</Label>
+                <Select
+                  value={duration}
+                  onValueChange={setDuration}
+                  disabled={isPinned}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="3600">1 hour</SelectItem>
+                    <SelectItem value="86400">1 day</SelectItem>
+                    <SelectItem value="604800">1 week</SelectItem>
+                    <SelectItem value="2592000">30 days</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {isPinned ? "Pinned announcements don't expire" : "How long this announcement will be visible"}
+                </p>
+              </div>
+            </div>
+            
+            <DialogFooter className="mt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsCreateDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={createAnnouncement.isPending}
+              >
+                {createAnnouncement.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  "Create"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// Component for game configuration tab
+function GameConfigTab() {
+  const { toast } = useToast();
+  const [selectedGame, setSelectedGame] = useState<string>("slots");
+  const [gameConfig, setGameConfig] = useState<any>({});
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  
+  // Fetch game config
+  const {
+    data: config,
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['/api/admin/game-config', selectedGame],
+    queryFn: async () => {
+      const res = await apiRequest('GET', `/api/admin/game-config/${selectedGame}`);
+      return await res.json();
+    }
+  });
+  
+  // Update game config mutation
+  const updateConfig = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("PATCH", `/api/admin/game-config/${selectedGame}`, data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Configuration Updated",
+        description: `${selectedGame} configuration has been updated successfully`,
+      });
+      setIsEditing(false);
+      refetch();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `Failed to update configuration: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Update local state when game selection changes
+  useEffect(() => {
+    if (config) {
+      setGameConfig(config);
+    }
+  }, [config]);
+  
+  const handleInputChange = (key: string, value: any) => {
+    setGameConfig((prev: any) => ({
+      ...prev,
+      [key]: typeof prev[key] === 'number' ? parseFloat(value) : value
+    }));
+  };
+  
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateConfig.mutate(gameConfig);
+  };
+  
+  if (error) {
+    return (
+      <div className="text-center p-8">
+        <p className="text-red-500">Error loading game configuration: {(error as Error).message}</p>
+        <Button onClick={() => refetch()} className="mt-4">
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Retry
+        </Button>
+      </div>
+    );
+  }
+  
+  return (
+    <div>
+      <div className="flex justify-between mb-6">
+        <h2 className="text-2xl font-bold">Game Configuration</h2>
+        <Select value={selectedGame} onValueChange={setSelectedGame}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Select game" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="slots">Slots</SelectItem>
+            <SelectItem value="dice">Dice</SelectItem>
+            <SelectItem value="crash">Crash</SelectItem>
+            <SelectItem value="roulette">Roulette</SelectItem>
+            <SelectItem value="blackjack">Blackjack</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      
+      {isLoading ? (
+        <div className="flex justify-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <UICard>
+          <CardHeader>
+            <CardTitle>
+              {selectedGame.charAt(0).toUpperCase() + selectedGame.slice(1)} Settings
+            </CardTitle>
+            <CardDescription>
+              Configure game parameters and odds
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {!isEditing ? (
+              <div className="space-y-4">
+                {gameConfig && Object.entries(gameConfig).map(([key, value]: [string, any]) => (
+                  <div key={key} className="grid grid-cols-2">
+                    <div className="font-medium">{key}</div>
+                    <div>{value.toString()}</div>
+                  </div>
+                ))}
+                
+                <Button
+                  onClick={() => setIsEditing(true)}
+                  className="w-full mt-4"
+                >
+                  <Settings className="mr-2 h-4 w-4" />
+                  Edit Configuration
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {gameConfig && Object.entries(gameConfig).map(([key, value]: [string, any]) => (
+                  <div key={key}>
+                    <Label htmlFor={key}>{key}</Label>
+                    <Input
+                      id={key}
+                      type={typeof value === 'number' ? 'number' : 'text'}
+                      value={gameConfig[key]}
+                      onChange={(e) => handleInputChange(key, e.target.value)}
+                      step={typeof value === 'number' ? 0.01 : undefined}
+                    />
+                  </div>
+                ))}
+                
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      setIsEditing(false);
+                      refetch(); // Reset to original values
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={updateConfig.isPending}
+                  >
+                    {updateConfig.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      "Save Changes"
+                    )}
+                  </Button>
+                </div>
+              </form>
+            )}
+          </CardContent>
+        </UICard>
+      )}
+    </div>
+  );
+}
+
+// Component for support tickets tab
+function SupportTab() {
+  const { toast } = useToast();
+  const [selectedTicket, setSelectedTicket] = useState<any>(null);
+  const [isTicketDialogOpen, setIsTicketDialogOpen] = useState(false);
+  const [replyMessage, setReplyMessage] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const { user: currentUser } = useAuth();
+  
+  // Fetch support tickets
+  const {
+    data: ticketsData,
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['/api/admin/support-tickets', statusFilter, page],
+    queryFn: async () => {
+      const status = statusFilter === 'all' ? '' : statusFilter;
+      const res = await apiRequest('GET', `/api/admin/support-tickets?status=${status}&page=${page}`);
+      return await res.json();
+    }
+  });
+  
+  // Fetch single ticket details
+  const {
+    data: ticketDetails,
+    isLoading: isLoadingTicket,
+    refetch: refetchTicket
+  } = useQuery({
+    queryKey: ['/api/admin/support-tickets/details', selectedTicket?.id],
+    queryFn: async () => {
+      if (!selectedTicket) return null;
+      const res = await apiRequest('GET', `/api/admin/support-tickets/${selectedTicket.id}`);
+      return await res.json();
+    },
+    enabled: !!selectedTicket
+  });
+  
+  // Add reply mutation
+  const addReply = useMutation({
+    mutationFn: async ({ ticketId, message }: { ticketId: number, message: string }) => {
+      const res = await apiRequest("POST", `/api/admin/support-tickets/${ticketId}/reply`, { message });
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Reply Sent",
+        description: "Your reply has been added to the ticket",
+      });
+      setReplyMessage("");
+      refetchTicket();
+      refetch();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `Failed to send reply: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Update ticket status mutation
+  const updateStatus = useMutation({
+    mutationFn: async ({ ticketId, status }: { ticketId: number, status: string }) => {
+      const res = await apiRequest("PATCH", `/api/admin/support-tickets/${ticketId}/status`, { status });
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Status Updated",
+        description: `Ticket status has been updated to ${data.status}`,
+      });
+      if (selectedTicket) {
+        setSelectedTicket({
+          ...selectedTicket,
+          status: data.status
+        });
+      }
+      refetchTicket();
+      refetch();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `Failed to update status: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  const handleViewTicket = (ticket: any) => {
+    setSelectedTicket(ticket);
+    setIsTicketDialogOpen(true);
+  };
+  
+  const handleSendReply = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedTicket) return;
+    
+    addReply.mutate({
+      ticketId: selectedTicket.id,
+      message: replyMessage
+    });
+  };
+  
+  const handleStatusChange = (status: string) => {
+    if (!selectedTicket) return;
+    
+    updateStatus.mutate({
+      ticketId: selectedTicket.id,
+      status
+    });
+  };
+  
+  // Status badge component
+  const StatusBadge = ({ status }: { status: string }) => {
+    switch (status) {
+      case 'open':
+        return <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">Open</Badge>;
+      case 'in-progress':
+        return <Badge variant="outline" className="bg-yellow-50 text-yellow-600 border-yellow-200">In Progress</Badge>;
+      case 'resolved':
+        return <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">Resolved</Badge>;
+      case 'closed':
+        return <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200">Closed</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+  
+  if (error) {
+    return (
+      <div className="text-center p-8">
+        <p className="text-red-500">Error loading support tickets: {(error as Error).message}</p>
+        <Button onClick={() => refetch()} className="mt-4">
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Retry
+        </Button>
+      </div>
+    );
+  }
+  
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">Support Tickets</h2>
+        <Select 
+          value={statusFilter} 
+          onValueChange={setStatusFilter}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Tickets</SelectItem>
+            <SelectItem value="open">Open</SelectItem>
+            <SelectItem value="in-progress">In Progress</SelectItem>
+            <SelectItem value="resolved">Resolved</SelectItem>
+            <SelectItem value="closed">Closed</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      
+      {isLoading ? (
+        <div className="flex justify-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Subject</TableHead>
+                <TableHead>User</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Updated</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {!ticketsData || ticketsData.tickets.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8">
+                    No tickets found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                ticketsData.tickets.map((ticket: any) => (
+                  <TableRow key={ticket.id}>
+                    <TableCell>{ticket.id}</TableCell>
+                    <TableCell className="font-medium">{ticket.subject}</TableCell>
+                    <TableCell>{ticket.username}</TableCell>
+                    <TableCell>
+                      <StatusBadge status={ticket.status} />
+                    </TableCell>
+                    <TableCell>
+                      {new Date(ticket.updatedAt).toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewTicket(ticket)}
+                      >
+                        View
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+          
+          {ticketsData && ticketsData.pagination && (
+            <div className="flex justify-between items-center mt-4">
+              <div className="text-sm text-muted-foreground">
+                Showing page {page} of {ticketsData.pagination.totalPages}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.max(p - 1, 1))}
+                  disabled={page === 1}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => p + 1)}
+                  disabled={page >= ticketsData.pagination.totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+      
+      {/* Ticket Details Dialog */}
+      <Dialog 
+        open={isTicketDialogOpen} 
+        onOpenChange={(open) => {
+          setIsTicketDialogOpen(open);
+          if (!open) {
+            // Clear state when dialog is closed
+            setReplyMessage("");
+          }
+        }}
+      >
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          {selectedTicket && (
+            <>
+              <DialogHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <DialogTitle className="text-xl">
+                      Ticket #{selectedTicket.id}: {selectedTicket.subject}
+                    </DialogTitle>
+                    <DialogDescription>
+                      Submitted by {selectedTicket.username}
+                    </DialogDescription>
+                  </div>
+                  <StatusBadge status={selectedTicket.status} />
+                </div>
+              </DialogHeader>
+              
+              {isLoadingTicket ? (
+                <div className="flex justify-center p-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-4 py-4">
+                    {/* Message history */}
+                    <div className="space-y-4">
+                      {ticketDetails?.messages.map((message: any) => (
+                        <div 
+                          key={message.id}
+                          className={`p-4 rounded-lg ${
+                            message.isAdmin 
+                              ? "bg-primary/10 ml-8" 
+                              : "bg-muted mr-8"
+                          }`}
+                        >
+                          <div className="flex justify-between items-center mb-2">
+                            <div className="font-medium">
+                              {message.username}
+                              {message.isAdmin && (
+                                <Badge className="ml-2 bg-blue-600">Admin</Badge>
+                              )}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {new Date(message.timestamp).toLocaleString()}
+                            </div>
+                          </div>
+                          <p className="whitespace-pre-line">{message.message}</p>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Status controls */}
+                    {selectedTicket.status !== 'closed' && (
+                      <div className="border-t pt-4">
+                        <Label className="mb-2 block">Update Status</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedTicket.status !== 'in-progress' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleStatusChange('in-progress')}
+                              disabled={updateStatus.isPending}
+                            >
+                              Mark as In Progress
+                            </Button>
+                          )}
+                          
+                          {selectedTicket.status !== 'resolved' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleStatusChange('resolved')}
+                              disabled={updateStatus.isPending}
+                            >
+                              Mark as Resolved
+                            </Button>
+                          )}
+                          
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleStatusChange('closed')}
+                            disabled={updateStatus.isPending}
+                          >
+                            Close Ticket
+                          </Button>
+                          
+                          {updateStatus.isPending && (
+                            <Loader2 className="h-4 w-4 animate-spin ml-2" />
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Reply form */}
+                    {selectedTicket.status !== 'closed' && (
+                      <form onSubmit={handleSendReply} className="border-t pt-4">
+                        <Label htmlFor="reply" className="mb-2 block">Reply</Label>
+                        <Textarea
+                          id="reply"
+                          value={replyMessage}
+                          onChange={(e) => setReplyMessage(e.target.value)}
+                          placeholder="Type your reply here..."
+                          className="w-full h-32 mb-4"
+                          required
+                        />
+                        
+                        <div className="flex justify-end">
+                          <Button
+                            type="submit"
+                            disabled={addReply.isPending || replyMessage.trim() === ''}
+                          >
+                            {addReply.isPending ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              "Send Reply"
+                            )}
+                          </Button>
+                        </div>
+                      </form>
+                    )}
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 // Main admin page component
 export default function AdminPage() {
   const { user } = useAuth();
@@ -857,7 +1843,7 @@ export default function AdminPage() {
         </div>
         
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="mb-6">
+          <TabsList className="mb-6 flex flex-wrap">
             <TabsTrigger value="users" className="flex items-center">
               <UserCog className="h-4 w-4 mr-2" />
               Users
@@ -869,6 +1855,22 @@ export default function AdminPage() {
             <TabsTrigger value="transactions" className="flex items-center">
               <History className="h-4 w-4 mr-2" />
               Transactions
+            </TabsTrigger>
+            <TabsTrigger value="bonuses" className="flex items-center">
+              <Gift className="h-4 w-4 mr-2" />
+              Bonuses
+            </TabsTrigger>
+            <TabsTrigger value="announcements" className="flex items-center">
+              <Megaphone className="h-4 w-4 mr-2" />
+              Announcements
+            </TabsTrigger>
+            <TabsTrigger value="gameconfig" className="flex items-center">
+              <Settings className="h-4 w-4 mr-2" />
+              Game Config
+            </TabsTrigger>
+            <TabsTrigger value="support" className="flex items-center">
+              <LifeBuoy className="h-4 w-4 mr-2" />
+              Support
             </TabsTrigger>
           </TabsList>
           
@@ -885,6 +1887,22 @@ export default function AdminPage() {
               <h3 className="text-lg font-medium mb-2">Coming Soon</h3>
               <p>Transaction management features will be available soon.</p>
             </div>
+          </TabsContent>
+          
+          <TabsContent value="bonuses">
+            <BonusesTab />
+          </TabsContent>
+          
+          <TabsContent value="announcements">
+            <AnnouncementsTab />
+          </TabsContent>
+          
+          <TabsContent value="gameconfig">
+            <GameConfigTab />
+          </TabsContent>
+          
+          <TabsContent value="support">
+            <SupportTab />
           </TabsContent>
         </Tabs>
       </div>
