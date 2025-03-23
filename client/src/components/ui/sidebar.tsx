@@ -83,7 +83,7 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
                   ? 'text-white bg-[#5465FF] bg-opacity-20' 
                   : 'text-gray-400 hover:text-white hover:bg-[#2A2A2A]'
               }`} onClick={onClose}>
-                <i className="ri-dice-line text-lg text-[#5465FF]"></i>
+                <i className="ri-cube-line text-lg text-[#5465FF]"></i>
                 <span>Dice</span>
               </a>
             </Link>
