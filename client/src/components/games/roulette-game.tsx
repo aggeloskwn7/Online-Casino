@@ -15,14 +15,10 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import { RouletteResult, RouletteBet, RouletteBetType } from '@shared/schema';
+import { RouletteResult, RouletteBet, RouletteBetType, SingleBet } from '@shared/schema';
 
-// Define a bet object type
-type Bet = {
-  type: RouletteBetType;
-  numbers: number[];
-  amount: number;
-};
+// Define a bet object type - matches the SingleBet schema type
+type Bet = SingleBet;
 
 interface RouletteGameProps {
   onSpin?: () => void;

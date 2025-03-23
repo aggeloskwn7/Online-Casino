@@ -18,6 +18,8 @@ export const transactions = pgTable("transactions", {
   payout: decimal("payout", { precision: 10, scale: 2 }).notNull(),
   timestamp: timestamp("timestamp").defaultNow().notNull(),
   isWin: boolean("is_win").notNull(),
+  metadata: text("metadata"),
+  gameData: text("game_data"),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -81,10 +83,14 @@ export const rouletteBetTypeSchema = z.enum([
   'high', // 19-36 (1:1)
 ]);
 
-export const rouletteBetSchema = z.object({
+export const singleBetSchema = z.object({
   amount: z.number().positive().min(1).max(10000),
-  betType: rouletteBetTypeSchema,
+  type: rouletteBetTypeSchema,
   numbers: z.array(z.number().int().min(0).max(36)), // Array of numbers being bet on (can be a single number, or multiple)
+});
+
+export const rouletteBetSchema = z.object({
+  bets: z.array(singleBetSchema),
 });
 
 export const rouletteResultSchema = z.object({
@@ -92,12 +98,14 @@ export const rouletteResultSchema = z.object({
   color: z.enum(['red', 'black', 'green']), // Color of the pocket
   multiplier: z.number(),
   payout: z.number(),
-  isWin: z.boolean()
+  isWin: z.boolean(),
+  metadata: z.string().optional() // For storing additional data
 });
 
 export type SlotsPayout = z.infer<typeof slotsPayoutSchema>;
 export type DiceRoll = z.infer<typeof diceRollSchema>;
 export type CrashGame = z.infer<typeof crashGameSchema>;
 export type RouletteBetType = z.infer<typeof rouletteBetTypeSchema>;
+export type SingleBet = z.infer<typeof singleBetSchema>;
 export type RouletteBet = z.infer<typeof rouletteBetSchema>;
 export type RouletteResult = z.infer<typeof rouletteResultSchema>;
