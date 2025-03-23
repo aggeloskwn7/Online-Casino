@@ -69,10 +69,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
   
   // Public routes - no authentication required
-  app.get("/api/announcements", async (_req, res) => {
+  app.get("/api/announcements", async (req, res) => {
     try {
-      // Get only non-expired announcements
-      const announcements = await storage.getAnnouncements(false);
+      // Get user ID if user is authenticated
+      const userId = req.isAuthenticated() ? req.user?.id : undefined;
+      
+      // Get only non-expired announcements targeted for this user
+      const announcements = await storage.getAnnouncements(false, userId);
       res.json(announcements);
     } catch (error) {
       console.error("Error fetching announcements:", error);

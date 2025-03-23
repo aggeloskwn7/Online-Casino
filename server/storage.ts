@@ -458,19 +458,30 @@ export class DatabaseStorage implements IStorage {
     return newAnnouncement;
   }
   
-  async getAnnouncements(includeExpired = false): Promise<any[]> {
+  async getAnnouncements(includeExpired = false, userId?: number): Promise<any[]> {
     const now = new Date();
     
-    if (includeExpired) {
-      return this.announcements;
+    // Step 1: Get unexpired announcements
+    let filteredAnnouncements = includeExpired 
+      ? [...this.announcements] 
+      : this.announcements.filter(announcement => {
+          return announcement.isPinned || 
+                !announcement.expiresAt || 
+                announcement.expiresAt > now;
+        });
+        
+    // Step 2: If userId provided, filter announcements targeted to this user
+    if (userId !== undefined) {
+      filteredAnnouncements = filteredAnnouncements.filter(announcement => {
+        // Include if:
+        // 1. Announcement has no targetUserIds (global)
+        // 2. Announcement has targetUserIds and userId is in the list
+        return !announcement.targetUserIds || 
+               (announcement.targetUserIds && announcement.targetUserIds.includes(userId));
+      });
     }
     
-    // Return only active announcements
-    return this.announcements.filter(announcement => {
-      return announcement.isPinned || 
-             !announcement.expiresAt || 
-             announcement.expiresAt > now;
-    });
+    return filteredAnnouncements;
   }
   
   async deleteAnnouncement(id: number): Promise<void> {

@@ -128,6 +128,11 @@ export const adminMassBonusSchema = z.object({
   amount: z.number().positive().min(1).max(10000),
   reason: z.string().min(3).max(200),
   message: z.string().min(3).max(200),
+  targetType: z.enum(['all', 'new', 'active', 'veteran', 'custom']).optional().default('all'),
+  filters: z.object({
+    minPlayCount: z.number().int().min(0).optional(),
+    maxPlayCount: z.number().int().min(0).optional(),
+  }).optional(),
 });
 
 // Schema for system announcements
@@ -135,8 +140,9 @@ export const adminAnnouncementSchema = z.object({
   title: z.string().min(3).max(100),
   message: z.string().min(3).max(500),
   type: z.enum(['info', 'warning', 'success', 'error']),
-  duration: z.number().int().min(5).max(300).default(30), // Display duration in seconds
+  duration: z.number().int().min(5).max(3600).default(30), // Display duration in seconds
   isPinned: z.boolean().default(false), // Whether to pin the announcement
+  targetUserIds: z.array(z.number()).optional(), // Optional array of user IDs to target with this announcement
 });
 
 // Schema for game configuration updates
