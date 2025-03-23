@@ -76,15 +76,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Fetching announcements for userId:", userId);
       
-      // Temporarily get all announcements without filtering for debugging
-      const announcements = await storage.getAnnouncements(false);
-      console.log("Announcements retrieved:", announcements);
+      // If userId is defined, filter announcements for that user
+      // Otherwise, get global announcements (no targeting)
+      const announcements = userId !== undefined 
+        ? await storage.getAnnouncements(false, userId) 
+        : await storage.getAnnouncements(false);
       
-      res.json(announcements);
+      console.log("Announcements retrieved successfully");
+      
+      // Always return an array, even if empty
+      res.json(announcements || []);
     } catch (error) {
       console.error("Error fetching announcements:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      res.status(500).json({ message: "Failed to fetch announcements", error: errorMessage });
+      // Return empty array instead of error to prevent frontend issues
+      res.json([]);
     }
   });
 

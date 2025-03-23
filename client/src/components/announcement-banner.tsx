@@ -20,13 +20,20 @@ export function AnnouncementBanner() {
   const [isDismissed, setIsDismissed] = useState(false);
 
   // Fetch active announcements
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['/api/announcements'],
     queryFn: async () => {
-      const res = await apiRequest('GET', '/api/announcements');
-      return await res.json();
+      try {
+        const res = await apiRequest('GET', '/api/announcements');
+        return await res.json();
+      } catch (err) {
+        console.error('Failed to fetch announcements:', err);
+        return []; // Return empty array on error
+      }
     },
     refetchInterval: 30000, // Refetch every 30 seconds
+    retry: 1, // Only retry once on failure
+    retryDelay: 5000, // Wait 5 seconds before retrying
   });
 
   const announcements: Announcement[] = data || [];
