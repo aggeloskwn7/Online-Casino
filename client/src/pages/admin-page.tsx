@@ -860,7 +860,7 @@ function BonusesTab() {
   // Send mass bonus mutation
   const sendBonus = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/admin/mass-bonus", data);
+      const res = await apiRequest("POST", "/api/admin/bonuses", data);
       return await res.json();
     },
     onSuccess: (data) => {
@@ -1114,12 +1114,12 @@ function AnnouncementsTab() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {announcements && announcements.length === 0 ? (
+          {announcements?.announcements && announcements.announcements.length === 0 ? (
             <div className="col-span-2 text-center p-12 border rounded-lg">
               <p className="text-muted-foreground">No announcements yet</p>
             </div>
           ) : (
-            announcements && announcements.map((announcement: any) => (
+            announcements?.announcements && announcements.announcements.map((announcement: any) => (
               <UICard key={announcement.id}>
                 <CardHeader className="pb-2">
                   <div className="flex justify-between">
@@ -1307,8 +1307,8 @@ function GameConfigTab() {
   
   // Update local state when game selection changes
   useEffect(() => {
-    if (config) {
-      setGameConfig(config);
+    if (config?.config) {
+      setGameConfig(config.config);
     }
   }, [config]);
   
