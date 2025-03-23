@@ -43,13 +43,35 @@ export default function RouletteHistory() {
     <div className="divide-y divide-[#333333]">
       {rouletteGames.map((game, index) => {
         const isWin = game.isWin;
-        // Default values for display if we can't infer from the transaction
-        let spin = 0;
-        let color: 'red' | 'black' | 'green' = 'black';
-        let betType = 'unknown';
+        // Parse game metadata to get the result information (if available)
+        let resultInfo;
+        try {
+          resultInfo = JSON.parse(game.metadata || "{}");
+        } catch (e) {
+          resultInfo = {};
+        }
         
-        // Try to determine the result from the game's last spin
-        if (Number(game.multiplier) > 0) {
+        // Get the spin number and color from the result information
+        const spin = resultInfo.spin || 0;
+        const color = resultInfo.color || "unknown";
+        
+        // Determine a better display for the bet type - get it from one of the game fields if possible
+        let betType = "";
+        try {
+          // Try to extract bet type from gameData or type field
+          if (resultInfo.betType) {
+            betType = resultInfo.betType;
+          } else if (game.gameData) {
+            const gameData = typeof game.gameData === 'string' ? 
+              JSON.parse(game.gameData) : game.gameData;
+            betType = gameData.betType || "";
+          }
+        } catch (e) {
+          betType = "";
+        }
+        
+        // If we couldn't get a bet type, infer from multiplier
+        if (!betType) {
           // Get approximate bet type based on multiplier
           const multiplierNum = Number(game.multiplier);
           if (multiplierNum >= 35) betType = 'straight';
@@ -58,7 +80,25 @@ export default function RouletteHistory() {
           else if (multiplierNum >= 8) betType = 'corner';
           else if (multiplierNum >= 5) betType = 'line';
           else if (multiplierNum >= 2) betType = 'dozen';
-          else betType = 'outside';
+          else if (multiplierNum === 1) {
+            // For outside bets with 1:1 ratio, try to infer from the metadata
+            if (color === 'red') betType = 'red';
+            else if (color === 'black') betType = 'black';
+            else betType = 'outside';
+          } else {
+            betType = 'bet';
+          }
+        }
+        
+        // Format betType for display
+        const displayBetType = betType.charAt(0).toUpperCase() + betType.slice(1);
+        
+        // Determine background color for the spin number bubble
+        let spinBgColor = 'bg-gradient-to-b from-[#222222] to-[#121212]';
+        if (color === 'red') {
+          spinBgColor = 'bg-gradient-to-b from-[#E03C3C] to-[#C92A2A]';
+        } else if (color === 'green') {
+          spinBgColor = 'bg-gradient-to-b from-[#00A000] to-[#008000]';
         }
         
         return (
@@ -71,14 +111,17 @@ export default function RouletteHistory() {
           >
             <div className="flex justify-between items-center">
               <div className="flex items-center space-x-3">
-                <div className={`w-10 h-10 flex items-center justify-center text-white font-bold rounded-full ${
-                  isWin ? 'bg-gradient-to-b from-[#00A000] to-[#008000]' : 'bg-gradient-to-b from-[#E03C3C] to-[#C92A2A]'
-                }`}>
-                  {isWin ? '✓' : '✗'}
+                <div className={`w-10 h-10 flex items-center justify-center text-white font-bold rounded-full 
+                  ${spinBgColor}`}>
+                  {spin}
                 </div>
                 <div>
-                  <div className="font-medium">
-                    {betType.charAt(0).toUpperCase() + betType.slice(1)} Bet
+                  <div className="flex items-center space-x-1">
+                    <span className="font-medium">{displayBetType}</span>
+                    <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-xs
+                      ${isWin ? 'bg-[#00A000] text-white' : 'bg-[#E03C3C] text-white'}`}>
+                      {isWin ? '✓' : '✗'}
+                    </span>
                   </div>
                   <div className="text-xs text-gray-400">
                     {new Date(game.timestamp).toLocaleTimeString()}
