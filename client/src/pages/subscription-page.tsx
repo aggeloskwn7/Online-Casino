@@ -7,6 +7,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { SubscriptionPlan } from '@shared/schema';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { ProtectedRoute } from '@/lib/protected-route';
+import { Link, useLocation } from 'wouter';
 
 import {
   Card,
@@ -316,6 +317,7 @@ function SubscriptionPageContent() {
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [location, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
   
@@ -417,11 +419,20 @@ function SubscriptionPageContent() {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Subscription Plans</h1>
-        <p className="text-muted-foreground">
-          Choose a subscription plan to enhance your gaming experience.
-        </p>
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Subscription Plans</h1>
+          <p className="text-muted-foreground">
+            Choose a subscription plan to enhance your gaming experience.
+          </p>
+        </div>
+        <Button 
+          variant="outline" 
+          onClick={() => setLocation('/')}
+          className="flex items-center gap-2"
+        >
+          <X className="h-4 w-4" /> Back to Home
+        </Button>
       </div>
       
       {hasActiveSubscription && (

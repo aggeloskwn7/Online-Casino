@@ -17,6 +17,34 @@ import {
 import { z } from "zod";
 import { getAdjustedWinChance, shouldBeBigWin, getBigWinMultiplierBoost } from "./win-rate";
 
+/**
+ * Get the win multiplier based on user's subscription tier
+ */
+async function getVipWinMultiplier(userId: number): Promise<number> {
+  try {
+    // Get the user to check subscription tier
+    const user = await storage.getUser(userId);
+    if (!user || !user.subscriptionTier) {
+      return 1.0; // Default multiplier for non-subscribers
+    }
+    
+    // Apply different multipliers based on tier
+    switch (user.subscriptionTier) {
+      case 'bronze':
+        return 1.0; // Bronze tier doesn't have win multiplier, just daily coins
+      case 'silver':
+        return 1.1; // Silver tier has 1.1x win multiplier
+      case 'gold':
+        return 1.25; // Gold tier has 1.25x win multiplier
+      default:
+        return 1.0;
+    }
+  } catch (error) {
+    console.error("Error getting VIP win multiplier:", error);
+    return 1.0; // Default to 1.0 (no multiplier) in case of error
+  }
+}
+
 // Declare global type extension for Request to include user
 declare global {
   namespace Express {
@@ -234,10 +262,19 @@ export async function playSlots(req: Request, res: Response) {
       // Don't add specific winning lines for full grid - it's obvious
     }
     
-    const payout = amount * multiplier;
+    // Get VIP subscription win multiplier if applicable
+    const vipMultiplier = await getVipWinMultiplier(userId);
+    
+    // Apply VIP multiplier to the payout if user won
+    const payout = isWin ? amount * multiplier * vipMultiplier : 0;
     
     // Update user balance
     const newBalance = Number(user.balance) - amount + payout;
+    
+    // Log VIP bonus if applicable
+    if (isWin && vipMultiplier > 1.0) {
+      console.log(`Applied VIP multiplier (${vipMultiplier}x) to user ${userId}'s slots win. Base payout: ${amount * multiplier}, Final payout: ${payout}`);
+    }
     await storage.updateUserBalance(userId, newBalance);
     
     // Create transaction record
@@ -366,13 +403,21 @@ export async function playDice(req: Request, res: Response) {
         return res.status(200).json(gameResult);
     }
     
+    // Get VIP subscription win multiplier if applicable
+    const vipMultiplier = await getVipWinMultiplier(userId);
+    
     // Add small random variation to payouts to make it feel more realistic
     // This is within 0.5% of the calculated amount
     const variation = 1 + (Math.random() * 0.01 - 0.005);
-    const payout = isWin ? Number((amount * multiplier * variation).toFixed(2)) : 0;
+    const payout = isWin ? Number((amount * multiplier * variation * vipMultiplier).toFixed(2)) : 0;
     
     // Update user balance
     const newBalance = Number(user.balance) - amount + payout;
+    
+    // Log VIP bonus if applicable
+    if (isWin && vipMultiplier > 1.0) {
+      console.log(`Applied VIP multiplier (${vipMultiplier}x) to user ${userId}'s dice win. Base payout: ${amount * multiplier * variation}, Final payout: ${payout}`);
+    }
     await storage.updateUserBalance(userId, newBalance);
     
     // Create transaction record
