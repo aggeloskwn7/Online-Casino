@@ -1057,8 +1057,9 @@ function AnnouncementsTab() {
   // Delete announcement mutation
   const deleteAnnouncement = useMutation({
     mutationFn: async (id: number) => {
-      const res = await apiRequest("DELETE", `/api/admin/announcements/${id}`);
-      return await res.json();
+      // The server returns 204 No Content on success, which has no body to parse
+      await apiRequest("DELETE", `/api/admin/announcements/${id}`);
+      return { success: true };
     },
     onSuccess: () => {
       toast({
