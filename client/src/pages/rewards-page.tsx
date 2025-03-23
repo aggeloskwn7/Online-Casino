@@ -30,21 +30,36 @@ const RewardCalendarItem = ({
   const isToday = day === currentStreak;
   const isFuture = day > currentStreak;
 
+  // Base classes that will always be applied
+  let containerClasses = "p-3 rounded-lg border flex flex-col items-center justify-center text-center";
+  let dayIndicatorClasses = "w-8 h-8 rounded-full flex items-center justify-center mb-1";
+  
+  // Add styling based on day status
+  if (isPast) {
+    containerClasses += " bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800";
+    dayIndicatorClasses += " bg-green-500 text-white";
+  } else if (isToday) {
+    containerClasses += " bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700 ring-2 ring-blue-500 dark:ring-blue-400";
+    dayIndicatorClasses += " bg-blue-500 text-white";
+  } else if (isFuture) {
+    containerClasses += " border-gray-200 dark:border-gray-800 opacity-70";
+    dayIndicatorClasses += " bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100";
+  }
+  
+  // Add milestone styling
+  if (isMilestone) {
+    if (!isPast && !isToday) {
+      dayIndicatorClasses += " bg-yellow-400 dark:bg-yellow-600 text-black dark:text-white";
+    }
+    containerClasses += " border-yellow-300 dark:border-yellow-700";
+  } else if (!isPast && !isToday && !isFuture) {
+    // Default styling for normal future days
+    dayIndicatorClasses += " bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100";
+  }
+
   return (
-    <div className={`
-      p-3 rounded-lg border flex flex-col items-center justify-center text-center
-      ${isPast ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : ''}
-      ${isToday ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700 ring-2 ring-blue-500 dark:ring-blue-400' : ''}
-      ${isMilestone ? 'border-yellow-300 dark:border-yellow-700' : 'border-gray-200 dark:border-gray-800'}
-      ${isFuture ? 'opacity-70' : ''}
-    `}>
-      <div className={`
-        w-8 h-8 rounded-full flex items-center justify-center mb-1
-        ${isPast ? 'bg-green-500 text-white' : ''}
-        ${isToday ? 'bg-blue-500 text-white' : ''}
-        ${isMilestone ? 'bg-yellow-400 dark:bg-yellow-600 text-black dark:text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'}
-        ${isFuture ? 'bg-gray-200 dark:bg-gray-700' : ''}
-      `}>
+    <div className={containerClasses}>
+      <div className={dayIndicatorClasses}>
         {isPast ? <Check size={16} /> : day}
       </div>
       <div className="text-xs font-medium mt-1">
@@ -221,7 +236,7 @@ export default function RewardsPage() {
                 </div>
                 
                 <div className="grid grid-cols-5 gap-2 mb-6">
-                  {rewardSchedule?.slice(0, 10).map((reward: any) => (
+                  {rewardSchedule && rewardSchedule.slice(0, 10).map((reward: RewardItem) => (
                     <RewardCalendarItem 
                       key={reward.day}
                       day={reward.day}
@@ -266,20 +281,20 @@ export default function RewardsPage() {
                 <CardDescription>Your most recent rewards</CardDescription>
               </CardHeader>
               <CardContent className="h-[280px] overflow-y-auto">
-                {rewardHistory?.length > 0 ? (
+                {rewardHistory && rewardHistory.length > 0 ? (
                   <div>
-                    {rewardHistory.slice(0, 10).map((reward: any, index: number) => (
+                    {rewardHistory && rewardHistory.map((reward: RewardHistoryItem, index: number) => (
                       <div key={reward.id}>
                         <RewardHistoryItem 
                           day={reward.day}
                           amount={parseFloat(reward.amount)}
                           date={reward.createdAt}
                         />
-                        {index < rewardHistory.slice(0, 10).length - 1 && (
+                        {index < ((rewardHistory && rewardHistory.length) || 0) - 1 && (
                           <Separator className="my-2" />
                         )}
                       </div>
-                    ))}
+                    )).slice(0, 10)}
                   </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500 dark:text-gray-400">
@@ -305,7 +320,7 @@ export default function RewardsPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-5 sm:grid-cols-10 gap-2 mb-2">
-              {rewardSchedule?.slice(10, 20).map((reward: any) => (
+              {rewardSchedule && rewardSchedule.slice(10, 20).map((reward: RewardItem) => (
                 <RewardCalendarItem 
                   key={reward.day}
                   day={reward.day}
@@ -317,7 +332,7 @@ export default function RewardsPage() {
               ))}
             </div>
             <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
-              {rewardSchedule?.slice(20, 30).map((reward: any) => (
+              {rewardSchedule && rewardSchedule.slice(20, 30).map((reward: RewardItem) => (
                 <RewardCalendarItem 
                   key={reward.day}
                   day={reward.day}
