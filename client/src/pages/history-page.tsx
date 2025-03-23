@@ -136,7 +136,7 @@ function HistoryPageContent() {
   };
 
   return (
-    <div className="container py-6 max-w-4xl">
+    <div className="container py-6 max-w-5xl mx-auto">
       <div className="flex items-center mb-4 text-sm">
         <Link href="/" className="text-gray-400 hover:text-white flex items-center gap-1">
           <i className="ri-home-4-line"></i>
@@ -146,7 +146,7 @@ function HistoryPageContent() {
         <span className="text-white font-medium">History</span>
       </div>
       
-      <Card className="bg-[#1A1A25] border-gray-800">
+      <Card className="bg-[#1A1A25] border-gray-800 shadow-lg">
         <CardHeader className="border-b border-gray-800">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
