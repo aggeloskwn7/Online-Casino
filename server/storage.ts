@@ -39,6 +39,22 @@ export interface IStorage {
   adjustUserBalance(userId: number, amount: number, adminId: number, reason: string): Promise<User>;
   getCoinTransactions(userId?: number, limit?: number): Promise<CoinTransaction[]>;
   createCoinTransaction(transaction: InsertCoinTransaction): Promise<CoinTransaction>;
+  
+  // Announcement operations
+  createAnnouncement(announcement: AdminAnnouncement, adminId: number): Promise<any>;
+  getAnnouncements(includeExpired?: boolean): Promise<any[]>;
+  deleteAnnouncement(id: number): Promise<void>;
+  
+  // Game config operations
+  getGameConfig(gameType: string): Promise<any>;
+  updateGameConfig(gameType: string, config: any): Promise<any>;
+  
+  // Support ticket operations
+  getSupportTickets(status?: string, page?: number, limit?: number): Promise<any[]>;
+  getSupportTicket(id: number): Promise<any | undefined>;
+  createSupportTicket(userId: number, subject: string, message: string): Promise<any>;
+  addSupportTicketReply(ticketId: number, userId: number, message: string, isAdmin: boolean): Promise<any>;
+  updateSupportTicketStatus(ticketId: number, status: string): Promise<any | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -255,6 +271,195 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return coinTransaction;
+  }
+  
+  // === ANNOUNCEMENT OPERATIONS ===
+  // Since we don't have a dedicated table for announcements yet, we'll store in memory
+  private announcements: any[] = [];
+  private announcementIdCounter = 1;
+  
+  async createAnnouncement(announcement: AdminAnnouncement, adminId: number): Promise<any> {
+    const newAnnouncement = {
+      id: this.announcementIdCounter++,
+      ...announcement,
+      adminId,
+      createdAt: new Date(),
+      expiresAt: announcement.isPinned 
+        ? null // Pinned announcements don't expire
+        : new Date(Date.now() + announcement.duration * 1000) // Convert seconds to milliseconds
+    };
+    
+    this.announcements.push(newAnnouncement);
+    return newAnnouncement;
+  }
+  
+  async getAnnouncements(includeExpired = false): Promise<any[]> {
+    const now = new Date();
+    
+    if (includeExpired) {
+      return this.announcements;
+    }
+    
+    // Return only active announcements
+    return this.announcements.filter(announcement => {
+      return announcement.isPinned || 
+             !announcement.expiresAt || 
+             announcement.expiresAt > now;
+    });
+  }
+  
+  async deleteAnnouncement(id: number): Promise<void> {
+    const index = this.announcements.findIndex(a => a.id === id);
+    if (index !== -1) {
+      this.announcements.splice(index, 1);
+    }
+  }
+  
+  // === GAME CONFIG OPERATIONS ===
+  // Since we don't have a dedicated table yet, we'll store in memory
+  private gameConfigs: Record<string, any> = {
+    slots: {
+      winChance: 0.85, // 85% chance of winning
+      minWinMultiplier: 0.2,
+      maxWinMultiplier: 50,
+      paylineCount: 5
+    },
+    dice: {
+      houseEdge: 0.01, // 1% house edge
+      forceLossChance: 0.2 // 20% chance to force a loss
+    },
+    crash: {
+      immediateFailChance: 0.1, // 10% chance of crash at start
+      minMultiplier: 1.01,
+      maxMultiplier: 100,
+      growthFactor: 0.05
+    },
+    roulette: {
+      // Standard roulette odds
+    },
+    blackjack: {
+      deckCount: 6,
+      shuffleThreshold: 0.25, // Reshuffle when 25% of cards remain
+      dealerStandsOnSoft17: true,
+      blackjackPayout: 1.5 // 3:2 payout for blackjack
+    }
+  };
+  
+  async getGameConfig(gameType: string): Promise<any> {
+    return this.gameConfigs[gameType] || {};
+  }
+  
+  async updateGameConfig(gameType: string, config: any): Promise<any> {
+    this.gameConfigs[gameType] = {
+      ...this.gameConfigs[gameType],
+      ...config
+    };
+    
+    return this.gameConfigs[gameType];
+  }
+  
+  // === SUPPORT TICKET OPERATIONS ===
+  // Since we don't have a dedicated table yet, we'll store in memory
+  private supportTickets: any[] = [];
+  private ticketIdCounter = 1;
+  
+  async getSupportTickets(status?: string, page = 1, limit = 20): Promise<any[]> {
+    let filteredTickets = this.supportTickets;
+    
+    if (status) {
+      filteredTickets = filteredTickets.filter(ticket => ticket.status === status);
+    }
+    
+    // Sort by most recent first
+    filteredTickets.sort((a, b) => 
+      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    );
+    
+    // Apply pagination
+    const offset = (page - 1) * limit;
+    return filteredTickets.slice(offset, offset + limit);
+  }
+  
+  async getSupportTicket(id: number): Promise<any | undefined> {
+    return this.supportTickets.find(ticket => ticket.id === id);
+  }
+  
+  async createSupportTicket(userId: number, subject: string, message: string): Promise<any> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
+    const newTicket = {
+      id: this.ticketIdCounter++,
+      userId,
+      username: user.username,
+      subject,
+      status: 'open',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      messages: [
+        {
+          id: 1,
+          userId,
+          username: user.username,
+          message,
+          isAdmin: false,
+          timestamp: new Date()
+        }
+      ]
+    };
+    
+    this.supportTickets.push(newTicket);
+    return newTicket;
+  }
+  
+  async addSupportTicketReply(ticketId: number, userId: number, message: string, isAdmin: boolean): Promise<any> {
+    const ticketIndex = this.supportTickets.findIndex(ticket => ticket.id === ticketId);
+    
+    if (ticketIndex === -1) {
+      throw new Error("Support ticket not found");
+    }
+    
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
+    const ticket = this.supportTickets[ticketIndex];
+    
+    // Add new message
+    const newMessage = {
+      id: ticket.messages.length + 1,
+      userId,
+      username: user.username,
+      message,
+      isAdmin,
+      timestamp: new Date()
+    };
+    
+    ticket.messages.push(newMessage);
+    ticket.updatedAt = new Date();
+    
+    // If admin is replying to an 'open' ticket, change status to 'in-progress'
+    if (isAdmin && ticket.status === 'open') {
+      ticket.status = 'in-progress';
+    }
+    
+    return ticket;
+  }
+  
+  async updateSupportTicketStatus(ticketId: number, status: string): Promise<any | undefined> {
+    const ticketIndex = this.supportTickets.findIndex(ticket => ticket.id === ticketId);
+    
+    if (ticketIndex === -1) {
+      return undefined;
+    }
+    
+    this.supportTickets[ticketIndex].status = status;
+    this.supportTickets[ticketIndex].updatedAt = new Date();
+    
+    return this.supportTickets[ticketIndex];
   }
 }
 

@@ -1,7 +1,13 @@
 import { Express, Request, Response } from "express";
 import { storage } from "./storage";
 import { authMiddleware, adminMiddleware, ownerMiddleware } from "./auth";
-import { adminUserUpdateSchema, adminCoinAdjustmentSchema } from "@shared/schema";
+import { 
+  adminUserUpdateSchema, 
+  adminCoinAdjustmentSchema,
+  adminMassBonusSchema,
+  adminAnnouncementSchema,
+  adminGameConfigSchema
+} from "@shared/schema";
 import { z } from "zod";
 
 /**
@@ -217,6 +223,263 @@ export function setupAdminRoutes(app: Express) {
       console.error("Error fetching user transactions:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       res.status(500).json({ message: "Failed to fetch user transactions", error: errorMessage });
+    }
+  });
+
+  // === MASS BONUS ENDPOINTS ===
+  
+  // Send bonus to all users (admin only)
+  app.post("/api/admin/mass-bonus", authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+      // Validate request body
+      const bonusData = adminMassBonusSchema.parse(req.body);
+      
+      // Get all users
+      const users = await storage.getAllUsers(1000, 0); // Get up to 1000 users
+      const adminId = req.user!.id;
+      
+      // Track success and failures
+      const results = {
+        success: 0,
+        failed: 0,
+        totalUsers: users.length
+      };
+      
+      // Apply bonus to each user
+      for (const user of users) {
+        try {
+          // Skip banned users
+          if (user.isBanned) continue;
+          
+          // Add bonus to user's balance
+          await storage.adjustUserBalance(
+            user.id,
+            bonusData.amount,
+            adminId,
+            bonusData.reason
+          );
+          
+          results.success++;
+        } catch (err) {
+          console.error(`Failed to add bonus to user ${user.id}:`, err);
+          results.failed++;
+        }
+      }
+      
+      // Store the announcement about the bonus
+      const announcement = {
+        title: "Bonus coins added!",
+        message: bonusData.message,
+        type: "success" as const,
+        duration: 60,
+        isPinned: true
+      };
+      
+      await storage.createAnnouncement(announcement, adminId);
+      
+      res.json({ 
+        message: "Mass bonus processed", 
+        results 
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input data", errors: error.errors });
+      }
+      
+      console.error("Error processing mass bonus:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Failed to process mass bonus", error: errorMessage });
+    }
+  });
+  
+  // === ANNOUNCEMENTS ENDPOINTS ===
+  
+  // Create an announcement (admin only)
+  app.post("/api/admin/announcements", authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+      // Validate request body
+      const announcementData = adminAnnouncementSchema.parse(req.body);
+      
+      // Create announcement
+      const announcement = await storage.createAnnouncement(announcementData, req.user!.id);
+      
+      res.status(201).json({ announcement });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input data", errors: error.errors });
+      }
+      
+      console.error("Error creating announcement:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Failed to create announcement", error: errorMessage });
+    }
+  });
+  
+  // Get all announcements (admin only)
+  app.get("/api/admin/announcements", authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+      const announcements = await storage.getAnnouncements(true); // Include expired
+      
+      res.json({ announcements });
+    } catch (error) {
+      console.error("Error fetching announcements:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Failed to fetch announcements", error: errorMessage });
+    }
+  });
+  
+  // Delete an announcement (admin only)
+  app.delete("/api/admin/announcements/:announcementId", authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+      const announcementId = parseInt(req.params.announcementId);
+      
+      await storage.deleteAnnouncement(announcementId);
+      
+      res.status(204).end();
+    } catch (error) {
+      console.error("Error deleting announcement:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Failed to delete announcement", error: errorMessage });
+    }
+  });
+  
+  // === GAME CONFIG ENDPOINTS ===
+  
+  // Get current game configuration (admin only)
+  app.get("/api/admin/game-config/:gameType", authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+      const gameType = req.params.gameType;
+      
+      // Validate game type
+      if (!['slots', 'dice', 'crash', 'roulette', 'blackjack'].includes(gameType)) {
+        return res.status(400).json({ message: "Invalid game type" });
+      }
+      
+      const config = await storage.getGameConfig(gameType);
+      
+      res.json({ config });
+    } catch (error) {
+      console.error("Error fetching game config:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Failed to fetch game config", error: errorMessage });
+    }
+  });
+  
+  // Update game configuration (admin only)
+  app.patch("/api/admin/game-config", authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+      // Validate request body
+      const configData = adminGameConfigSchema.parse(req.body);
+      
+      // Update game configuration
+      const updatedConfig = await storage.updateGameConfig(
+        configData.gameType,
+        configData.config
+      );
+      
+      res.json({ config: updatedConfig });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input data", errors: error.errors });
+      }
+      
+      console.error("Error updating game config:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Failed to update game config", error: errorMessage });
+    }
+  });
+  
+  // === SUPPORT INBOX ENDPOINTS ===
+  
+  // Get all support tickets (admin only)
+  app.get("/api/admin/support", authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+      const status = req.query.status as string | undefined;
+      const page = req.query.page ? parseInt(req.query.page as string) : 1;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      
+      const tickets = await storage.getSupportTickets(status, page, limit);
+      
+      res.json({ tickets });
+    } catch (error) {
+      console.error("Error fetching support tickets:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Failed to fetch support tickets", error: errorMessage });
+    }
+  });
+  
+  // Get a specific support ticket (admin only)
+  app.get("/api/admin/support/:ticketId", authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+      const ticketId = parseInt(req.params.ticketId);
+      
+      const ticket = await storage.getSupportTicket(ticketId);
+      
+      if (!ticket) {
+        return res.status(404).json({ message: "Support ticket not found" });
+      }
+      
+      res.json({ ticket });
+    } catch (error) {
+      console.error("Error fetching support ticket:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Failed to fetch support ticket", error: errorMessage });
+    }
+  });
+  
+  // Reply to a support ticket (admin only)
+  app.post("/api/admin/support/:ticketId/reply", authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+      const ticketId = parseInt(req.params.ticketId);
+      const { message } = req.body;
+      
+      if (!message || typeof message !== 'string' || message.trim().length === 0) {
+        return res.status(400).json({ message: "Reply message is required" });
+      }
+      
+      const ticket = await storage.getSupportTicket(ticketId);
+      
+      if (!ticket) {
+        return res.status(404).json({ message: "Support ticket not found" });
+      }
+      
+      // Add reply to the ticket
+      const updatedTicket = await storage.addSupportTicketReply(
+        ticketId,
+        req.user!.id,
+        message,
+        true // isAdmin
+      );
+      
+      res.json({ ticket: updatedTicket });
+    } catch (error) {
+      console.error("Error replying to support ticket:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Failed to reply to support ticket", error: errorMessage });
+    }
+  });
+  
+  // Update support ticket status (admin only)
+  app.patch("/api/admin/support/:ticketId/status", authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+      const ticketId = parseInt(req.params.ticketId);
+      const { status } = req.body;
+      
+      if (!status || !['open', 'in-progress', 'resolved', 'closed'].includes(status)) {
+        return res.status(400).json({ message: "Valid status is required (open, in-progress, resolved, closed)" });
+      }
+      
+      const ticket = await storage.updateSupportTicketStatus(ticketId, status);
+      
+      if (!ticket) {
+        return res.status(404).json({ message: "Support ticket not found" });
+      }
+      
+      res.json({ ticket });
+    } catch (error) {
+      console.error("Error updating support ticket status:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Failed to update support ticket status", error: errorMessage });
     }
   });
 }
