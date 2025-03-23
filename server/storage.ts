@@ -9,6 +9,8 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserBalance(userId: number, newBalance: number): Promise<User>;
+  incrementPlayCount(userId: number): Promise<User>;
+  getUserPlayCount(userId: number): Promise<number>;
   getUserTransactions(userId: number, limit?: number): Promise<Transaction[]>;
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
 }
@@ -67,6 +69,35 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return transaction;
+  }
+  
+  async incrementPlayCount(userId: number): Promise<User> {
+    // Get current user to access playCount
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
+    // Increment playCount by 1
+    const newPlayCount = (user.playCount || 0) + 1;
+    
+    // Update the user's playCount
+    const [updatedUser] = await db
+      .update(users)
+      .set({ playCount: newPlayCount })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    return updatedUser;
+  }
+  
+  async getUserPlayCount(userId: number): Promise<number> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
+    return user.playCount || 0;
   }
 }
 

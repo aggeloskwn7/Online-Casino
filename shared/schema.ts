@@ -7,6 +7,7 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   balance: decimal("balance", { precision: 10, scale: 2 }).default("10000").notNull(),
+  playCount: integer("play_count").default(0).notNull(),
 });
 
 export const transactions = pgTable("transactions", {
