@@ -89,7 +89,7 @@ export default function FeaturedGames() {
       {featuredGames.map((game) => (
         <div 
           key={game.id}
-          className="bg-[#2A2A2A] rounded-xl overflow-hidden border border-[#333333] hover:border-[#5465FF] transition duration-200"
+          className="bg-[#2A2A2A] rounded-xl overflow-hidden border border-[#333333] hover:border-[#5465FF] transition duration-200 flex flex-col h-full"
         >
           <div className="h-40 relative overflow-hidden bg-[#1E1E1E]">
             <div className="absolute inset-0 flex items-center justify-center">
@@ -109,7 +109,7 @@ export default function FeaturedGames() {
               </div>
             )}
           </div>
-          <div className="p-4">
+          <div className="p-4 flex flex-col flex-grow">
             <div className="flex justify-between items-center mb-2">
               <h3 className="font-heading font-bold">{game.name}</h3>
               <div className="flex items-center space-x-1 text-yellow-500">
@@ -127,8 +127,8 @@ export default function FeaturedGames() {
                 })}
               </div>
             </div>
-            <p className="text-gray-400 text-sm mb-3">{game.description}</p>
-            <Link href={game.path}>
+            <p className="text-gray-400 text-sm mb-3 flex-grow">{game.description}</p>
+            <Link href={game.path} className="w-full">
               <Button className="w-full bg-[#5465FF] hover:bg-[#6677FF] text-white font-medium py-2 rounded-lg transition duration-200">
                 Play Now
               </Button>
