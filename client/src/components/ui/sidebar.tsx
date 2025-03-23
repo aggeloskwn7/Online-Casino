@@ -17,12 +17,13 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
     if (onClose) onClose();
   };
   
+  // Common Link Component for consistent styling
   const NavLink = ({ href, icon, label }: { href: string; icon: string; label: string }) => {
     const isActive = location === href;
     return (
       <Link href={href}>
-        <a 
-          className={`flex items-center space-x-3 p-3 rounded-lg mb-1 ${
+        <div 
+          className={`flex items-center space-x-3 p-3 rounded-lg mb-1 cursor-pointer ${
             isActive 
               ? 'text-white bg-[#5465FF] bg-opacity-20' 
               : 'text-gray-400 hover:text-white hover:bg-[#2A2A2A]'
@@ -31,7 +32,36 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
         >
           <i className={`${icon} text-lg`}></i>
           <span>{label}</span>
-        </a>
+        </div>
+      </Link>
+    );
+  };
+  
+  // Game Link Component with emoji icon
+  const GameLink = ({ href, emoji, label }: { href: string; emoji: string; label: string }) => {
+    const isActive = location === href;
+    const isBlackjack = href === '/blackjack';
+    
+    return (
+      <Link href={href}>
+        <div 
+          className={`flex items-center space-x-3 p-3 rounded-lg mb-1 cursor-pointer ${
+            isActive 
+              ? `text-white bg-[#5465FF] bg-opacity-20 ${isBlackjack ? 'animate-pulse-glow' : ''}`
+              : 'text-gray-400 hover:text-white hover:bg-[#2A2A2A]'
+          }`}
+          onClick={onClose}
+        >
+          <span className={`text-lg font-bold ${isActive && isBlackjack ? 'animate-bouncing' : ''}`}>
+            {emoji}
+          </span>
+          <span>{label}</span>
+          {isActive && isBlackjack && (
+            <span className="ml-1 text-xs text-yellow-400 font-semibold animate-pulse">
+              NEW
+            </span>
+          )}
+        </div>
       </Link>
     );
   };
@@ -62,16 +92,11 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
             <NavLink href="/" icon="ri-home-4-line" label="Home" />
             <NavLink href="#" icon="ri-exchange-dollar-line" label="Transactions" />
             {user?.isAdmin && (
-              <Link href="/admin">
-                <a className={`flex items-center space-x-3 p-3 rounded-lg mb-1 ${
-                  location === '/admin' 
-                    ? 'text-white bg-[#5465FF] bg-opacity-20' 
-                    : 'text-gray-400 hover:text-white hover:bg-[#2A2A2A]'
-                }`} onClick={onClose}>
-                  <i className="ri-shield-keyhole-line text-lg text-purple-500"></i>
-                  <span>Admin Panel</span>
-                </a>
-              </Link>
+              <NavLink 
+                href="/admin" 
+                icon="ri-shield-keyhole-line text-purple-500" 
+                label="Admin Panel" 
+              />
             )}
           </nav>
         </div>
@@ -79,56 +104,11 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
         <div className="mb-6">
           <p className="text-gray-400 text-xs uppercase font-semibold mb-2 tracking-wider">Games</p>
           <nav>
-            <Link href="/slots">
-              <a className={`flex items-center space-x-3 p-3 rounded-lg mb-1 ${
-                location === '/slots' 
-                  ? 'text-white bg-[#5465FF] bg-opacity-20' 
-                  : 'text-gray-400 hover:text-white hover:bg-[#2A2A2A]'
-              }`} onClick={onClose}>
-                <span className="text-lg font-bold">🎰</span>
-                <span>Slots</span>
-              </a>
-            </Link>
-            <Link href="/dice">
-              <a className={`flex items-center space-x-3 p-3 rounded-lg mb-1 ${
-                location === '/dice' 
-                  ? 'text-white bg-[#5465FF] bg-opacity-20' 
-                  : 'text-gray-400 hover:text-white hover:bg-[#2A2A2A]'
-              }`} onClick={onClose}>
-                <span className="text-lg text-[#5465FF] font-bold">🎲</span>
-                <span>Dice</span>
-              </a>
-            </Link>
-            <Link href="/crash">
-              <a className={`flex items-center space-x-3 p-3 rounded-lg mb-1 ${
-                location === '/crash' 
-                  ? 'text-white bg-[#5465FF] bg-opacity-20' 
-                  : 'text-gray-400 hover:text-white hover:bg-[#2A2A2A]'
-              }`} onClick={onClose}>
-                <span className="text-lg font-bold">🚀</span>
-                <span>Crash</span>
-              </a>
-            </Link>
-            <Link href="/roulette">
-              <a className={`flex items-center space-x-3 p-3 rounded-lg mb-1 ${
-                location === '/roulette' 
-                  ? 'text-white bg-[#5465FF] bg-opacity-20' 
-                  : 'text-gray-400 hover:text-white hover:bg-[#2A2A2A]'
-              }`} onClick={onClose}>
-                <span className="text-lg font-bold">🎯</span>
-                <span>Roulette</span>
-              </a>
-            </Link>
-            <Link href="/blackjack">
-              <a className={`flex items-center space-x-3 p-3 rounded-lg mb-1 ${
-                location === '/blackjack' 
-                  ? 'text-white bg-[#5465FF] bg-opacity-20' 
-                  : 'text-gray-400 hover:text-white hover:bg-[#2A2A2A]'
-              }`} onClick={onClose}>
-                <span className="text-lg font-bold">🃏</span>
-                <span>Blackjack</span>
-              </a>
-            </Link>
+            <GameLink href="/slots" emoji="🎰" label="Slots" />
+            <GameLink href="/dice" emoji="🎲" label="Dice" />
+            <GameLink href="/crash" emoji="🚀" label="Crash" />
+            <GameLink href="/roulette" emoji="🎯" label="Roulette" />
+            <GameLink href="/blackjack" emoji="♠️" label="Blackjack" />
           </nav>
         </div>
       </div>

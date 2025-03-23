@@ -381,18 +381,81 @@ export default function BlackjackGame() {
       const actions = gameState.allowedActions || defaultActions;
       
       return (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-3 justify-center">
           {actions.includes('hit') && (
-            <Button onClick={() => handleAction('hit')} disabled={actionMutation.isPending}>Hit</Button>
+            <Button 
+              onClick={() => handleAction('hit')} 
+              disabled={actionMutation.isPending}
+              className="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 font-bold"
+            >
+              <div className="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                  <path d="M5 12h14"></path>
+                  <path d="M12 5v14"></path>
+                </svg>
+                <span>Hit</span>
+              </div>
+            </Button>
           )}
+          
           {actions.includes('stand') && (
-            <Button onClick={() => handleAction('stand')} disabled={actionMutation.isPending}>Stand</Button>
+            <Button 
+              onClick={() => handleAction('stand')} 
+              disabled={actionMutation.isPending}
+              className="bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 font-bold"
+            >
+              <div className="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                  <path d="M5 12h14"></path>
+                </svg>
+                <span>Stand</span>
+              </div>
+            </Button>
           )}
+          
           {actions.includes('double') && (
-            <Button onClick={() => handleAction('double')} disabled={actionMutation.isPending}>Double</Button>
+            <Button 
+              onClick={() => handleAction('double')} 
+              disabled={actionMutation.isPending}
+              className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 font-bold"
+            >
+              <div className="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M8 12h8"></path>
+                  <path d="M12 8v8"></path>
+                </svg>
+                <span>Double</span>
+              </div>
+            </Button>
           )}
+          
           {actions.includes('split') && (
-            <Button onClick={() => handleAction('split')} disabled={actionMutation.isPending}>Split</Button>
+            <Button 
+              onClick={() => handleAction('split')} 
+              disabled={actionMutation.isPending}
+              className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 font-bold"
+            >
+              <div className="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                  <path d="M17 3v18"></path>
+                  <path d="M10 8H4c-1.5 0-3 .5-3 2s1.5 2 3 2h6c1.5 0 3 .5 3 2s-1.5 2-3 2H3"></path>
+                </svg>
+                <span>Split</span>
+              </div>
+            </Button>
+          )}
+          
+          {/* Show pending state with animation */}
+          {actionMutation.isPending && (
+            <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-black bg-opacity-20 backdrop-blur-sm rounded-lg">
+              <div className="text-yellow-300 animate-pulse flex flex-col items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin h-8 w-8 mb-2">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                </svg>
+                <span>Dealing...</span>
+              </div>
+            </div>
           )}
         </div>
       );
