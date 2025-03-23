@@ -1316,7 +1316,10 @@ export async function playRoulette(req: Request, res: Response) {
       
       // Add small random variation to payouts to make it feel more realistic (within 0.5%)
       const variation = 1 + (Math.random() * 0.01 - 0.005);
-      const payout = isWin ? Number((amount * multiplier * variation).toFixed(2)) : 0;
+      
+      // Important: For a winning bet, the payout should include both the winnings AND the original bet
+      // For a 1:1 bet like red/black, a $10 bet should return $20 total ($10 winnings + $10 original bet)
+      const payout = isWin ? Number((amount + amount * multiplier * variation).toFixed(2)) : 0;
       
       // Update running totals
       totalWinnings += payout;
