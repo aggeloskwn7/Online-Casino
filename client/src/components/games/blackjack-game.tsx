@@ -522,24 +522,26 @@ export default function BlackjackGame() {
       titleClass = 'text-blue-400';
     }
     
+    // Fixed dialog to make sure the button is clickable
     return (
       <AlertDialog open={showOutcomeDialog} onOpenChange={setShowOutcomeDialog}>
-        <AlertDialogContent className={`border-none ${bgClass} shadow-xl animate-reveal`}>
-          <div className="absolute inset-0 overflow-hidden">
-            {gameState.result === 'win' && (
-              <>
-                {/* Animated confetti for wins */}
-                <div className="absolute top-0 left-1/4 w-2 h-2 bg-yellow-500 rounded-full animate-floating" style={{ animationDelay: '0.2s' }}></div>
-                <div className="absolute top-5 left-1/3 w-3 h-3 bg-green-500 rounded-full animate-floating" style={{ animationDelay: '0.5s' }}></div>
-                <div className="absolute top-2 right-1/4 w-2 h-2 bg-red-500 rounded-full animate-floating" style={{ animationDelay: '0.7s' }}></div>
-                <div className="absolute top-10 right-1/3 w-3 h-3 bg-blue-500 rounded-full animate-floating" style={{ animationDelay: '0.3s' }}></div>
-                <div className="absolute bottom-10 left-10 w-3 h-3 bg-purple-500 rounded-full animate-floating" style={{ animationDelay: '0.6s' }}></div>
-                <div className="absolute bottom-5 right-10 w-2 h-2 bg-pink-500 rounded-full animate-floating" style={{ animationDelay: '0.4s' }}></div>
-              </>
-            )}
-          </div>
+        <AlertDialogContent 
+          className={`border-none ${bgClass} shadow-xl animate-reveal w-full max-w-md mx-auto`}
+          style={{ zIndex: 9999 }}
+        >
+          {/* Confetti for wins - now with relative position to avoid overlay issues */}
+          {gameState.result === 'win' && (
+            <div className="relative h-full w-full">
+              <div className="top-0 left-1/4 w-2 h-2 bg-yellow-500 rounded-full animate-floating absolute" style={{ animationDelay: '0.2s' }}></div>
+              <div className="top-5 left-1/3 w-3 h-3 bg-green-500 rounded-full animate-floating absolute" style={{ animationDelay: '0.5s' }}></div>
+              <div className="top-2 right-1/4 w-2 h-2 bg-red-500 rounded-full animate-floating absolute" style={{ animationDelay: '0.7s' }}></div>
+              <div className="top-10 right-1/3 w-3 h-3 bg-blue-500 rounded-full animate-floating absolute" style={{ animationDelay: '0.3s' }}></div>
+              <div className="bottom-10 left-10 w-3 h-3 bg-purple-500 rounded-full animate-floating absolute" style={{ animationDelay: '0.6s' }}></div>
+              <div className="bottom-5 right-10 w-2 h-2 bg-pink-500 rounded-full animate-floating absolute" style={{ animationDelay: '0.4s' }}></div>
+            </div>
+          )}
           
-          <AlertDialogHeader className="space-y-4 text-center p-2">
+          <AlertDialogHeader className="space-y-4 text-center p-4">
             <div className="text-4xl mb-4 animate-bouncing">
               {icon}
             </div>
@@ -551,7 +553,7 @@ export default function BlackjackGame() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           
-          <div className="flex flex-col items-center mt-4 p-2">
+          <div className="flex flex-col items-center mt-2 p-2">
             {gameState.result === 'win' && gameState.payout && gameState.payout > 0 && (
               <div className="text-xl md:text-2xl font-bold text-yellow-300 prize-glow my-3 animate-pulse-glow">
                 + {formatCurrency(gameState.payout)}
@@ -559,16 +561,16 @@ export default function BlackjackGame() {
             )}
           </div>
           
-          <AlertDialogFooter className="flex justify-center mt-4">
-            <AlertDialogAction 
+          <AlertDialogFooter className="flex justify-center mt-4 pb-4">
+            <button 
               onClick={handleNewGame} 
-              className={`text-white font-bold py-3 px-6 rounded-full shadow-lg transition-all
+              className={`text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all cursor-pointer
                          ${gameState.result === 'win' ? 'bg-yellow-600 hover:bg-yellow-500' : 
                            gameState.result === 'lose' ? 'bg-slate-700 hover:bg-slate-600' : 
                            'bg-blue-700 hover:bg-blue-600'}`}
             >
               Play Again
-            </AlertDialogAction>
+            </button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
