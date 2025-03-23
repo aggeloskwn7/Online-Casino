@@ -1,6 +1,19 @@
 import { Request, Response } from "express";
 import { storage } from "./storage";
-import { betSchema, slotsPayoutSchema, diceRollSchema, crashGameSchema, rouletteBetSchema, rouletteResultSchema, RouletteBetType } from "@shared/schema";
+import { 
+  betSchema, 
+  slotsPayoutSchema, 
+  diceRollSchema, 
+  crashGameSchema, 
+  rouletteBetSchema, 
+  rouletteResultSchema, 
+  RouletteBetType,
+  blackjackBetSchema,
+  blackjackStateSchema,
+  blackjackActionSchema,
+  cardSchema,
+  Card
+} from "@shared/schema";
 import { z } from "zod";
 import { getAdjustedWinChance, shouldBeBigWin, getBigWinMultiplierBoost } from "./win-rate";
 
@@ -616,6 +629,532 @@ const isInThirdColumn = (number: number) => number % 3 === 0 && number !== 0;
 /**
  * Play roulette game
  */
+// Card values for blackjack
+const CARD_VALUES: Record<string, number> = {
+  '2': 2,
+  '3': 3,
+  '4': 4,
+  '5': 5,
+  '6': 6,
+  '7': 7,
+  '8': 8,
+  '9': 9,
+  '10': 10,
+  'J': 10,
+  'Q': 10,
+  'K': 10,
+  'A': 11, // Ace is 11 by default, we'll handle the 1 case in calculateHandValue
+};
+
+// Create a standard 52-card deck
+function createDeck(): Card[] {
+  const suits = ['hearts', 'diamonds', 'clubs', 'spades'] as const;
+  const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'] as const;
+  
+  const deck: Card[] = [];
+  
+  for (const suit of suits) {
+    for (const value of values) {
+      deck.push({ suit, value });
+    }
+  }
+  
+  return deck;
+}
+
+// Shuffle a deck using Fisher-Yates algorithm
+function shuffleDeck(deck: Card[]): Card[] {
+  const shuffled = [...deck];
+  
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  
+  return shuffled;
+}
+
+// Calculate the value of a blackjack hand
+function calculateHandValue(cards: Card[]): number {
+  let value = 0;
+  let aceCount = 0;
+  
+  for (const card of cards) {
+    if (card.hidden) continue; // Skip hidden cards
+    
+    if (card.value === 'A') {
+      aceCount++;
+      value += 11;
+    } else {
+      value += CARD_VALUES[card.value];
+    }
+  }
+  
+  // Adjust for aces if bust
+  while (value > 21 && aceCount > 0) {
+    value -= 10; // Convert an Ace from 11 to 1
+    aceCount--;
+  }
+  
+  return value;
+}
+
+// Check if a hand is a blackjack (21 with 2 cards)
+function isBlackjack(cards: Card[]): boolean {
+  return cards.length === 2 && calculateHandValue(cards) === 21;
+}
+
+/**
+ * Start a blackjack game
+ */
+export async function startBlackjack(req: Request, res: Response) {
+  try {
+    // With JWT auth, user is set by middleware
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    // Validate request body
+    const parsedBody = blackjackBetSchema.parse(req.body);
+    const { amount } = parsedBody;
+    
+    // Get user with balance
+    const user = await storage.getUser(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    // Check if user has enough balance
+    if (Number(user.balance) < amount) {
+      return res.status(400).json({ message: "Insufficient balance" });
+    }
+    
+    // Create and shuffle deck
+    const deck = shuffleDeck(createDeck());
+    
+    // Deal initial cards
+    const playerHand = [deck.pop()!, deck.pop()!];
+    const dealerHand = [deck.pop()!, { ...deck.pop()!, hidden: true }];
+    
+    // Calculate hand values
+    const playerValue = calculateHandValue(playerHand);
+    const dealerValue = calculateHandValue(dealerHand.filter(card => !card.hidden));
+    
+    // Check for player blackjack
+    const playerHasBlackjack = isBlackjack(playerHand);
+    
+    // Subtract bet from user's balance
+    await storage.updateUserBalance(userId, Number(user.balance) - amount);
+    
+    // Determine allowed actions
+    const allowedActions = playerHasBlackjack 
+      ? [] // No actions if player has blackjack
+      : ['hit', 'stand', 'double'];
+      
+    // If the player has a pair, allow split
+    if (playerHand[0].value === playerHand[1].value && Number(user.balance) >= amount) {
+      allowedActions.push('split');
+    }
+    
+    // Create game state
+    const gameState = blackjackStateSchema.parse({
+      playerHands: [{
+        cards: playerHand,
+        value: playerValue,
+        isBusted: false,
+        isBlackjack: playerHasBlackjack,
+        bet: amount
+      }],
+      dealerHand: {
+        cards: dealerHand,
+        value: dealerValue
+      },
+      currentHandIndex: 0,
+      status: playerHasBlackjack ? 'dealer-turn' : 'player-turn',
+      allowedActions: playerHasBlackjack ? [] : allowedActions
+    });
+    
+    // If player has blackjack, proceed to resolve game immediately
+    if (playerHasBlackjack) {
+      // Dealer reveals hidden card
+      const revealedDealerHand = dealerHand.map(card => ({ ...card, hidden: false }));
+      gameState.dealerHand.cards = revealedDealerHand;
+      gameState.dealerHand.value = calculateHandValue(revealedDealerHand);
+      
+      // Check for dealer blackjack (push)
+      const dealerHasBlackjack = isBlackjack(revealedDealerHand);
+      
+      if (dealerHasBlackjack) {
+        // Push - player gets bet back
+        gameState.result = 'push';
+        gameState.payout = amount;
+        await storage.updateUserBalance(userId, Number(user.balance) + amount);
+      } else {
+        // Player wins with blackjack (pays 3:2)
+        const blackjackPayout = amount * 2.5;
+        gameState.result = 'blackjack';
+        gameState.payout = blackjackPayout;
+        await storage.updateUserBalance(userId, Number(user.balance) + blackjackPayout);
+        
+        // Create transaction record
+        await storage.createTransaction({
+          userId,
+          gameType: "blackjack",
+          amount: amount.toString(),
+          multiplier: "2.5",
+          payout: blackjackPayout.toString(),
+          isWin: true,
+          gameData: JSON.stringify(gameState)
+        });
+      }
+      
+      gameState.status = 'complete';
+      gameState.isComplete = true;
+    }
+    
+    res.status(200).json(gameState);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: "Invalid bet data", errors: error.errors });
+    }
+    
+    console.error("Blackjack game error:", error);
+    res.status(500).json({ message: "Failed to start blackjack game" });
+  }
+}
+
+/**
+ * Player action in blackjack game (hit, stand, double, split)
+ */
+export async function blackjackAction(req: Request, res: Response) {
+  try {
+    // With JWT auth, user is set by middleware
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    // Validate request body
+    const parsedBody = blackjackBetSchema.parse(req.body);
+    const { action, handIndex = 0 } = parsedBody;
+    
+    // Get current game state from request
+    const currentState = blackjackStateSchema.parse(req.body.gameState);
+    
+    // Get user with balance
+    const user = await storage.getUser(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    // Ensure game is in player-turn status
+    if (currentState.status !== 'player-turn') {
+      return res.status(400).json({ message: "Cannot take action - not player's turn" });
+    }
+    
+    // Check if action is allowed
+    if (!currentState.allowedActions?.includes(action as any)) {
+      return res.status(400).json({ message: `Action ${action} is not allowed` });
+    }
+    
+    // Create a deck from the remaining cards (exclude cards already in play)
+    let usedCards: Card[] = [];
+    currentState.playerHands.forEach(hand => usedCards = [...usedCards, ...hand.cards]);
+    usedCards = [...usedCards, ...currentState.dealerHand.cards];
+    
+    const fullDeck = createDeck();
+    const remainingDeck = shuffleDeck(fullDeck.filter(card => 
+      !usedCards.some(usedCard => 
+        usedCard.suit === card.suit && usedCard.value === card.value
+      )
+    ));
+    
+    // Process player action
+    const currentHand = currentState.playerHands[handIndex];
+    
+    switch(action) {
+      case 'hit':
+        // Deal a new card to the player's current hand
+        const newCard = remainingDeck.pop()!;
+        currentHand.cards.push(newCard);
+        
+        // Update hand value
+        currentHand.value = calculateHandValue(currentHand.cards);
+        
+        // Check if busted
+        if (currentHand.value > 21) {
+          currentHand.isBusted = true;
+          
+          // If all hands are busted or done, move to dealer's turn
+          const allHandsDone = currentState.playerHands.every(hand => 
+            hand.isBusted || hand.isBlackjack || hand.isSurrendered
+          );
+          
+          if (allHandsDone) {
+            currentState.status = 'dealer-turn';
+            currentState.currentHandIndex = undefined;
+          } else {
+            // Move to next hand if available
+            const nextHandIndex = currentState.playerHands.findIndex((hand, idx) => 
+              idx > handIndex && !hand.isBusted && !hand.isBlackjack && !hand.isSurrendered
+            );
+            
+            if (nextHandIndex !== -1) {
+              currentState.currentHandIndex = nextHandIndex;
+              // Update allowed actions for next hand
+              currentState.allowedActions = ['hit', 'stand'];
+              
+              // Allow double if hand has only 2 cards
+              if (currentState.playerHands[nextHandIndex].cards.length === 2 && 
+                  Number(user.balance) >= currentState.playerHands[nextHandIndex].bet!) {
+                currentState.allowedActions.push('double');
+              }
+            } else {
+              currentState.status = 'dealer-turn';
+              currentState.currentHandIndex = undefined;
+            }
+          }
+        }
+        break;
+      
+      case 'stand':
+        // Move to next hand if available
+        const nextHandIndex = currentState.playerHands.findIndex((hand, idx) => 
+          idx > handIndex && !hand.isBusted && !hand.isBlackjack && !hand.isSurrendered
+        );
+        
+        if (nextHandIndex !== -1) {
+          currentState.currentHandIndex = nextHandIndex;
+          // Update allowed actions for next hand
+          currentState.allowedActions = ['hit', 'stand'];
+          
+          // Allow double if hand has only 2 cards
+          if (currentState.playerHands[nextHandIndex].cards.length === 2 && 
+              Number(user.balance) >= currentState.playerHands[nextHandIndex].bet!) {
+            currentState.allowedActions.push('double');
+          }
+        } else {
+          currentState.status = 'dealer-turn';
+          currentState.currentHandIndex = undefined;
+        }
+        break;
+      
+      case 'double':
+        if (currentHand.cards.length !== 2) {
+          return res.status(400).json({ message: "Can only double on first two cards" });
+        }
+        
+        // Check if user has enough balance for doubling
+        if (Number(user.balance) < currentHand.bet!) {
+          return res.status(400).json({ message: "Insufficient balance for doubling" });
+        }
+        
+        // Double the bet
+        const doubleBet = currentHand.bet!;
+        await storage.updateUserBalance(userId, Number(user.balance) - doubleBet);
+        currentHand.bet = doubleBet * 2;
+        
+        // Deal one card and then stand
+        const doubleCard = remainingDeck.pop()!;
+        currentHand.cards.push(doubleCard);
+        currentHand.value = calculateHandValue(currentHand.cards);
+        
+        // Check if busted
+        if (currentHand.value > 21) {
+          currentHand.isBusted = true;
+        }
+        
+        // Move to next hand or dealer turn
+        const nextHandAfterDouble = currentState.playerHands.findIndex((hand, idx) => 
+          idx > handIndex && !hand.isBusted && !hand.isBlackjack && !hand.isSurrendered
+        );
+        
+        if (nextHandAfterDouble !== -1) {
+          currentState.currentHandIndex = nextHandAfterDouble;
+          // Update allowed actions for next hand
+          currentState.allowedActions = ['hit', 'stand'];
+          
+          // Allow double if hand has only 2 cards
+          if (currentState.playerHands[nextHandAfterDouble].cards.length === 2 && 
+              Number(user.balance) >= currentState.playerHands[nextHandAfterDouble].bet!) {
+            currentState.allowedActions.push('double');
+          }
+        } else {
+          currentState.status = 'dealer-turn';
+          currentState.currentHandIndex = undefined;
+        }
+        break;
+      
+      case 'split':
+        // Check if hand can be split
+        if (currentHand.cards.length !== 2 || currentHand.cards[0].value !== currentHand.cards[1].value) {
+          return res.status(400).json({ message: "Cannot split this hand" });
+        }
+        
+        // Check if user has enough balance for splitting
+        if (Number(user.balance) < currentHand.bet!) {
+          return res.status(400).json({ message: "Insufficient balance for splitting" });
+        }
+        
+        // Split the hand into two
+        const splitBet = currentHand.bet!;
+        await storage.updateUserBalance(userId, Number(user.balance) - splitBet);
+        
+        // First hand keeps first card, gets a new one
+        const firstCard = currentHand.cards[0];
+        const newCardForFirstHand = remainingDeck.pop()!;
+        currentHand.cards = [firstCard, newCardForFirstHand];
+        currentHand.value = calculateHandValue(currentHand.cards);
+        currentHand.isSplit = true;
+        
+        // Create second hand with second card and a new one
+        const secondCard = currentHand.cards[1];
+        const newCardForSecondHand = remainingDeck.pop()!;
+        const secondHand = {
+          cards: [secondCard, newCardForSecondHand],
+          value: calculateHandValue([secondCard, newCardForSecondHand]),
+          isBusted: false,
+          isSplit: true,
+          bet: splitBet
+        };
+        
+        // Add second hand to player hands
+        currentState.playerHands.splice(handIndex + 1, 0, secondHand);
+        
+        // Update allowed actions
+        currentState.allowedActions = ['hit', 'stand'];
+        
+        // Allow double after split if user has enough balance
+        if (currentHand.bet !== undefined && Number(user.balance) >= currentHand.bet) {
+          currentState.allowedActions.push('double');
+        }
+        break;
+      
+      default:
+        return res.status(400).json({ message: "Invalid action" });
+    }
+    
+    // If it's dealer's turn now, play out dealer hand
+    if (currentState.status === 'dealer-turn') {
+      // Reveal dealer's hidden card
+      currentState.dealerHand.cards = currentState.dealerHand.cards.map(card => ({ ...card, hidden: false }));
+      currentState.dealerHand.value = calculateHandValue(currentState.dealerHand.cards);
+      
+      // Dealer draws cards until 17 or higher
+      while (currentState.dealerHand.value < 17) {
+        const dealerCard = remainingDeck.pop()!;
+        currentState.dealerHand.cards.push(dealerCard);
+        currentState.dealerHand.value = calculateHandValue(currentState.dealerHand.cards);
+      }
+      
+      // Calculate results and payouts
+      let totalPayout = 0;
+      const dealerBusted = currentState.dealerHand.value > 21;
+      const dealerTotal = currentState.dealerHand.value;
+      
+      // Process each player hand
+      for (const hand of currentState.playerHands) {
+        if (hand.isBusted) {
+          // Player busted - lose bet
+          // No payout, already subtracted bet
+          continue;
+        }
+        
+        if (hand.isBlackjack && !hand.isSplit) {
+          // Natural blackjack pays 3:2
+          const blackjackPayout = hand.bet! * 2.5;
+          totalPayout += blackjackPayout;
+          continue;
+        }
+        
+        if (dealerBusted) {
+          // Dealer busted - player wins
+          const winPayout = hand.bet! * 2; // Return bet + win same amount
+          totalPayout += winPayout;
+          continue;
+        }
+        
+        // Compare hand values
+        if (hand.value > dealerTotal) {
+          // Player wins
+          const winPayout = hand.bet! * 2; // Return bet + win same amount
+          totalPayout += winPayout;
+        } else if (hand.value === dealerTotal) {
+          // Push - return bet
+          totalPayout += hand.bet!;
+        }
+        // If dealer has higher value, player loses (no payout)
+      }
+      
+      // Update user's balance with total payout
+      if (totalPayout > 0) {
+        await storage.updateUserBalance(userId, Number(user.balance) + totalPayout);
+      }
+      
+      // Game is complete
+      currentState.status = 'complete';
+      currentState.isComplete = true;
+      currentState.payout = totalPayout;
+      
+      // Determine overall result
+      if (totalPayout > 0) {
+        const totalBet = currentState.playerHands.reduce((sum, hand) => sum + hand.bet!, 0);
+        currentState.result = totalPayout > totalBet ? 'win' : 'push';
+        
+        // Create transaction record
+        if (totalPayout > totalBet) {
+          const totalBet = currentState.playerHands.reduce((sum, hand) => sum + hand.bet!, 0);
+          const multiplier = totalPayout / totalBet;
+          
+          await storage.createTransaction({
+            userId,
+            gameType: "blackjack",
+            amount: totalBet.toString(),
+            multiplier: multiplier.toFixed(2),
+            payout: totalPayout.toString(),
+            isWin: true,
+            gameData: JSON.stringify({ 
+              playerHands: currentState.playerHands,
+              dealerHand: currentState.dealerHand
+            })
+          });
+        }
+      } else {
+        currentState.result = 'lose';
+        
+        // Create transaction record for loss
+        const totalBet = currentState.playerHands.reduce((sum, hand) => sum + hand.bet!, 0);
+        
+        await storage.createTransaction({
+          userId,
+          gameType: "blackjack",
+          amount: totalBet.toString(),
+          multiplier: "0",
+          payout: "0",
+          isWin: false,
+          gameData: JSON.stringify({ 
+            playerHands: currentState.playerHands,
+            dealerHand: currentState.dealerHand
+          })
+        });
+      }
+      
+      // Increment user's play count
+      await storage.incrementPlayCount(userId);
+    }
+    
+    res.status(200).json(currentState);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: "Invalid game data", errors: error.errors });
+    }
+    
+    console.error("Blackjack action error:", error);
+    res.status(500).json({ message: "Failed to process blackjack action" });
+  }
+}
+
 export async function playRoulette(req: Request, res: Response) {
   try {
     // With JWT auth, user is set by middleware
