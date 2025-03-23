@@ -5,11 +5,15 @@ import { motion } from "framer-motion";
 import { getQueryFn } from "@/lib/queryClient";
 import { Transaction, RouletteResult } from "@shared/schema";
 import { ROULETTE_COLORS } from "@/lib/game-utils";
+import { useRouletteState } from "@/hooks/use-roulette-state";
 
 export default function RouletteHistory() {
+  // Get shared roulette state
+  const { isSpinning, lastSpinTimestamp } = useRouletteState();
+
   // Fetch the roulette game transactions with a short polling interval to keep history updated
   const { data: transactions, isLoading } = useQuery<Transaction[]>({
-    queryKey: ["/api/transactions"],
+    queryKey: ["/api/transactions", lastSpinTimestamp],
     queryFn: getQueryFn({ on401: "returnNull" }),
     refetchInterval: 3000, // Refetch every 3 seconds to update game history
     refetchOnWindowFocus: true,
@@ -35,9 +39,16 @@ export default function RouletteHistory() {
   }
 
   // Filter and only show roulette games, sorted by most recent
-  const rouletteGames = transactions
+  let rouletteGames = transactions
     .filter(t => t.gameType === "roulette")
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    
+  // If currently spinning, remove the most recent game from the list
+  // to prevent spoiling the result before animation completes
+  if (isSpinning && rouletteGames.length > 0) {
+    // Remove the most recent entry which is the one being played now
+    rouletteGames = rouletteGames.slice(1);
+  }
 
   return (
     <div className="divide-y divide-[#333333]">

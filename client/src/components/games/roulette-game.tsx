@@ -32,8 +32,10 @@ export default function RouletteGame({ onSpin }: RouletteGameProps) {
   const wheelRef = useRef<HTMLDivElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
   
+  // Use the shared roulette state
+  const { isSpinning, setIsSpinning, updateLastSpinTimestamp } = useRouletteState();
+  
   const [betAmount, setBetAmount] = useState(1);
-  const [isSpinning, setIsSpinning] = useState(false);
   const [lastResult, setLastResult] = useState<RouletteResult | null>(null);
   const [activeBets, setActiveBets] = useState<Bet[]>([]);
   const [rotationAngle, setRotationAngle] = useState(0);
@@ -416,6 +418,9 @@ export default function RouletteGame({ onSpin }: RouletteGameProps) {
           // Now set the result after the animation completes
           setLastResult(pendingResultRef.current);
           setIsSpinning(false);
+          
+          // Update the lastSpinTimestamp to let the history component know the animation is complete
+          updateLastSpinTimestamp();
           
           // Update user data (balance) only now after animation is complete
           queryClient.invalidateQueries({ queryKey: ['/api/user'] });
