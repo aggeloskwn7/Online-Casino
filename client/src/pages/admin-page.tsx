@@ -56,7 +56,8 @@ import {
   Gift,
   Megaphone,
   Settings,
-  LifeBuoy
+  LifeBuoy,
+  Crown
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/game-utils';
@@ -1821,7 +1822,249 @@ function SupportTab() {
   );
 }
 
-// Main admin page component
+// Component for the subscriptions tab
+function SubscriptionsTab() {
+  const { toast } = useToast();
+  const { user: currentUser } = useAuth();
+  const [username, setUsername] = useState<string>('');
+  const [searchResults, setSearchResults] = useState<any>(null);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [subscriptionTier, setSubscriptionTier] = useState<string>('bronze');
+  const [durationMonths, setDurationMonths] = useState<string>('1');
+  const [reason, setReason] = useState<string>('');
+  
+  // Search users
+  const searchUsers = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (username.length >= 2) {
+      setIsSearching(true);
+      try {
+        const res = await apiRequest('GET', `/api/admin/users/search?q=${encodeURIComponent(username)}`);
+        const data = await res.json();
+        setSearchResults(data);
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: `Failed to search users: ${(error as Error).message}`,
+          variant: 'destructive',
+        });
+      } finally {
+        setIsSearching(false);
+      }
+    }
+  };
+  
+  // Select user from search results
+  const handleSelectUser = (user: any) => {
+    setSelectedUser(user);
+    setUsername(user.username);
+    setSearchResults(null);
+  };
+  
+  // Subscribe mutation
+  const assignSubscription = useMutation({
+    mutationFn: async () => {
+      if (!selectedUser) throw new Error('No user selected');
+      
+      const payload = {
+        userId: selectedUser.id,
+        tier: subscriptionTier,
+        durationMonths: parseInt(durationMonths),
+        reason
+      };
+      
+      const res = await apiRequest('POST', '/api/admin/subscriptions/assign', payload);
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: `Subscription assigned to ${selectedUser?.username} successfully`,
+      });
+      
+      // Reset form
+      setSelectedUser(null);
+      setUsername('');
+      setSubscriptionTier('bronze');
+      setDurationMonths('1');
+      setReason('');
+      
+      // Refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: `Failed to assign subscription: ${error.message}`,
+        variant: 'destructive',
+      });
+    }
+  });
+  
+  // Handle form submission
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    assignSubscription.mutate();
+  };
+  
+  // Only owner can assign subscriptions
+  if (!currentUser?.isOwner) {
+    return (
+      <div className="text-center p-12 text-muted-foreground">
+        <Crown className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+        <h3 className="text-lg font-medium mb-2">Owner-Only Feature</h3>
+        <p>Only the site owner can assign subscriptions to users.</p>
+      </div>
+    );
+  }
+  
+  return (
+    <UICard>
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <Crown className="h-5 w-5 mr-2 text-primary" />
+          Assign Subscription to User
+        </CardTitle>
+        <CardDescription>
+          Grant any subscription tier to a user for a specified duration
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="username">Username</Label>
+            <div className="relative">
+              <form onSubmit={searchUsers} className="flex gap-2">
+                <Input 
+                  id="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Search by username"
+                  className="flex-1"
+                  disabled={assignSubscription.isPending}
+                />
+                <Button 
+                  type="submit" 
+                  variant="outline"
+                  disabled={isSearching || username.length < 2 || assignSubscription.isPending}
+                >
+                  {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                </Button>
+              </form>
+              
+              {username.length >= 2 && searchResults && searchResults.users && searchResults.users.length > 0 && (
+                <div className="mt-2 border rounded-md max-h-40 overflow-y-auto">
+                  <div className="p-1">
+                    {searchResults.users.map((user: any) => (
+                      <div
+                        key={user.id}
+                        className="p-2 hover:bg-accent rounded-sm cursor-pointer flex items-center justify-between"
+                        onClick={() => handleSelectUser(user)}
+                      >
+                        <div className="flex items-center">
+                          <div>
+                            <div className="font-medium">{user.username}</div>
+                            <div className="text-xs text-muted-foreground">ID: {user.id}</div>
+                          </div>
+                        </div>
+                        {user.subscriptionTier && (
+                          <Badge className="ml-2 capitalize">
+                            {user.subscriptionTier}
+                          </Badge>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            {selectedUser && (
+              <div className="mt-1 text-sm text-muted-foreground">
+                Selected: <span className="font-medium">{selectedUser.username}</span>
+                {selectedUser.subscriptionTier && (
+                  <span className="ml-2">
+                    Current subscription: <Badge className="ml-1 capitalize">{selectedUser.subscriptionTier}</Badge>
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="subscriptionTier">Subscription Tier</Label>
+              <Select 
+                defaultValue={subscriptionTier} 
+                onValueChange={setSubscriptionTier}
+                disabled={assignSubscription.isPending}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select subscription tier" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bronze">Bronze</SelectItem>
+                  <SelectItem value="silver">Silver</SelectItem>
+                  <SelectItem value="gold">Gold</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="durationMonths">Duration (months)</Label>
+              <Select 
+                defaultValue={durationMonths} 
+                onValueChange={setDurationMonths}
+                disabled={assignSubscription.isPending}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select duration" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 month</SelectItem>
+                  <SelectItem value="3">3 months</SelectItem>
+                  <SelectItem value="6">6 months</SelectItem>
+                  <SelectItem value="12">12 months</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="reason">Reason (optional)</Label>
+            <Textarea 
+              id="reason"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Enter reason for subscription assignment"
+              className="resize-none"
+              disabled={assignSubscription.isPending}
+            />
+          </div>
+          
+          <Button 
+            type="submit" 
+            className="w-full"
+            disabled={!selectedUser || assignSubscription.isPending}
+          >
+            {assignSubscription.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Assigning Subscription...
+              </>
+            ) : (
+              <>
+                <Crown className="mr-2 h-4 w-4" />
+                Assign Subscription
+              </>
+            )}
+          </Button>
+        </form>
+      </CardContent>
+    </UICard>
+  );
+}
+
 export default function AdminPage() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
