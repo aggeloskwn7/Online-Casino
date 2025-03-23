@@ -60,6 +60,7 @@ export default function BlackjackGame() {
   const [gameState, setGameState] = useState<BlackjackState | null>(null);
   const [activeHandIndex, setActiveHandIndex] = useState(0);
   const [isDealing, setIsDealing] = useState(false);
+  const [showOutcomeDialog, setShowOutcomeDialog] = useState(false);
   
   // Start a new blackjack game
   const startGameMutation = useMutation({
@@ -104,7 +105,7 @@ export default function BlackjackGame() {
       } else if (data.status === 'dealer-turn' || data.status === 'complete') {
         play('cardDeal');
         
-        // If game is complete, play sounds after dealer animation
+        // If game is complete, play sounds after dealer animation then show outcome
         if (data.status === 'complete') {
           setTimeout(() => {
             if (data.result === 'win') {
@@ -114,6 +115,13 @@ export default function BlackjackGame() {
             } else {
               play('cardDeal');
             }
+            setShowOutcomeDialog(true);
+            
+            // Auto reset after a short delay
+            setTimeout(() => {
+              setShowOutcomeDialog(false);
+              setGameState(null);
+            }, 2000);
           }, 1500);
         }
       }
@@ -468,13 +476,12 @@ export default function BlackjackGame() {
       );
     }
     
-    // Game complete, show new game button
+    // Game complete, just show a message (the dialog will appear anyway)
     if (gameState.status === 'complete') {
       return (
-        <Button onClick={handleNewGame} className="mt-4">
-          <RefreshCw className="mr-2 h-4 w-4" />
-          New Game
-        </Button>
+        <div className="text-center text-yellow-300">
+          Game Complete
+        </div>
       );
     }
     
@@ -593,6 +600,72 @@ export default function BlackjackGame() {
           </Button>
         </CardFooter>
       </UICard>
+      
+      {/* Outcome Dialog */}
+      {gameState && showOutcomeDialog && (
+        <AlertDialog open={showOutcomeDialog} onOpenChange={setShowOutcomeDialog}>
+          <AlertDialogContent 
+            className={`border-none ${
+              gameState.result === 'win' 
+                ? 'bg-gradient-to-br from-green-700 to-green-900' 
+                : gameState.result === 'lose' 
+                  ? 'bg-gradient-to-br from-red-900 to-slate-900' 
+                  : 'bg-gradient-to-br from-blue-900 to-slate-900'
+            } shadow-xl animate-reveal w-full max-w-md mx-auto`}
+            style={{ zIndex: 9999 }}
+          >
+            {/* Confetti for wins */}
+            {gameState.result === 'win' && (
+              <div className="relative h-full w-full">
+                <div className="top-0 left-1/4 w-2 h-2 bg-yellow-500 rounded-full animate-floating absolute" style={{ animationDelay: '0.2s' }}></div>
+                <div className="top-5 left-1/3 w-3 h-3 bg-green-500 rounded-full animate-floating absolute" style={{ animationDelay: '0.5s' }}></div>
+                <div className="top-2 right-1/4 w-2 h-2 bg-red-500 rounded-full animate-floating absolute" style={{ animationDelay: '0.7s' }}></div>
+                <div className="top-10 right-1/3 w-3 h-3 bg-blue-500 rounded-full animate-floating absolute" style={{ animationDelay: '0.3s' }}></div>
+                <div className="bottom-10 left-10 w-3 h-3 bg-purple-500 rounded-full animate-floating absolute" style={{ animationDelay: '0.6s' }}></div>
+                <div className="bottom-5 right-10 w-2 h-2 bg-pink-500 rounded-full animate-floating absolute" style={{ animationDelay: '0.4s' }}></div>
+              </div>
+            )}
+            
+            <AlertDialogHeader className="space-y-4 text-center p-4">
+              <div className="text-4xl mb-4 animate-bouncing">
+                {gameState.result === 'win' 
+                  ? (gameState.payout && gameState.payout > 100 ? '💰🏆💰' : '🏆') 
+                  : gameState.result === 'lose' 
+                    ? '😞' 
+                    : '🤝'}
+              </div>
+              <AlertDialogTitle className={`text-2xl md:text-3xl font-bold mb-2 ${
+                gameState.result === 'win' 
+                  ? 'prize-glow text-yellow-300 ' + (gameState.payout && gameState.payout > 100 ? 'text-3xl animate-pulse-glow' : '')
+                  : gameState.result === 'lose' 
+                    ? 'text-red-400' 
+                    : 'text-blue-400'
+              }`}>
+                {gameState.result === 'win' 
+                  ? 'You Won!' 
+                  : gameState.result === 'lose' 
+                    ? 'You Lost' 
+                    : 'Push'}
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-lg text-slate-200 font-medium">
+                {gameState.result === 'win' 
+                  ? `You won ${formatCurrency(gameState.payout || 0)}`
+                  : gameState.result === 'lose' 
+                    ? `You lost ${formatCurrency(gameState.playerHands.reduce((sum, hand) => sum + (hand.bet || 0), 0))}`
+                    : "It's a tie! Your bet has been returned."}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            
+            {gameState.result === 'win' && gameState.payout && gameState.payout > 0 && (
+              <div className="flex flex-col items-center mt-2 p-2">
+                <div className="text-xl md:text-2xl font-bold text-yellow-300 prize-glow my-3 animate-pulse-glow">
+                  + {formatCurrency(gameState.payout)}
+                </div>
+              </div>
+            )}
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 }
