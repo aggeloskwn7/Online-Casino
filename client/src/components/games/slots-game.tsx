@@ -233,7 +233,7 @@ export default function SlotsGame() {
       </Button>
       
       <AnimatePresence>
-        {lastResult && lastResult.isWin && showWinMessage && (
+        {lastResult && lastResult.isWin && lastResult.payout > betAmount && showWinMessage && (
           <motion.div 
             className="mt-4 p-3 bg-[#121212] rounded-lg text-center"
             initial={{ opacity: 0, y: 20 }}

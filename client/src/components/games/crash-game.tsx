@@ -373,7 +373,7 @@ export default function CrashGame() {
       </div>
       
       <AnimatePresence>
-        {gameState === 'cashed-out' && showWinMessage && (
+        {gameState === 'cashed-out' && showWinMessage && (betAmount * cashoutPoint > betAmount) && (
           <motion.div 
             className="mt-4 p-3 bg-[#121212] rounded-lg text-center"
             initial={{ opacity: 0, y: 20 }}
