@@ -89,6 +89,7 @@ export interface IStorage {
   cancelSubscription(id: number): Promise<Subscription>;
   getSubscriptionPlans(): Promise<SubscriptionPlan[]>;
   updateUserSubscriptionTier(userId: number, tier: string | null): Promise<User>;
+  assignSubscriptionToUser(userId: number, tier: string, durationMonths: number, adminId: number, reason: string): Promise<Subscription>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -736,6 +737,62 @@ export class DatabaseStorage implements IStorage {
         multiplier: 1.25
       }
     ];
+  }
+  
+  async assignSubscriptionToUser(userId: number, tier: string, durationMonths: number, adminId: number, reason: string): Promise<Subscription> {
+    // Get the user to verify they exist
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
+    // Check if the user already has an active subscription
+    const existingSubscription = await this.getUserSubscription(userId);
+    if (existingSubscription && existingSubscription.status === 'active') {
+      // Cancel the existing subscription first
+      await this.cancelSubscription(existingSubscription.id);
+    }
+    
+    // Calculate the end date based on duration
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + durationMonths);
+    
+    // Get the selected plan to get features
+    const plans = await this.getSubscriptionPlans();
+    const selectedPlan = plans.find(plan => plan.tier === tier);
+    
+    if (!selectedPlan) {
+      throw new Error("Invalid subscription tier");
+    }
+    
+    // Create a new subscription record
+    const newSubscription = await this.createSubscription({
+      userId,
+      tier: tier as "bronze" | "silver" | "gold",
+      status: 'active',
+      stripeSubscriptionId: `admin_assigned_${Date.now()}`,
+      priceId: selectedPlan.priceId,
+      priceAmount: selectedPlan.price.toString(),
+      startDate,
+      endDate, // Set the end date based on duration
+      metadata: JSON.stringify({
+        planName: selectedPlan.name,
+        features: selectedPlan.features,
+        assignedBy: adminId,
+        reason
+      })
+    });
+    
+    // Create a record in the coin transactions table for audit
+    await this.createCoinTransaction({
+      userId,
+      amount: "0", // No coins added directly, but subscription benefits apply
+      reason: `${tier} subscription assigned by admin: ${reason}`,
+      adminId
+    });
+    
+    return newSubscription;
   }
   
   async updateUserSubscriptionTier(userId: number, tier: string | null): Promise<User> {

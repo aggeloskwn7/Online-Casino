@@ -6,7 +6,8 @@ import {
   adminCoinAdjustmentSchema,
   adminMassBonusSchema,
   adminAnnouncementSchema,
-  adminGameConfigSchema
+  adminGameConfigSchema,
+  adminAssignSubscriptionSchema
 } from "@shared/schema";
 import { z } from "zod";
 
