@@ -483,4 +483,74 @@ export function setupAdminRoutes(app: Express) {
       res.status(500).json({ message: "Failed to update support ticket status", error: errorMessage });
     }
   });
+  
+  // === SUBSCRIPTION MANAGEMENT ENDPOINTS ===
+  
+  // Assign subscription to user (owner only)
+  app.post("/api/admin/subscriptions/assign", authMiddleware, ownerMiddleware, async (req, res) => {
+    try {
+      // Validate request body
+      const subscriptionData = adminAssignSubscriptionSchema.parse(req.body);
+      
+      // Verify target user exists
+      const targetUser = await storage.getUser(subscriptionData.userId);
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Create subscription with owner's privileges
+      const subscription = await storage.assignSubscriptionToUser(
+        subscriptionData.userId,
+        subscriptionData.tier,
+        subscriptionData.durationMonths,
+        req.user!.id,
+        subscriptionData.reason
+      );
+      
+      res.status(201).json({ 
+        message: `Successfully assigned ${subscriptionData.tier} subscription to ${targetUser.username} for ${subscriptionData.durationMonths} month(s)`,
+        subscription 
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input data", errors: error.errors });
+      }
+      
+      console.error("Error assigning subscription:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Failed to assign subscription", error: errorMessage });
+    }
+  });
+  
+  // Get user's current subscription (admin only)
+  app.get("/api/admin/users/:userId/subscription", authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      // Verify target user exists
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Get user's subscription
+      const subscription = await storage.getUserSubscription(userId);
+      
+      res.json({ 
+        user: {
+          id: targetUser.id,
+          username: targetUser.username,
+          subscriptionTier: targetUser.subscriptionTier
+        },
+        subscription: subscription ? {
+          ...subscription,
+          active: subscription.status === 'active'
+        } : null
+      });
+    } catch (error) {
+      console.error("Error fetching user subscription:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Failed to fetch user subscription", error: errorMessage });
+    }
+  });
 }

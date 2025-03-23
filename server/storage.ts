@@ -792,6 +792,9 @@ export class DatabaseStorage implements IStorage {
       adminId
     });
     
+    // Update the user's subscription tier in the users table
+    await this.updateUserSubscriptionTier(userId, tier);
+    
     return newSubscription;
   }
   
