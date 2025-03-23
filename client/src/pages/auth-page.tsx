@@ -148,15 +148,15 @@ export default function AuthPage() {
                         control={loginForm.control}
                         name="rememberMe"
                         render={({ field }) => (
-                          <FormItem className="flex items-center space-x-2">
+                          <FormItem className="flex flex-row items-center space-x-2">
                             <FormControl>
                               <Checkbox 
                                 checked={field.value} 
                                 onCheckedChange={field.onChange}
-                                className="data-[state=checked]:bg-[#5465FF]"
+                                className="data-[state=checked]:bg-[#5465FF] translate-y-0"
                               />
                             </FormControl>
-                            <Label htmlFor="remember" className="text-sm text-gray-400">
+                            <Label htmlFor="remember" className="text-sm text-gray-400 cursor-pointer">
                               Remember me
                             </Label>
                           </FormItem>
@@ -242,18 +242,20 @@ export default function AuthPage() {
                       control={registerForm.control}
                       name="agreeTerms"
                       render={({ field }) => (
-                        <FormItem className="flex items-start space-x-2">
+                        <FormItem className="flex flex-row items-start space-x-2">
                           <FormControl>
                             <Checkbox 
                               checked={field.value} 
                               onCheckedChange={field.onChange}
-                              className="data-[state=checked]:bg-[#5465FF] mt-1"
+                              className="data-[state=checked]:bg-[#5465FF] translate-y-0 mt-0.5"
                             />
                           </FormControl>
-                          <Label className="text-sm text-gray-400">
-                            I agree to the Terms and Conditions and Privacy Policy
-                          </Label>
-                          <FormMessage />
+                          <div className="space-y-1">
+                            <Label className="text-sm text-gray-400 cursor-pointer">
+                              I agree to the Terms and Conditions and Privacy Policy
+                            </Label>
+                            <FormMessage />
+                          </div>
                         </FormItem>
                       )}
                     />
