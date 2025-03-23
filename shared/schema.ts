@@ -12,6 +12,8 @@ export const users = pgTable("users", {
   isOwner: boolean("is_owner").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastLogin: timestamp("last_login").defaultNow().notNull(),
+  lastRewardDate: timestamp("last_reward_date"),
+  currentLoginStreak: integer("current_login_streak").default(0).notNull(),
   isBanned: boolean("is_banned").default(false).notNull(),
 });
 
@@ -48,6 +50,14 @@ export const payments = pgTable("payments", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const loginRewards = pgTable("login_rewards", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  day: integer("day").notNull(), // Day number in the streak (1-30)
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(), // Reward amount in coins
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -67,6 +77,11 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+});
+
+export const insertLoginRewardSchema = createInsertSchema(loginRewards).omit({
+  id: true,
+  createdAt: true,
 });
 
 // Admin operation schemas
@@ -132,6 +147,8 @@ export type AdminAnnouncement = z.infer<typeof adminAnnouncementSchema>;
 export type AdminGameConfig = z.infer<typeof adminGameConfigSchema>;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type Payment = typeof payments.$inferSelect;
+export type InsertLoginReward = z.infer<typeof insertLoginRewardSchema>;
+export type LoginReward = typeof loginRewards.$inferSelect;
 export type CoinPackage = z.infer<typeof coinPackageSchema>;
 export type CreatePaymentIntent = z.infer<typeof createPaymentIntentSchema>;
 

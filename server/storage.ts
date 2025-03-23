@@ -3,6 +3,7 @@ import {
   transactions, 
   coinTransactions, 
   payments,
+  loginRewards,
   User, 
   InsertUser, 
   Transaction, 
@@ -14,7 +15,9 @@ import {
   AdminGameConfig,
   AdminMassBonus,
   Payment,
-  InsertPayment
+  InsertPayment,
+  LoginReward,
+  InsertLoginReward
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql, like } from "drizzle-orm";
@@ -30,10 +33,17 @@ export interface IStorage {
   incrementPlayCount(userId: number): Promise<User>;
   getUserPlayCount(userId: number): Promise<number>;
   updateUserLastLogin(userId: number): Promise<User>;
+  updateLoginStreak(userId: number, streak: number): Promise<User>;
+  checkDailyRewardStatus(userId: number): Promise<boolean>;
   
   // Transaction operations
   getUserTransactions(userId: number, limit?: number): Promise<Transaction[]>;
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
+  
+  // Login reward operations
+  createLoginReward(reward: InsertLoginReward): Promise<LoginReward>;
+  getUserLoginRewards(userId: number, limit?: number): Promise<LoginReward[]>;
+  getRewardAmountForDay(day: number): Promise<number>;
   
   // Admin operations
   getAllUsers(limit?: number, offset?: number): Promise<User[]>;
