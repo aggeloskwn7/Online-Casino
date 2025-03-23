@@ -1875,6 +1875,10 @@ export default function AdminPage() {
               <LifeBuoy className="h-4 w-4 mr-2" />
               Support
             </TabsTrigger>
+            <TabsTrigger value="subscriptions" className="flex items-center">
+              <Crown className="h-4 w-4 mr-2" />
+              Subscriptions
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="users">
@@ -1906,6 +1910,10 @@ export default function AdminPage() {
           
           <TabsContent value="support">
             <SupportTab />
+          </TabsContent>
+          
+          <TabsContent value="subscriptions">
+            <SubscriptionsTab />
           </TabsContent>
         </Tabs>
       </div>
