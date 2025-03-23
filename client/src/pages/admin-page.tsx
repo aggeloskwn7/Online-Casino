@@ -13,6 +13,17 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
@@ -1853,9 +1864,12 @@ function SubscriptionsTab() {
   const [searchResults, setSearchResults] = useState<any>(null);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [userSubscription, setUserSubscription] = useState<any>(null);
   const [subscriptionTier, setSubscriptionTier] = useState<string>('bronze');
   const [durationMonths, setDurationMonths] = useState<string>('1');
   const [reason, setReason] = useState<string>('');
+  const [removeReason, setRemoveReason] = useState<string>('');
+  const [showRemoveDialog, setShowRemoveDialog] = useState<boolean>(false);
   
   // Search users
   const searchUsers = async (e?: React.MouseEvent) => {
@@ -1879,10 +1893,20 @@ function SubscriptionsTab() {
   };
   
   // Select user from search results
-  const handleSelectUser = (user: any) => {
+  const handleSelectUser = async (user: any) => {
     setSelectedUser(user);
     setUsername(user.username);
     setSearchResults(null);
+    
+    // Fetch user's subscription status
+    try {
+      const res = await apiRequest('GET', `/api/admin/users/${user.id}/subscription`);
+      const data = await res.json();
+      setUserSubscription(data.subscription);
+    } catch (error) {
+      console.error("Failed to fetch subscription:", error);
+      setUserSubscription(null);
+    }
   };
   
   // Subscribe mutation
@@ -1912,6 +1936,7 @@ function SubscriptionsTab() {
       setSubscriptionTier('bronze');
       setDurationMonths('1');
       setReason('');
+      setUserSubscription(null);
       
       // Refresh data
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
@@ -1925,10 +1950,58 @@ function SubscriptionsTab() {
     }
   });
   
+  // Remove subscription mutation
+  const removeSubscription = useMutation({
+    mutationFn: async () => {
+      if (!selectedUser) throw new Error('No user selected');
+      
+      const res = await apiRequest(
+        'DELETE', 
+        `/api/admin/users/${selectedUser.id}/subscription`, 
+        { reason: removeReason }
+      );
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: `Subscription removed from ${selectedUser?.username} successfully`,
+      });
+      
+      // Reset form and dialog
+      setShowRemoveDialog(false);
+      setRemoveReason('');
+      setUserSubscription(null);
+      
+      // Update user's subscription status
+      if (selectedUser) {
+        setSelectedUser({
+          ...selectedUser,
+          subscriptionTier: null
+        });
+      }
+      
+      // Refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: `Failed to remove subscription: ${error.message}`,
+        variant: 'destructive',
+      });
+    }
+  });
+  
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     assignSubscription.mutate();
+  };
+  
+  // Handle remove subscription
+  const handleRemoveSubscription = () => {
+    removeSubscription.mutate();
   };
   
   // Only owner can assign subscriptions
