@@ -244,7 +244,7 @@ export function setupAdminRoutes(app: Express) {
         success: 0,
         failed: 0,
         totalUsers: 0,
-        targetedUsers: [] // Keep track of who received the bonus
+        targetedUsers: [] as number[] // Keep track of who received the bonus
       };
       
       // Filter users based on targetType and filters
