@@ -90,7 +90,7 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
           <p className="text-gray-400 text-xs uppercase font-semibold mb-2 tracking-wider">Main Menu</p>
           <nav>
             <NavLink href="/" icon="ri-home-4-line" label="Home" />
-            <NavLink href="#" icon="ri-exchange-dollar-line" label="Transactions" />
+            <NavLink href="/history" icon="ri-history-line" label="History" />
             {user?.isAdmin && (
               <NavLink 
                 href="/admin" 

@@ -12,6 +12,7 @@ import CrashPage from "@/pages/crash-page";
 import RoulettePage from "@/pages/roulette-page";
 import BlackjackPage from "@/pages/blackjack-page";
 import AdminPage from "@/pages/admin-page";
+import HistoryPage from "@/pages/history-page";
 import { ProtectedRoute } from "./lib/protected-route";
 
 function Router() {
@@ -23,6 +24,7 @@ function Router() {
       <ProtectedRoute path="/crash" component={CrashPage} />
       <ProtectedRoute path="/roulette" component={RoulettePage} />
       <ProtectedRoute path="/blackjack" component={BlackjackPage} />
+      <ProtectedRoute path="/history" component={HistoryPage} />
       <ProtectedRoute path="/admin" component={AdminPage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
