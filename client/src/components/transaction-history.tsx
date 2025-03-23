@@ -25,8 +25,15 @@ export default function TransactionHistory({ gameType, maxItems = 20 }: Transact
         : transactions)
     : [];
     
+  // Sort transactions by timestamp (newest first)
+  const sortedTransactions = [...filteredTransactions].sort((a, b) => {
+    const dateA = new Date(a.timestamp).getTime();
+    const dateB = new Date(b.timestamp).getTime();
+    return dateB - dateA; // Newest first
+  });
+    
   // Limit the number of transactions to display
-  const limitedTransactions = filteredTransactions.slice(0, maxItems);
+  const limitedTransactions = sortedTransactions.slice(0, maxItems);
   
   if (isLoading) {
     return (

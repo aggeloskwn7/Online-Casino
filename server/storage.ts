@@ -461,27 +461,43 @@ export class DatabaseStorage implements IStorage {
   async getAnnouncements(includeExpired = false, userId?: number): Promise<any[]> {
     const now = new Date();
     
+    console.log("Current announcements:", this.announcements);
+    
+    // Initialize announcements array if it's undefined
+    if (!this.announcements) {
+      this.announcements = [];
+      console.log("Initialized announcements array");
+    }
+    
     // Step 1: Get unexpired announcements
     let filteredAnnouncements = includeExpired 
       ? [...this.announcements] 
       : this.announcements.filter(announcement => {
           return announcement.isPinned || 
                 !announcement.expiresAt || 
-                announcement.expiresAt > now;
+                new Date(announcement.expiresAt) > now;
         });
         
+    console.log("Filtered unexpired announcements:", filteredAnnouncements);
+    
     // Step 2: If userId provided, filter announcements targeted to this user
     if (userId !== undefined) {
       filteredAnnouncements = filteredAnnouncements.filter(announcement => {
         // Include if:
         // 1. Announcement has no targetUserIds (global)
         // 2. Announcement has targetUserIds and userId is in the list
-        return !announcement.targetUserIds || 
+        const shouldInclude = !announcement.targetUserIds || 
                (announcement.targetUserIds && announcement.targetUserIds.includes(userId));
+        
+        console.log(`Checking announcement ${announcement.id} for user ${userId}: ${shouldInclude}`);
+        
+        return shouldInclude;
       });
+      
+      console.log("Filtered for user:", filteredAnnouncements);
     }
     
-    return filteredAnnouncements;
+    return filteredAnnouncements || [];
   }
   
   async deleteAnnouncement(id: number): Promise<void> {
