@@ -552,7 +552,12 @@ export async function playRoulette(req: Request, res: Response) {
     
     // Validate request body
     const parsedBody = rouletteBetSchema.parse(req.body);
-    const { amount, betType, numbers } = parsedBody;
+    const { bets } = parsedBody;
+    
+    // If no bets provided, return error
+    if (!bets || bets.length === 0) {
+      return res.status(400).json({ message: "No bets placed" });
+    }
     
     // Get user with balance
     const user = await storage.getUser(userId);
@@ -560,8 +565,11 @@ export async function playRoulette(req: Request, res: Response) {
       return res.status(404).json({ message: "User not found" });
     }
     
+    // Calculate total bet amount
+    const totalAmount = bets.reduce((sum, bet) => sum + bet.amount, 0);
+    
     // Check if user has enough balance
-    if (Number(user.balance) < amount) {
+    if (Number(user.balance) < totalAmount) {
       return res.status(400).json({ message: "Insufficient balance" });
     }
     
@@ -571,110 +579,147 @@ export async function playRoulette(req: Request, res: Response) {
     const spin = ROULETTE_NUMBERS[randomIndex];
     const color = ROULETTE_COLORS[spin];
     
-    // Determine if it's a win based on bet type and numbers
-    let isWin = false;
+    // Process each bet and determine wins/losses
+    let totalWinnings = 0;
+    let anyWin = false;
+    let biggestMultiplier = 0;
+    let totalPayout = 0;
+    let betResults: Array<{
+      betType: RouletteBetType,
+      amount: number,
+      isWin: boolean,
+      payout: number
+    }> = [];
     
-    switch (betType) {
-      case 'straight':
-        // Single number bet
-        isWin = numbers.includes(spin);
-        break;
-      case 'split':
-        // Two adjacent numbers
-        isWin = numbers.includes(spin);
-        break;
-      case 'street':
-        // Three numbers in a row
-        isWin = numbers.includes(spin);
-        break;
-      case 'corner':
-        // Four numbers forming a square
-        isWin = numbers.includes(spin);
-        break;
-      case 'line':
-        // Six numbers (two rows)
-        isWin = numbers.includes(spin);
-        break;
-      case 'dozen':
-        // 12 numbers (1-12, 13-24, 25-36)
-        isWin = numbers.includes(spin);
-        break;
-      case 'column':
-        // 12 numbers (1st, 2nd, or 3rd column)
-        isWin = numbers.includes(spin);
-        break;
-      case 'even':
-        // Even numbers
-        isWin = isEven(spin);
-        break;
-      case 'odd':
-        // Odd numbers
-        isWin = isOdd(spin);
-        break;
-      case 'red':
-        // Red numbers
-        isWin = isRed(spin);
-        break;
-      case 'black':
-        // Black numbers
-        isWin = isBlack(spin);
-        break;
-      case 'low':
-        // 1-18
-        isWin = isLow(spin);
-        break;
-      case 'high':
-        // 19-36
-        isWin = isHigh(spin);
-        break;
-      default:
-        break;
+    // Process each bet
+    for (const bet of bets) {
+      const { amount, type, numbers } = bet;
+      let isWin = false;
+      
+      // Determine if this specific bet is a win
+      switch (type) {
+        case 'straight':
+          // Single number bet
+          isWin = numbers.includes(spin);
+          break;
+        case 'split':
+          // Two adjacent numbers
+          isWin = numbers.includes(spin);
+          break;
+        case 'street':
+          // Three numbers in a row
+          isWin = numbers.includes(spin);
+          break;
+        case 'corner':
+          // Four numbers forming a square
+          isWin = numbers.includes(spin);
+          break;
+        case 'line':
+          // Six numbers (two rows)
+          isWin = numbers.includes(spin);
+          break;
+        case 'dozen':
+          // 12 numbers (1-12, 13-24, 25-36)
+          isWin = numbers.includes(spin);
+          break;
+        case 'column':
+          // 12 numbers (1st, 2nd, or 3rd column)
+          isWin = numbers.includes(spin);
+          break;
+        case 'even':
+          // Even numbers
+          isWin = isEven(spin);
+          break;
+        case 'odd':
+          // Odd numbers
+          isWin = isOdd(spin);
+          break;
+        case 'red':
+          // Red numbers
+          isWin = isRed(spin);
+          break;
+        case 'black':
+          // Black numbers
+          isWin = isBlack(spin);
+          break;
+        case 'low':
+          // 1-18
+          isWin = isLow(spin);
+          break;
+        case 'high':
+          // 19-36
+          isWin = isHigh(spin);
+          break;
+        default:
+          break;
+      }
+      
+      // Add additional random factor to balance winning chances
+      // 12% chance of forcing a loss on what would be a win
+      // This creates a more balanced house edge without being too punishing
+      if (isWin && Math.random() < 0.12) {
+        isWin = false;
+      }
+      
+      // Very small chance (1%) of a "lucky win" on what would be a loss
+      // This adds excitement and occasional surprising wins
+      let luckyMultiplier = 0;
+      if (!isWin && Math.random() < 0.01) {
+        isWin = true;
+        // Set a random multiplier between 2x and 5x for these surprise wins
+        luckyMultiplier = 2 + Math.floor(Math.random() * 3);
+      }
+      
+      // Calculate payout for this bet
+      const multiplier = luckyMultiplier > 0 ? luckyMultiplier : (isWin ? ROULETTE_PAYOUTS[type] : 0);
+      
+      // Add small random variation to payouts to make it feel more realistic (within 0.5%)
+      const variation = 1 + (Math.random() * 0.01 - 0.005);
+      const payout = isWin ? Number((amount * multiplier * variation).toFixed(2)) : 0;
+      
+      // Update running totals
+      totalWinnings += payout;
+      totalPayout += payout;
+      
+      if (isWin) {
+        anyWin = true;
+        if (multiplier > biggestMultiplier) {
+          biggestMultiplier = multiplier;
+        }
+      }
+      
+      // Store the result of this bet
+      betResults.push({
+        betType: type,
+        amount,
+        isWin,
+        payout
+      });
     }
-    
-    // Add additional random factor to balance winning chances
-    // 12% chance of forcing a loss on what would be a win
-    // This creates a more balanced house edge without being too punishing
-    if (isWin && Math.random() < 0.12) {
-      isWin = false;
-    }
-    
-    // Very small chance (1%) of a "lucky win" on what would be a loss
-    // This adds excitement and occasional surprising wins
-    let luckyMultiplier = 0;
-    if (!isWin && Math.random() < 0.01) {
-      isWin = true;
-      // Set a random multiplier between 2x and 5x for these surprise wins
-      luckyMultiplier = 2 + Math.floor(Math.random() * 3);
-    }
-    
-    // Calculate payout
-    const multiplier = luckyMultiplier > 0 ? luckyMultiplier : (isWin ? ROULETTE_PAYOUTS[betType] : 0);
-    
-    // Add small random variation to payouts to make it feel more realistic (within 0.5%)
-    const variation = 1 + (Math.random() * 0.01 - 0.005);
-    const payout = isWin ? Number((amount * multiplier * variation).toFixed(2)) : 0;
     
     // Update user balance
-    const newBalance = Number(user.balance) - amount + payout;
+    const newBalance = Number(user.balance) - totalAmount + totalWinnings;
     await storage.updateUserBalance(userId, newBalance);
     
     // Create transaction record
     await storage.createTransaction({
       userId,
       gameType: "roulette",
-      amount: amount.toString(),
-      multiplier: multiplier.toString(),
-      payout: payout.toString(),
-      isWin
+      amount: totalAmount.toString(),
+      multiplier: (biggestMultiplier || 0).toString(), 
+      payout: totalPayout.toString(),
+      isWin: anyWin,
+      metadata: JSON.stringify({ betResults })
     });
     
     // Return result
     const gameResult = rouletteResultSchema.parse({
       spin,
       color,
-      multiplier,
-      payout,
-      isWin
+      multiplier: biggestMultiplier || 0,
+      payout: totalPayout,
+      isWin: anyWin,
+      metadata: JSON.stringify({ betResults })
     });
     
     res.status(200).json(gameResult);
