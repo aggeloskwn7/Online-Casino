@@ -34,8 +34,8 @@ export default function DiceGame() {
       return await res.json();
     },
     onSuccess: (data: DiceRoll) => {
-      // Set the result
-      setLastResult(data);
+      // We purposely don't set lastResult here to avoid spoiling the result
+      // with the glow effect. It will be set after animation completes.
       
       // Animate dice roll
       animateDiceRoll(data.result);
@@ -61,6 +61,9 @@ export default function DiceGame() {
     // Hide win message during rolling
     setShowWinMessage(false);
     
+    // Reset any previous result to prevent glow during animation
+    setLastResult(null);
+    
     const roll = () => {
       rolls++;
       
@@ -74,13 +77,17 @@ export default function DiceGame() {
         setIsRolling(false);
         
         // Show win message after rolling completes with a short delay
+        // Set the result with a delay to avoid spoiling via the glow effect
         setTimeout(() => {
+          // Set the result to trigger the glow effect only after animation completes
+          setLastResult(diceMutation.data as DiceRoll);
+          
           // Update user data (balance) only now after animation is complete
           // This prevents spoiling the win/loss by seeing balance change early
           queryClient.invalidateQueries({ queryKey: ['/api/user'] });
           
           // Play sound based on win/lose
-          if (lastResult?.isWin) {
+          if (diceMutation.data?.isWin) {
             play('win');
           } else {
             play('lose');
