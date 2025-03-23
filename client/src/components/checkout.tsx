@@ -108,7 +108,7 @@ function CheckoutForm({ clientSecret, packageDetails, onSuccess, onCancel }: Che
           
           <div className="flex justify-between items-center pt-2 mt-1">
             <span className="font-semibold">Total</span>
-            <span className="font-bold text-xl">${packageDetails.price.toFixed(2)}</span>
+            <div className="font-bold text-xl">${packageDetails.price.toFixed(2)}</div>
           </div>
         </div>
       </div>
@@ -151,9 +151,9 @@ function CheckoutForm({ clientSecret, packageDetails, onSuccess, onCancel }: Che
               Processing Payment...
             </>
           ) : (
-            <>
-              Complete Purchase - ${packageDetails.price.toFixed(2)}
-            </>
+            <div className="flex items-center">
+              Complete Purchase - <div className="ml-1">${packageDetails.price.toFixed(2)}</div>
+            </div>
           )}
         </Button>
       </div>

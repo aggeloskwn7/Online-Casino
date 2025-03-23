@@ -90,10 +90,10 @@ export function PurchasePage() {
         
         <div className="flex items-center">
           <span className="text-sm font-medium mr-2">Current Balance:</span>
-          <span className="flex items-center bg-muted/30 px-3 py-1 rounded-lg">
+          <div className="flex items-center bg-muted/30 px-3 py-1 rounded-lg">
             <Coins className="h-4 w-4 text-yellow-500 mr-1" />
-            <span className="font-semibold">{user?.balance ? parseFloat(user.balance.toString()).toLocaleString() : 0}</span>
-          </span>
+            <div className="font-semibold">{user?.balance ? parseFloat(user.balance.toString()).toLocaleString() : 0}</div>
+          </div>
         </div>
       </div>
 
