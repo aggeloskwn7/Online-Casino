@@ -60,15 +60,15 @@ interface PlinkoResult {
 type RiskLevel = 'low' | 'medium' | 'high';
 
 // Define the pin grid dimensions
-const ROWS = 10; // Reduced from 16
-const COLUMNS = 11; // Reduced from 17
-const PIN_SIZE = 10; // Reduced from 14
-const PIN_SPACING_X = 40; // Reduced from 45
-const PIN_SPACING_Y = 40; // Reduced from 45
+const ROWS = 10; // Number of rows of pins
+const BUCKET_COUNT = 11; // Number of buckets (should match multipliers array length)
+const PIN_SIZE = 10;
+const PIN_SPACING_X = 40;
+const PIN_SPACING_Y = 40;
 const PIN_RADIUS = PIN_SIZE / 2;
-const BALL_SIZE = 14; // Reduced from 16
-const BOARD_WIDTH = PIN_SPACING_X * (COLUMNS - 1);
-const BOARD_HEIGHT = PIN_SPACING_Y * ROWS + 100; // Reduced extra space
+const BALL_SIZE = 14;
+const BOARD_WIDTH = PIN_SPACING_X * (BUCKET_COUNT);
+const BOARD_HEIGHT = PIN_SPACING_Y * ROWS + 60; // Extra space for buckets
 
 // Define multiplier buckets for different risk levels - buckets match the number of pins in the last row
 const MULTIPLIERS: Record<RiskLevel, number[]> = {
@@ -81,11 +81,16 @@ const MULTIPLIERS: Record<RiskLevel, number[]> = {
 const calculatePins = (): PinPosition[] => {
   const pins: PinPosition[] = [];
   
-  // Make sure pins line up with bucket positions
+  // Calculate the center point of the board
+  const centerX = BOARD_WIDTH / 2;
+  
+  // Start from the top with a single pin
   for (let row = 0; row < ROWS; row++) {
     const pinsInRow = row + 1;
-    // Calculate start X the same way we calculate bucket positions
-    const startX = (BOARD_WIDTH - (pinsInRow - 1) * PIN_SPACING_X) / 2;
+    // Total width of pins in this row
+    const rowWidth = (pinsInRow - 1) * PIN_SPACING_X;
+    // Calculate starting X to center pins on the board
+    const startX = centerX - rowWidth / 2;
     
     for (let i = 0; i < pinsInRow; i++) {
       pins.push({
@@ -103,15 +108,20 @@ const calculatePins = (): PinPosition[] => {
 // Calculate bucket positions - precisely align with pins in the last row
 const calculateBuckets = (riskLevel: RiskLevel): Bucket[] => {
   const multipliers = MULTIPLIERS[riskLevel];
-  // Calculate width based on pin positions in the last row
-  const pinsInLastRow = ROWS; // Number of pins in the last row = ROWS
-  const lastRowStartX = (BOARD_WIDTH - (pinsInLastRow - 1) * PIN_SPACING_X) / 2;
+  
+  // Use the same center-based calculation as with pins
+  const centerX = BOARD_WIDTH / 2;
+  // Total width of the entire last row of pins
+  const rowWidth = (ROWS - 1) * PIN_SPACING_X;
+  // Starting position for buckets, aligned with where pins would be
+  const startX = centerX - rowWidth / 2;
+  
   const bucketWidth = PIN_SPACING_X; // Equal to spacing between pins
   
   return multipliers.map((multiplier: number, index: number) => {
-    // Calculate position to align with where balls would fall between pins
+    // Calculate position to align with where balls would fall
     return {
-      x: lastRowStartX + index * bucketWidth,
+      x: startX + index * bucketWidth,
       width: bucketWidth,
       multiplier
     };
@@ -229,9 +239,11 @@ export default function PlinkoGame({
       
       // Calculate new position based on pin locations
       const pathStep = fullPath[currentStep];
-      // Use the same calculation logic as the pin positions
+      // Use the exact same calculation logic as our pins
       const pinsInRow = pathStep.row + 1;
-      const startX = (BOARD_WIDTH - (pinsInRow - 1) * PIN_SPACING_X) / 2;
+      const centerX = BOARD_WIDTH / 2;
+      const rowWidth = (pinsInRow - 1) * PIN_SPACING_X;
+      const startX = centerX - rowWidth / 2;
       const x = startX + pathStep.position * PIN_SPACING_X;
       const y = pathStep.row * PIN_SPACING_Y + 60;
       
