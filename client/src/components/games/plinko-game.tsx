@@ -169,7 +169,7 @@ export default function PlinkoGame({
     
     let currentStep = 0;
     const totalSteps = fullPath.length;
-    const stepDuration = 100; // ms per step
+    const stepDuration = 350; // Increased duration (was 100ms) to slow down the animation
     
     const animate = (): void => {
       if (currentStep >= totalSteps) {
@@ -189,11 +189,37 @@ export default function PlinkoGame({
         const startX = centerX - (totalBucketsWidth / 2);
         const finalX = startX + safeBucketIndex * bucketWidth + bucketWidth / 2;
         
-        // Center the ball in the bucket - position it where it looks visually correct
+        // Add a small bounce effect in the bucket for a more satisfying landing
+        // First position - slightly higher in the bucket
         setBallPosition({ 
           x: finalX,
-          y: BOARD_HEIGHT - 20 // Adjust vertical position to match the sloped bucket top
+          y: BOARD_HEIGHT - 30 // Higher position for initial bounce
         });
+        
+        // Start a small bounce sequence
+        setTimeout(() => {
+          // Bounce down
+          setBallPosition({ 
+            x: finalX,
+            y: BOARD_HEIGHT - 15 // Lower position (bounce down)
+          });
+          
+          setTimeout(() => {
+            // Bounce up slightly
+            setBallPosition({ 
+              x: finalX,
+              y: BOARD_HEIGHT - 22
+            });
+            
+            setTimeout(() => {
+              // Final resting position
+              setBallPosition({ 
+                x: finalX,
+                y: BOARD_HEIGHT - 20 // Final position
+              });
+            }, 120);
+          }, 120);
+        }, 120);
         
         // Play sound based on win/loss
         if (result && result.isWin) {
@@ -239,8 +265,12 @@ export default function PlinkoGame({
         newY = BOARD_HEIGHT - 20;
       }
       
-      // Update ball position
-      setBallPosition({ x: newX, y: newY });
+      // Add subtle jitter to make the ball movement look more natural
+      const jitterAmount = 3;
+      const jitterX = Math.random() * jitterAmount - jitterAmount/2;
+      
+      // Update ball position with a small random offset for realistic movement
+      setBallPosition({ x: newX + jitterX, y: newY });
       
       // Play pin hit sound
       if (currentStep > 0 && currentStep < totalSteps - 1) {
@@ -391,7 +421,12 @@ export default function PlinkoGame({
                       x: ballPosition.x - BALL_SIZE / 2,
                       y: ballPosition.y - BALL_SIZE / 2
                     }}
-                    transition={{ type: 'spring', damping: 10 }}
+                    transition={{ 
+                      type: 'spring', 
+                      damping: 14, 
+                      stiffness: 90,
+                      mass: 1.2
+                    }}
                   />
                 )}
               </AnimatePresence>

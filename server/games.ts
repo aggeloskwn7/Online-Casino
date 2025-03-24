@@ -1500,14 +1500,42 @@ export async function playPlinko(req: Request, res: Response) {
     // But weight the results to aim for a specific multiplier based on win chance
     let targetIndex = Math.floor(Math.random() * multipliers.length);
     
-    // For better win chances, aim for higher multipliers
-    // For worse win chances, aim for lower multipliers
-    if (Math.random() * 100 < plinkoWinChance) {
-      // Higher payout on better win chance
-      targetIndex = Math.floor(Math.random() * (multipliers.length / 2)) + (multipliers.length / 2);
+    // Make most results land on low multipliers (realistic casino experience)
+    // Only ~20-30% of plays should result in a multiplier > 1 (wins)
+    const randomValue = Math.random() * 100;
+    
+    if (randomValue < 70) {
+      // 70% chance to land on low multipliers (typically losses)
+      // This targets the middle and adjacent positions where most low multipliers are
+      const middleIndex = Math.floor(multipliers.length / 2);
+      const variance = Math.floor(multipliers.length / 5);
+      targetIndex = middleIndex + Math.floor(Math.random() * variance * 2) - variance;
+    } else if (randomValue < 90) {
+      // 20% chance for small wins (typically the 1x to 2x multipliers)
+      const smallWinPositions = multipliers
+        .map((m, i) => ({ mult: m, index: i }))
+        .filter(item => item.mult > 0.9 && item.mult <= 2.5)
+        .map(item => item.index);
+      
+      if (smallWinPositions.length > 0) {
+        const randomSmallWinIndex = Math.floor(Math.random() * smallWinPositions.length);
+        targetIndex = smallWinPositions[randomSmallWinIndex];
+      }
     } else {
-      // Lower payout on worse win chance
-      targetIndex = Math.floor(Math.random() * (multipliers.length / 2));
+      // 10% chance for bigger wins
+      // Adjust this based on playtime/VIP status etc
+      if (Math.random() * 100 < plinkoWinChance) {
+        // Higher payout for users with better win chance
+        const bigWinPositions = multipliers
+          .map((m, i) => ({ mult: m, index: i }))
+          .filter(item => item.mult > 2.5)
+          .map(item => item.index);
+        
+        if (bigWinPositions.length > 0) {
+          const randomBigWinIndex = Math.floor(Math.random() * bigWinPositions.length);
+          targetIndex = bigWinPositions[randomBigWinIndex];
+        }
+      }
     }
     
     // For big wins, aim even higher
