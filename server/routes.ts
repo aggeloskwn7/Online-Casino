@@ -12,7 +12,8 @@ import {
   getTransactions, 
   playRoulette,
   startBlackjack,
-  blackjackAction
+  blackjackAction,
+  playPlinko
 } from "./games";
 import Stripe from 'stripe';
 import { 
@@ -104,6 +105,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/games/roulette", authMiddleware, playRoulette);
   app.post("/api/games/blackjack/start", authMiddleware, startBlackjack);
   app.post("/api/games/blackjack/action", authMiddleware, blackjackAction);
+  app.post("/api/games/plinko", authMiddleware, playPlinko);
   
   // Transaction history - also protected
   app.get("/api/transactions", authMiddleware, getTransactions);

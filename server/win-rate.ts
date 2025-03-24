@@ -23,6 +23,7 @@ const WIN_RATE_CONFIG = {
     dice: 49,  // Base 49% for dice roll to win
     crash: 70, // Base 70% chance that crash game doesn't crash immediately
     roulette: 48, // Base 48% for roulette bets
+    plinko: 52, // Base 52% chance for plinko to land on winning multipliers
   },
   
   // Random big win chance (1 in X games)
@@ -40,7 +41,7 @@ const WIN_RATE_CONFIG = {
  * @returns Adjusted win chance percentage (0-100)
  */
 export function getAdjustedWinChance(
-  gameType: 'slots' | 'dice' | 'crash' | 'roulette',
+  gameType: 'slots' | 'dice' | 'crash' | 'roulette' | 'plinko',
   playCount: number,
   isForced: boolean = false
 ): number {
