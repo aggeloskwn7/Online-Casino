@@ -512,7 +512,7 @@ export default function PlinkoGame({
                       clipPath: 'polygon(0% 20%, 50% 0%, 100% 20%, 100% 100%, 0% 100%)'
                     }}
                   >
-                    {formatMultiplier(bucket.multiplier)}x
+                    {formatMultiplier(bucket.multiplier)}×
                   </div>
                 ))}
               </div>

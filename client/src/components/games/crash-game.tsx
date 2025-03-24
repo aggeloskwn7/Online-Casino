@@ -599,7 +599,7 @@ export default function CrashGame() {
               <ChevronUp className="h-6 w-6" />
               <div className="flex flex-col items-start">
                 <span className="text-lg">CASH OUT</span>
-                <span className="text-sm font-mono">{formatMultiplier(currentMultiplier)}</span>
+                <span className="text-sm font-mono">{formatMultiplier(currentMultiplier)}×</span>
               </div>
             </div>
           </motion.button>
@@ -739,7 +739,7 @@ export default function CrashGame() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3, duration: 0.3 }}
               >
-                @ {formatMultiplier(crashPoint)}
+                @ {formatMultiplier(crashPoint)}×
               </motion.div>
               
               <motion.div 

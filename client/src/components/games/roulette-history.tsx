@@ -144,7 +144,7 @@ export default function RouletteHistory() {
                   {isWin ? '+' : '-'}{formatCurrency(Math.abs(Number(game.payout)))}
                 </div>
                 <div className="text-xs text-gray-400">
-                  {formatMultiplier(Number(game.multiplier))}x multiplier
+                  {formatMultiplier(Number(game.multiplier))}× multiplier
                 </div>
               </div>
             </div>

@@ -616,14 +616,14 @@ export default function RouletteGame({ onSpin }: RouletteGameProps) {
               <div className="flex flex-col items-center">
                 <span>You Won!</span>
                 <span className="text-sm font-normal mt-1">
-                  +{formatCurrency(lastResult.payout)} ({formatMultiplier(lastResult.multiplier)}x)
+                  +{formatCurrency(lastResult.payout)} ({formatMultiplier(lastResult.multiplier)}×)
                 </span>
               </div>
             ) : lastResult.isWin ? (
               <div className="flex flex-col items-center">
                 <span>Payout</span>
                 <span className="text-sm font-normal mt-1">
-                  {formatCurrency(lastResult.payout)} ({formatMultiplier(lastResult.multiplier)}x)
+                  {formatCurrency(lastResult.payout)} ({formatMultiplier(lastResult.multiplier)}×)
                 </span>
               </div>
             ) : (
