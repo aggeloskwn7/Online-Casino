@@ -1466,12 +1466,17 @@ export async function playPlinko(req: Request, res: Response) {
     // Check if this should be a big win (special treatment)
     const isBigWin = shouldBeBigWin(playCount);
     
-    // Define plinko multipliers for different risk levels - match client side values
+    // Define plinko multipliers for different risk levels - more distinctive and balanced
     // These are for 10-row plinko with 11 buckets
     const MULTIPLIERS_BY_RISK = {
-      low: [2.0, 1.5, 1.0, 0.8, 0.5, 0.8, 1.0, 1.5, 2.0, 3.0, 4.0],
-      medium: [5.0, 3.0, 2.0, 1.0, 0.5, 0.2, 0.5, 1.0, 2.0, 3.0, 5.0],
-      high: [10.0, 5.0, 3.0, 1.5, 0.5, 0.1, 0.5, 1.5, 3.0, 5.0, 10.0]
+      // Low risk: More balanced, mostly small multipliers, no extreme values
+      low: [2.0, 1.5, 1.2, 0.9, 0.7, 0.6, 0.7, 0.9, 1.2, 1.5, 2.0],
+      
+      // Medium risk: More variation, higher highs and lower lows
+      medium: [4.0, 2.5, 1.5, 1.0, 0.5, 0.2, 0.5, 1.0, 1.5, 2.5, 4.0],
+      
+      // High risk: Extreme variation, very high highs and very low lows
+      high: [15.0, 7.0, 3.0, 1.0, 0.5, 0.1, 0.5, 1.0, 3.0, 7.0, 15.0]
     };
     
     // Get multipliers for the selected risk level
@@ -1496,22 +1501,64 @@ export async function playPlinko(req: Request, res: Response) {
     const path = [];
     let currentPosition = 0;
     
+    // Define risk-based win probabilities
+    // Low risk: Higher chance of small wins, very rare big wins
+    // Medium risk: Balanced distribution, moderate chance of medium wins
+    // High risk: Higher chance of losses but also higher chance of big wins
+    const RISK_PROBABILITIES = {
+      low: {
+        lossChance: 40,      // 40% chance to land on low multipliers
+        smallWinChance: 50,  // 50% chance for small wins (1x-2x)
+        mediumWinChance: 8,  // 8% chance for medium wins (2x-5x)
+        bigWinChance: 2      // 2% chance for big wins (5x+)
+      },
+      medium: {
+        lossChance: 65,      // 65% chance to land on low multipliers
+        smallWinChance: 20,  // 20% chance for small wins (1x-2x)
+        mediumWinChance: 10, // 10% chance for medium wins (2x-5x)
+        bigWinChance: 5      // 5% chance for big wins (5x+)
+      },
+      high: {
+        lossChance: 80,      // 80% chance to land on low multipliers
+        smallWinChance: 5,   // 5% chance for small wins (1x-2x)
+        mediumWinChance: 5,  // 5% chance for medium wins (2x-5x)
+        bigWinChance: 10     // 10% chance for big wins (5x+)
+      }
+    };
+    
+    // Get the probability settings for the selected risk level
+    const riskProbs = RISK_PROBABILITIES[risk];
+    
     // For each row, decide if the ball goes left or right
-    // But weight the results to aim for a specific multiplier based on win chance
+    // But weight the results to aim for a specific multiplier based on risk level and win chance
     let targetIndex = Math.floor(Math.random() * multipliers.length);
     
-    // Make most results land on low multipliers (realistic casino experience)
-    // Only ~20-30% of plays should result in a multiplier > 1 (wins)
+    // Apply the risk-based probabilities
     const randomValue = Math.random() * 100;
     
-    if (randomValue < 70) {
-      // 70% chance to land on low multipliers (typically losses)
+    // Apply VIP boost to win chances (small adjustment)
+    const vipBoostFactor = await getVipWinMultiplier(userId);
+    const vipBoost = (vipBoostFactor - 1) * 3; // Convert multiplier boost to percentage points
+    
+    // Create adjusted probabilities based on VIP status
+    const adjustedProbs = {
+      lossChance: Math.max(riskProbs.lossChance - vipBoost, 0),
+      smallWinChance: riskProbs.smallWinChance + (vipBoost / 3),
+      mediumWinChance: riskProbs.mediumWinChance + (vipBoost / 3),
+      bigWinChance: riskProbs.bigWinChance + (vipBoost / 3)
+    };
+    
+    console.log(`Plinko game - Risk: ${risk}, Play count: ${playCount}, Risk probabilities:`, adjustedProbs);
+    
+    if (randomValue < adjustedProbs.lossChance) {
+      // Chance to land on low multipliers (typically losses)
       // This targets the middle and adjacent positions where most low multipliers are
       const middleIndex = Math.floor(multipliers.length / 2);
       const variance = Math.floor(multipliers.length / 5);
       targetIndex = middleIndex + Math.floor(Math.random() * variance * 2) - variance;
-    } else if (randomValue < 90) {
-      // 20% chance for small wins (typically the 1x to 2x multipliers)
+    } 
+    else if (randomValue < (adjustedProbs.lossChance + adjustedProbs.smallWinChance)) {
+      // Chance for small wins (typically the 1x to 2x multipliers)
       const smallWinPositions = multipliers
         .map((m, i) => ({ mult: m, index: i }))
         .filter(item => item.mult > 0.9 && item.mult <= 2.5)
@@ -1521,14 +1568,29 @@ export async function playPlinko(req: Request, res: Response) {
         const randomSmallWinIndex = Math.floor(Math.random() * smallWinPositions.length);
         targetIndex = smallWinPositions[randomSmallWinIndex];
       }
-    } else {
-      // 10% chance for bigger wins
-      // Adjust this based on playtime/VIP status etc
-      if (Math.random() * 100 < plinkoWinChance) {
+    }
+    else if (randomValue < (adjustedProbs.lossChance + adjustedProbs.smallWinChance + adjustedProbs.mediumWinChance)) {
+      // Chance for medium wins
+      const mediumWinPositions = multipliers
+        .map((m, i) => ({ mult: m, index: i }))
+        .filter(item => item.mult > 2.5 && item.mult <= 5.0)
+        .map(item => item.index);
+      
+      if (mediumWinPositions.length > 0) {
+        const randomMediumWinIndex = Math.floor(Math.random() * mediumWinPositions.length);
+        targetIndex = mediumWinPositions[randomMediumWinIndex];
+      }
+    }
+    else {
+      // Chance for bigger wins
+      // Also affected by player's win chance from play count
+      const winChanceBoost = Math.min(plinkoWinChance / 10, 10); // Convert to percentage points, max 10%
+      
+      if (Math.random() * 100 < (adjustedProbs.bigWinChance + winChanceBoost)) {
         // Higher payout for users with better win chance
         const bigWinPositions = multipliers
           .map((m, i) => ({ mult: m, index: i }))
-          .filter(item => item.mult > 2.5)
+          .filter(item => item.mult > 5.0)
           .map(item => item.index);
         
         if (bigWinPositions.length > 0) {

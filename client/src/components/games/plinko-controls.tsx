@@ -134,6 +134,40 @@ export function PlinkoControls({ onBetPlaced, isAnimating }: PlinkoControlsProps
               <SelectItem value="high">High Risk</SelectItem>
             </SelectContent>
           </Select>
+          
+          {/* Risk level explanation */}
+          <div className="rounded-md p-3 text-xs bg-muted/50">
+            {risk === "low" && (
+              <>
+                <span className="font-semibold text-green-500">Low Risk:</span>
+                <ul className="mt-1 space-y-1 list-disc pl-4">
+                  <li>More consistent small wins (up to 2x)</li>
+                  <li>90% chance to win something</li>
+                  <li>Max payout: 2x your bet</li>
+                </ul>
+              </>
+            )}
+            {risk === "medium" && (
+              <>
+                <span className="font-semibold text-yellow-500">Medium Risk:</span>
+                <ul className="mt-1 space-y-1 list-disc pl-4">
+                  <li>Balanced risk and reward</li>
+                  <li>35% chance to win something</li>
+                  <li>Max payout: 4x your bet</li>
+                </ul>
+              </>
+            )}
+            {risk === "high" && (
+              <>
+                <span className="font-semibold text-red-500">High Risk:</span>
+                <ul className="mt-1 space-y-1 list-disc pl-4">
+                  <li>Mostly losses, but huge potential wins</li>
+                  <li>20% chance to win something</li>
+                  <li>Max payout: 15x your bet</li>
+                </ul>
+              </>
+            )}
+          </div>
         </div>
         
         {/* Bet Amount */}

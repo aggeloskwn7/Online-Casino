@@ -46,10 +46,16 @@ const BOARD_WIDTH = PIN_SPACING_X * (BUCKET_COUNT);
 const BOARD_HEIGHT = PIN_SPACING_Y * ROWS + 60; // Extra space for buckets
 
 // Define multiplier buckets for different risk levels - buckets match the number of pins in the last row
+// These should match server-side values in games.ts
 const MULTIPLIERS: Record<RiskLevel, number[]> = {
-  low: [2.0, 1.5, 1.0, 0.8, 0.5, 0.8, 1.0, 1.5, 2.0, 3.0, 4.0],
-  medium: [5.0, 3.0, 2.0, 1.0, 0.5, 0.2, 0.5, 1.0, 2.0, 3.0, 5.0],
-  high: [10.0, 5.0, 3.0, 1.5, 0.5, 0.1, 0.5, 1.5, 3.0, 5.0, 10.0]
+  // Low risk: More balanced, mostly small multipliers, no extreme values
+  low: [2.0, 1.5, 1.2, 0.9, 0.7, 0.6, 0.7, 0.9, 1.2, 1.5, 2.0],
+  
+  // Medium risk: More variation, higher highs and lower lows
+  medium: [4.0, 2.5, 1.5, 1.0, 0.5, 0.2, 0.5, 1.0, 1.5, 2.5, 4.0],
+  
+  // High risk: Extreme variation, very high highs and very low lows
+  high: [15.0, 7.0, 3.0, 1.0, 0.5, 0.1, 0.5, 1.0, 3.0, 7.0, 15.0]
 };
 
 // Calculate pin positions - ensure they line up with buckets
