@@ -264,10 +264,10 @@ export default function PlinkoGame({
     };
   }, []);
   
-  // Placeholder for handlePlaceBet to prevent error on the Play Again button
-  const handlePlaceBet = (): void => {
-    if (externalResult && !isAnimating) {
-      animateBall(externalResult.path);
+  // Handle play again by replaying the current animation
+  const handlePlayAgain = (): void => {
+    if (result && !isAnimating) {
+      animateBall(result.path);
     }
   };
   
@@ -392,7 +392,7 @@ export default function PlinkoGame({
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={handlePlaceBet}
+                  onClick={handlePlayAgain}
                   disabled={isAnimating}
                 >
                   Play Again

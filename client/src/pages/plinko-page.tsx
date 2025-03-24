@@ -48,7 +48,7 @@ export default function PlinkoPage() {
 
         {/* Main content - FAR AWAY from sidebar */}
         <div className="flex-1 flex flex-col">
-          <main className="flex-1 p-4 md:p-6 lg:pl-[260px]">
+          <main className="flex-1 p-4 pt-16 md:p-6 md:pt-16 lg:pl-[260px] lg:pt-8">
             <div className="max-w-7xl mx-auto space-y-6">
               <h1 className="text-3xl font-bold tracking-tight mb-8">Plinko</h1>
               
@@ -56,11 +56,19 @@ export default function PlinkoPage() {
               <div className="grid grid-cols-12 gap-6 mb-8">
                 {/* Game board */}
                 <div className="col-span-12 lg:col-span-8 bg-card rounded-lg border shadow-sm overflow-hidden">
-                  <PlinkoGame />
+                  <PlinkoGame 
+                    externalResult={gameResult}
+                    onAnimatingChange={setIsAnimating}
+                  />
                 </div>
                 
                 {/* Controls right next to the board */}
-                <div className="col-span-12 lg:col-span-4 bg-card rounded-lg border shadow-sm" />
+                <div className="col-span-12 lg:col-span-4">
+                  <PlinkoControls 
+                    onBetPlaced={setGameResult}
+                    isAnimating={isAnimating}
+                  />
+                </div>
               </div>
               
               {/* Recent games BELOW everything */}
