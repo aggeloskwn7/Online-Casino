@@ -132,7 +132,6 @@ export const adminUserUpdateSchema = z.object({
 });
 
 export const adminBanUserSchema = z.object({
-  userId: z.number(),
   banReason: z.string().min(3).max(500),
 });
 
