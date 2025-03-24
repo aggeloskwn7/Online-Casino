@@ -422,7 +422,7 @@ export default function CrashGame() {
             } : {}}
             transition={{ duration: 2, repeat: gameState === 'in-progress' ? Infinity : 0 }}
           >
-            {gameState === 'idle' ? '1.00×' : formatMultiplier(currentMultiplier)}
+            {gameState === 'idle' ? '1.00×' : `${formatMultiplier(currentMultiplier)}×`}
           </motion.div>
 
           {/* Status indicator for game state */}

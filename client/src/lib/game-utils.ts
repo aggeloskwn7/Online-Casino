@@ -43,16 +43,16 @@ export const formatCurrency = (value: number | string) => {
   });
 };
 
-// Format multiplier value
+// Format multiplier value (without the × symbol)
 export const formatMultiplier = (value: number | string) => {
   const numValue = typeof value === 'string' ? parseFloat(value) : value;
   
-  // For zero multipliers (losses), show 0.00×
+  // For zero or negative multipliers (losses), show 0.00
   if (numValue <= 0) {
-    return '0.00×';
+    return '0.00';
   }
   
-  return `${numValue.toFixed(2)}×`;
+  return numValue.toFixed(2);
 };
 
 // Get time ago string
