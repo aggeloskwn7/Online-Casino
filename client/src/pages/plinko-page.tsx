@@ -8,15 +8,7 @@ import TransactionHistory from '@/components/transaction-history';
 import MobileNav from '@/components/ui/mobile-nav';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useState } from 'react';
-
-// PlinkoResult interface for passing between components
-interface PlinkoResult {
-  isWin: boolean;
-  amount: number;
-  payout: number;
-  multiplier: number;
-  path: { row: number, position: number }[];
-}
+import { PlinkoResult } from '@/types/plinko-types';
 
 export default function PlinkoPage() {
   const isMobile = useIsMobile();

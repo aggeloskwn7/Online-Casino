@@ -10,26 +10,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-type RiskLevel = 'low' | 'medium' | 'high';
-
-// Interface for the Plinko API response
-interface PlinkoResult {
-  isWin: boolean;
-  payout: number;
-  multiplier: number;
-  path: PathStep[];
-  pins: any[][];
-  risk: 'low' | 'medium' | 'high';
-  rows: number;
-  landingPosition: number;
-}
-
-// Interface for a path step in the ball drop animation
-interface PathStep {
-  row: number;
-  position: number;
-}
+import { PlinkoResult, BetData, RiskLevel } from "@/types/plinko-types";
 
 interface PlinkoControlsProps {
   onBetPlaced: (result: PlinkoResult) => void;
@@ -43,12 +24,6 @@ export function PlinkoControls({ onBetPlaced, isAnimating }: PlinkoControlsProps
   
   const [amount, setAmount] = useState<number>(10);
   const [risk, setRisk] = useState<RiskLevel>('medium');
-  
-  // Interface for the bet data
-  interface BetData {
-    amount: number;
-    risk: RiskLevel;
-  }
   
   // Mutation for placing a bet
   const placeBetMutation = useMutation<PlinkoResult, Error, BetData>({
