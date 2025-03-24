@@ -122,7 +122,7 @@ export default function TransactionHistory({ gameType, maxItems = 20 }: Transact
                       {formatMultiplier(transaction.multiplier)}×
                     </span>
                   ) : (
-                    <span className="text-[#FF3A5E]">-</span>
+                    <span className="text-[#FF3A5E]">LOSS</span>
                   )}
                 </td>
                 <td className="py-3 px-4 whitespace-nowrap font-mono">
