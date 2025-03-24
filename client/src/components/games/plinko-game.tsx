@@ -171,19 +171,20 @@ export default function PlinkoGame({
     const totalSteps = fullPath.length;
     
     // Dynamic step duration - ball starts slow, speeds up, then slows down again for realism
+    // Overall much slower animation as requested
     const getStepDuration = (step: number, total: number): number => {
       // Start slow (falling from top)
       if (step < total * 0.2) {
-        return 400 - (step * 15); // Starts at 400ms, gradually speeds up
+        return 700 - (step * 15); // Starts at 700ms, gradually speeds up
       } 
-      // Middle section - faster (ball has momentum)
+      // Middle section - faster (ball has momentum) but still slower than before
       else if (step < total * 0.8) {
-        return 280;
+        return 450;
       } 
       // End section - slows down as it approaches the buckets
       else {
         const remainingSteps = total - step;
-        return 280 + ((total * 0.2 - remainingSteps) * 20); // Gradually slows down to 380ms
+        return 450 + ((total * 0.2 - remainingSteps) * 30); // Gradually slows down to 580ms
       }
     };
     
@@ -205,37 +206,53 @@ export default function PlinkoGame({
         const startX = centerX - (totalBucketsWidth / 2);
         const finalX = startX + safeBucketIndex * bucketWidth + bucketWidth / 2;
         
-        // Add a small bounce effect in the bucket for a more satisfying landing
-        // First position - slightly higher in the bucket
+        // Add a much more pronounced bounce effect in the bucket for a more satisfying landing
+        // First position - higher in the bucket for dramatic effect
         setBallPosition({ 
           x: finalX,
-          y: BOARD_HEIGHT - 30 // Higher position for initial bounce
+          y: BOARD_HEIGHT - 45 // Higher position for initial bounce
         });
         
-        // Start a small bounce sequence
+        // Start a more pronounced bounce sequence - longer and more steps
         setTimeout(() => {
-          // Bounce down
+          // First bounce - down very low in bucket
           setBallPosition({ 
             x: finalX,
-            y: BOARD_HEIGHT - 15 // Lower position (bounce down)
+            y: BOARD_HEIGHT - 10 // Lower position (bounce down)
           });
           
           setTimeout(() => {
-            // Bounce up slightly
+            // Second bounce - higher
             setBallPosition({ 
               x: finalX,
-              y: BOARD_HEIGHT - 22
+              y: BOARD_HEIGHT - 28
             });
             
             setTimeout(() => {
-              // Final resting position
+              // Third bounce - down again
               setBallPosition({ 
                 x: finalX,
-                y: BOARD_HEIGHT - 20 // Final position
+                y: BOARD_HEIGHT - 15
               });
+              
+              setTimeout(() => {
+                // Fourth bounce - up slightly
+                setBallPosition({ 
+                  x: finalX,
+                  y: BOARD_HEIGHT - 22
+                });
+                
+                setTimeout(() => {
+                  // Final resting position
+                  setBallPosition({ 
+                    x: finalX,
+                    y: BOARD_HEIGHT - 20 // Final position
+                  });
+                }, 120);
+              }, 120);
             }, 120);
-          }, 120);
-        }, 120);
+          }, 150);
+        }, 180);
         
         // Play sound based on win/loss
         if (result && result.isWin) {
@@ -244,8 +261,8 @@ export default function PlinkoGame({
           play('lose');
         }
         
-        // Delay showing the result toast until after animation is complete
-        // This will happen after the ball has landed in the bucket
+        // Delay showing the result toast until after the ball has completely settled
+        // The total bounce sequence takes 690ms (120ms*4 + 150ms + 180ms), so wait even longer to ensure it's fully settled
         setTimeout(() => {
           if (result) {
             toast({
@@ -256,7 +273,7 @@ export default function PlinkoGame({
               variant: result.isWin ? 'default' : 'default'
             });
           }
-        }, 500); // Delay showing the result by half a second after the animation completes
+        }, 1200); // Delay showing the result by 1.2 seconds after the animation completes
         
         return;
       }
