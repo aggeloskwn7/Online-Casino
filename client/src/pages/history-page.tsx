@@ -80,6 +80,7 @@ function HistoryPageContent() {
       'roulette': { bg: 'bg-red-500/10', text: 'text-red-500', border: 'border-red-500/20' },
       'crash': { bg: 'bg-indigo-500/10', text: 'text-indigo-500', border: 'border-indigo-500/20' },
       'dice': { bg: 'bg-green-500/10', text: 'text-green-500', border: 'border-green-500/20' },
+      'plinko': { bg: 'bg-purple-500/10', text: 'text-purple-500', border: 'border-purple-500/20' },
       'default': { bg: 'bg-gray-500/10', text: 'text-gray-500', border: 'border-gray-500/20' }
     };
 
@@ -89,6 +90,7 @@ function HistoryPageContent() {
       'roulette': <span className="text-xl">🎯</span>,
       'crash': <span className="text-xl">🚀</span>,
       'dice': <span className="text-xl">🎲</span>,
+      'plinko': <span className="text-xl">🔮</span>,
       'default': <History className="h-5 w-5" />
     };
 
@@ -177,6 +179,7 @@ function HistoryPageContent() {
                   <SelectItem value="roulette">Roulette</SelectItem>
                   <SelectItem value="crash">Crash</SelectItem>
                   <SelectItem value="dice">Dice</SelectItem>
+                  <SelectItem value="plinko">Plinko</SelectItem>
                 </SelectContent>
               </Select>
               
