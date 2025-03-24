@@ -284,12 +284,43 @@ export default function PlinkoGame({
         newY = BOARD_HEIGHT - 20;
       }
       
-      // Add subtle jitter to make the ball movement look more natural
-      const jitterAmount = 3;
+      // Add realistic physics with jitter and pin deflection effects
+      // Calculate the relative path progress (0 to 1)
+      const progress = currentStep / totalSteps;
+      
+      // Jitter amount increases as the ball gains speed then reduces at the end
+      let jitterAmount = 0;
+      if (progress < 0.2) {
+        // Starting - minimal jitter
+        jitterAmount = 1 + (progress * 5); 
+      } else if (progress < 0.8) {
+        // Middle - maximum jitter (ball moving fast)
+        jitterAmount = 4;
+      } else {
+        // End - reducing jitter (ball slowing down)
+        jitterAmount = 4 * (1 - ((progress - 0.8) / 0.2));
+      }
+      
+      // Calculate jitter in X direction
       const jitterX = Math.random() * jitterAmount - jitterAmount/2;
       
-      // Update ball position with a small random offset for realistic movement
-      setBallPosition({ x: newX + jitterX, y: newY });
+      // Add small vertical jitter when hitting pins (but not at the end)
+      const jitterY = currentStep < totalSteps - 2 
+        ? Math.random() * 2 - 1 
+        : 0;
+      
+      // Calculate deflection effect (when ball hits pin)
+      let deflectionX = 0;
+      if (currentStep > 0 && currentStep < totalSteps - 1 && fullPath[currentStep-1].position !== fullPath[currentStep].position) {
+        // Ball changed direction from previous pin - add deflection
+        deflectionX = fullPath[currentStep].position > fullPath[currentStep-1].position ? -2 : 2;
+      }
+      
+      // Update ball position with realistic physics effects
+      setBallPosition({ 
+        x: newX + jitterX + deflectionX, 
+        y: newY + jitterY 
+      });
       
       // Play pin hit sound
       if (currentStep > 0 && currentStep < totalSteps - 1) {
@@ -306,8 +337,9 @@ export default function PlinkoGame({
       animationRef.current = setTimeout(animate, nextDuration);
     };
     
-    // Start animation
-    animate();
+    // Start animation with initial duration
+    const initialDuration = getStepDuration(0, totalSteps);
+    animationRef.current = setTimeout(animate, initialDuration);
   };
   
   // Helper function to generate a random path (for testing)
@@ -432,18 +464,23 @@ export default function PlinkoGame({
               <AnimatePresence>
                 {isAnimating && (
                   <motion.div
-                    className="absolute bg-yellow-400 rounded-full shadow-md shadow-yellow-200 z-10"
+                    className="absolute rounded-full z-10 overflow-hidden"
                     style={{
                       width: BALL_SIZE,
                       height: BALL_SIZE,
+                      background: 'radial-gradient(circle at 35% 35%, #ffea00 5%, #ffbe00 60%, #ff9800 100%)',
+                      boxShadow: '0 0 10px 2px rgba(255, 190, 0, 0.3), inset 0 0 6px 1px rgba(255, 255, 255, 0.5)'
                     }}
                     initial={{ 
                       x: BOARD_WIDTH / 2 - BALL_SIZE / 2,
-                      y: -BALL_SIZE 
+                      y: -BALL_SIZE,
+                      rotate: 0
                     }}
                     animate={{ 
                       x: ballPosition.x - BALL_SIZE / 2,
-                      y: ballPosition.y - BALL_SIZE / 2
+                      y: ballPosition.y - BALL_SIZE / 2,
+                      // Add rotation based on position for a rolling effect
+                      rotate: ballPosition.x * 0.5
                     }}
                     transition={{ 
                       type: 'spring', 
@@ -451,7 +488,20 @@ export default function PlinkoGame({
                       stiffness: 90,
                       mass: 1.2
                     }}
-                  />
+                  >
+                    {/* Shine effect */}
+                    <div 
+                      className="absolute"
+                      style={{
+                        width: '40%',
+                        height: '40%',
+                        background: 'radial-gradient(circle at center, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%)',
+                        top: '15%',
+                        left: '15%',
+                        borderRadius: '50%'
+                      }}
+                    />
+                  </motion.div>
                 )}
               </AnimatePresence>
             </div>
