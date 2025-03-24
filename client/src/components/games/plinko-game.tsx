@@ -68,7 +68,7 @@ const PIN_SPACING_Y = 45;
 const PIN_RADIUS = PIN_SIZE / 2;
 const BALL_SIZE = 16;
 const BOARD_WIDTH = PIN_SPACING_X * (COLUMNS - 1);
-const BOARD_HEIGHT = PIN_SPACING_Y * ROWS + 150; // Extra space for buckets
+const BOARD_HEIGHT = PIN_SPACING_Y * ROWS + 250; // Extra space for buckets and bottom area
 
 // Define multiplier buckets for different risk levels
 const MULTIPLIERS: Record<RiskLevel, number[]> = {
@@ -303,27 +303,37 @@ export default function PlinkoGame({
             />
           ))}
           
+          {/* Multiplier label */}
+          <div className="absolute text-center font-medium text-muted-foreground"
+            style={{
+              bottom: 160,
+              left: 0,
+              width: "100%"
+            }}>
+            Multipliers
+          </div>
+          
           {/* Multiplier Buckets */}
           <div 
             className="absolute flex"
             style={{ 
-              bottom: 10, 
+              bottom: 80, 
               left: 0, 
               width: "100%", 
-              height: 70 
+              height: 80 
             }}
           >
             {buckets.map((bucket, index) => (
               <div
                 key={`bucket-${index}`}
-                className={`flex items-center justify-center text-xs font-bold border-r last:border-r-0 ${
+                className={`flex items-center justify-center text-sm md:text-base font-bold rounded-md m-[1px] ${
                   landingBucket === index 
                     ? bucket.multiplier >= 1 
-                      ? 'bg-green-500/20 text-green-500' 
-                      : 'bg-red-500/20 text-red-500'
+                      ? 'bg-green-500/30 text-green-500 border border-green-500/50' 
+                      : 'bg-red-500/30 text-red-500 border border-red-500/50'
                     : bucket.multiplier >= 1 
-                      ? 'bg-primary/10 text-primary' 
-                      : 'bg-muted/30 text-muted-foreground'
+                      ? 'bg-primary/20 text-primary border border-primary/30' 
+                      : 'bg-muted/40 text-muted-foreground border border-muted/30'
                 }`}
                 style={{
                   width: bucket.width,
