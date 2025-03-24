@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { useSound } from '@/hooks/use-sound';
@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { SLOT_SYMBOLS, SLOT_PAYOUTS } from '@/lib/game-utils';
 import { SlotsPayout } from '@shared/schema';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Zap, Play, Pause, RotateCcw } from 'lucide-react';
 
 export default function SlotsGame() {
   const { user } = useAuth();
@@ -27,6 +27,14 @@ export default function SlotsGame() {
   const [displayedLastWin, setDisplayedLastWin] = useState<number | null>(null);
   const [highlightedCells, setHighlightedCells] = useState<[number, number][]>([]);
   const [showWinMessage, setShowWinMessage] = useState(false);
+  
+  // Fast spin and auto spin state
+  const [isFastSpin, setIsFastSpin] = useState(false);
+  const [isAutoSpin, setIsAutoSpin] = useState(false);
+  const [autoSpinCount, setAutoSpinCount] = useState(0);
+  const [maxAutoSpins, setMaxAutoSpins] = useState(10);
+  const [stopAutoSpinOnWin, setStopAutoSpinOnWin] = useState(false);
+  const autoSpinTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   // Play slots mutation
   const slotsMutation = useMutation({
@@ -72,11 +80,14 @@ export default function SlotsGame() {
   const animateSlots = (finalSymbols: string[][]) => {
     // Start with random symbols
     let spins = 0;
-    const maxSpins = 20; // Number of animation frames
-    const spinInterval = 80; // ms between frames
-    const finalSpinInterval = 150; // slower at the end
     
-    // Play initial spinning sound
+    // Adjust animation times for fast spin mode
+    const maxSpins = isFastSpin ? 6 : 20; // Fewer animation frames in fast mode
+    const spinInterval = isFastSpin ? 40 : 80; // Faster frames in fast mode
+    const finalSpinInterval = isFastSpin ? 60 : 150; // Faster final animations too
+    const afterSpinDelay = isFastSpin ? 100 : 300; // Shorter delay after spin completes
+    
+    // Play initial spinning sound (shorter in fast mode)
     play('slotSpin', { volume: 0.6, loop: true });
     
     const spin = () => {
@@ -156,13 +167,108 @@ export default function SlotsGame() {
           }
           
           setShowWinMessage(true);
-        }, 300);
+          
+          // If auto-spin is active, trigger next spin after a delay
+          if (isAutoSpin && !isSpinning) {
+            const canContinueAutoSpin = autoSpinCount < maxAutoSpins && 
+              (user && betAmount <= Number(user.balance)) &&
+              !(stopAutoSpinOnWin && lastResult?.isWin);
+              
+            if (canContinueAutoSpin) {
+              // Increment auto-spin counter
+              setAutoSpinCount(prev => prev + 1);
+              
+              // Schedule next auto-spin
+              autoSpinTimerRef.current = setTimeout(() => {
+                handleSpin();
+              }, isFastSpin ? 500 : 1000);
+            } else {
+              // Auto-spin is complete
+              setIsAutoSpin(false);
+              setAutoSpinCount(0);
+              
+              // Show completion toast
+              if (stopAutoSpinOnWin && lastResult?.isWin) {
+                toast({
+                  title: "Auto-spin stopped",
+                  description: "Auto-spin stopped because you won!",
+                });
+              } else if (autoSpinCount >= maxAutoSpins) {
+                toast({
+                  title: "Auto-spin complete",
+                  description: `Completed ${maxAutoSpins} spins.`,
+                });
+              } else {
+                toast({
+                  title: "Auto-spin stopped",
+                  description: "Insufficient balance to continue.",
+                });
+              }
+            }
+          }
+        }, afterSpinDelay);
       }
     };
     
     // Start spinning
     spin();
   };
+  
+  // Toggle fast spin mode
+  const toggleFastSpin = () => {
+    play('buttonClick', { volume: 0.3 });
+    setIsFastSpin(!isFastSpin);
+  };
+  
+  // Start auto spin
+  const startAutoSpin = () => {
+    // Validate bet amount
+    if (!user || betAmount <= 0 || betAmount > Number(user.balance)) {
+      toast({
+        title: 'Invalid bet',
+        description: 'Please enter a valid bet amount for auto-spin',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    play('buttonClick', { volume: 0.4 });
+    setIsAutoSpin(true);
+    setAutoSpinCount(0);
+    
+    // Start first spin immediately
+    handleSpin();
+    
+    toast({
+      title: 'Auto-spin started',
+      description: `Will play ${maxAutoSpins} spins automatically.`,
+    });
+  };
+  
+  // Stop auto spin
+  const stopAutoSpin = useCallback(() => {
+    if (autoSpinTimerRef.current) {
+      clearTimeout(autoSpinTimerRef.current);
+      autoSpinTimerRef.current = null;
+    }
+    
+    setIsAutoSpin(false);
+    setAutoSpinCount(0);
+    
+    toast({
+      title: 'Auto-spin stopped',
+      description: 'Auto-spin has been stopped manually.',
+    });
+  }, [toast]);
+  
+  // Clean up any timers when component unmounts
+  useEffect(() => {
+    return () => {
+      if (autoSpinTimerRef.current) {
+        clearTimeout(autoSpinTimerRef.current);
+      }
+    };
+  }, []);
   
   const handleSpin = () => {
     // Validate bet amount
@@ -172,6 +278,12 @@ export default function SlotsGame() {
         description: 'Please enter a valid bet amount',
         variant: 'destructive',
       });
+      
+      // Also stop auto spin if this was triggered during auto spin
+      if (isAutoSpin) {
+        stopAutoSpin();
+      }
+      
       return;
     }
     
