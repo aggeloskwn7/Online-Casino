@@ -489,7 +489,7 @@ export default function PlinkoGame() {
                 className="flex-1"
                 onClick={() => {
                   if (user?.balance) {
-                    setAmount(Math.floor(user.balance));
+                    setAmount(Math.floor(Number(user.balance)));
                   }
                 }}
                 disabled={!user?.balance || isAnimating || placeBetMutation.isPending}
@@ -555,7 +555,7 @@ export default function PlinkoGame() {
               !user || 
               amount < 1 || 
               amount > 10000 || 
-              (user && user.balance < amount)
+              (user && Number(user.balance) < amount)
             }
             onClick={handlePlaceBet}
           >
