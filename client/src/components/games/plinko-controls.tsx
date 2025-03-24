@@ -1,4 +1,4 @@
-import { useState, ChangeEvent } from "react";
+import { useState, useEffect, ChangeEvent } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -19,13 +19,34 @@ interface PlinkoControlsProps {
   onRiskChange?: (risk: RiskLevel) => void;
 }
 
-export function PlinkoControls({ onBetPlaced, isAnimating }: PlinkoControlsProps) {
+export function PlinkoControls({ 
+  onBetPlaced, 
+  isAnimating, 
+  risk: externalRisk,
+  onRiskChange 
+}: PlinkoControlsProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const { play } = useSound();
   
   const [amount, setAmount] = useState<number>(10);
-  const [risk, setRisk] = useState<RiskLevel>('medium');
+  // Use external risk if provided, otherwise default to medium
+  const [risk, setRisk] = useState<RiskLevel>(externalRisk || 'medium');
+  
+  // Handle local risk changes and notify parent
+  const handleRiskChange = (newRisk: RiskLevel) => {
+    setRisk(newRisk);
+    if (onRiskChange) {
+      onRiskChange(newRisk);
+    }
+  };
+  
+  // Sync with external risk prop when it changes
+  useEffect(() => {
+    if (externalRisk && externalRisk !== risk) {
+      setRisk(externalRisk);
+    }
+  }, [externalRisk, risk]);
   
   // Mutation for placing a bet
   const placeBetMutation = useMutation<PlinkoResult, Error, BetData>({
@@ -124,7 +145,7 @@ export function PlinkoControls({ onBetPlaced, isAnimating }: PlinkoControlsProps
           <label className="text-sm font-medium">Risk Level</label>
           <Select
             value={risk}
-            onValueChange={(value: RiskLevel) => setRisk(value)}
+            onValueChange={(value: RiskLevel) => handleRiskChange(value)}
             disabled={isAnimating || placeBetMutation.isPending}
           >
             <SelectTrigger>

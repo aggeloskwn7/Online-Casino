@@ -136,6 +136,8 @@ export default function PlinkoPage() {
                     <PlinkoGame 
                       externalResult={gameResult}
                       onAnimatingChange={setIsAnimating}
+                      risk={currentRisk}
+                      onRiskChange={setCurrentRisk}
                     />
                   </div>
                   
@@ -144,6 +146,8 @@ export default function PlinkoPage() {
                     <PlinkoControls 
                       onBetPlaced={setGameResult}
                       isAnimating={isAnimating}
+                      risk={currentRisk}
+                      onRiskChange={setCurrentRisk}
                     />
                   </div>
                 </div>
