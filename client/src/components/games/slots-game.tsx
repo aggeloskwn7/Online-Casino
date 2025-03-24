@@ -595,6 +595,113 @@ export default function SlotsGame() {
             {renderBetButtons()}
           </div>
           
+          {/* Special feature controls */}
+          <div className="flex gap-3 mb-3">
+            {/* Fast Spin Toggle */}
+            <motion.button
+              className={`
+                flex-1 py-2 px-3 rounded-lg font-medium text-sm uppercase relative
+                overflow-hidden shadow-lg flex items-center justify-center gap-2
+                ${isFastSpin 
+                  ? 'bg-gradient-to-r from-[#4B0082] to-[#8A2BE2] text-white' 
+                  : 'bg-gradient-to-r from-[#333333] to-[#444444] text-gray-300'
+                }
+              `}
+              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.02 }}
+              onClick={toggleFastSpin}
+              disabled={isSpinning}
+            >
+              <Zap size={16} className={isFastSpin ? "text-yellow-300" : "text-gray-400"} />
+              <span>Fast Spin</span>
+              {isFastSpin && (
+                <motion.div 
+                  className="absolute inset-0 bg-white opacity-0"
+                  animate={{ opacity: [0, 0.1, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                />
+              )}
+            </motion.button>
+            
+            {/* Auto Spin Button */}
+            <motion.button
+              className={`
+                flex-1 py-2 px-3 rounded-lg font-medium text-sm uppercase relative
+                overflow-hidden shadow-lg flex items-center justify-center gap-2
+                ${isAutoSpin 
+                  ? 'bg-gradient-to-r from-[#B22222] to-[#FF4500] text-white' 
+                  : 'bg-gradient-to-r from-[#333333] to-[#444444] text-gray-300'
+                }
+              `}
+              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.02 }}
+              onClick={isAutoSpin ? stopAutoSpin : startAutoSpin}
+              disabled={isSpinning && !isAutoSpin}
+            >
+              {isAutoSpin ? (
+                <>
+                  <Pause size={16} className="text-white" />
+                  <span>{isSpinning ? `Auto (${autoSpinCount}/${maxAutoSpins})` : 'Stop Auto'}</span>
+                </>
+              ) : (
+                <>
+                  <Play size={16} className="text-gray-400" />
+                  <span>Auto Spin</span>
+                </>
+              )}
+              {isAutoSpin && (
+                <motion.div 
+                  className="absolute inset-0 bg-white opacity-0"
+                  animate={{ opacity: [0, 0.1, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                />
+              )}
+            </motion.button>
+          </div>
+          
+          {/* Auto Spin Settings (only visible when auto spin is active) */}
+          {isAutoSpin && !isSpinning && (
+            <motion.div 
+              className="bg-[#0A0A0A] rounded-lg p-3 mb-3 border border-[#333333]"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+            >
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm text-gray-400">Number of spins:</span>
+                <div className="flex items-center gap-2">
+                  {[5, 10, 25, 50, 100].map(count => (
+                    <button
+                      key={count}
+                      className={`
+                        px-2 py-1 rounded text-xs font-medium
+                        ${maxAutoSpins === count 
+                          ? 'bg-[#FF4500] text-white' 
+                          : 'bg-[#222222] text-gray-400 hover:bg-[#333333]'
+                        }
+                      `}
+                      onClick={() => setMaxAutoSpins(count)}
+                    >
+                      {count}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="flex items-center">
+                <label className="flex items-center text-sm text-gray-400 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="mr-2 h-4 w-4 accent-[#FF4500]"
+                    checked={stopAutoSpinOnWin}
+                    onChange={() => setStopAutoSpinOnWin(!stopAutoSpinOnWin)}
+                  />
+                  Stop on any win
+                </label>
+              </div>
+            </motion.div>
+          )}
+          
           {/* Spin button with premium styling */}
           <motion.button
             className={`
@@ -624,11 +731,11 @@ export default function SlotsGame() {
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                   </span>
-                  <span>SPINNING...</span>
+                  <span>{isAutoSpin ? `AUTO SPIN (${autoSpinCount}/${maxAutoSpins})` : 'SPINNING...'}</span>
                 </>
               ) : (
                 <>
-                  <span className="mr-2">SPIN</span>
+                  <span className="mr-2">{isFastSpin ? 'FAST SPIN' : 'SPIN'}</span>
                   <span className="animate-bounce inline-block">🎰</span>
                 </>
               )}
