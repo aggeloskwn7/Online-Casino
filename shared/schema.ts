@@ -175,7 +175,7 @@ export const adminAnnouncementSchema = z.object({
 
 // Schema for game configuration updates
 export const adminGameConfigSchema = z.object({
-  gameType: z.enum(['slots', 'dice', 'crash', 'roulette', 'blackjack']),
+  gameType: z.enum(['slots', 'dice', 'crash', 'roulette', 'blackjack', 'plinko']),
   config: z.record(z.any()), // Game-specific configuration as key-value pairs
 });
 
@@ -284,6 +284,32 @@ export const crashGameSchema = z.object({
   multiplier: z.number(),
   payout: z.number(),
   isWin: z.boolean()
+});
+
+export const plinkoPinSchema = z.object({
+  x: z.number(),
+  y: z.number(),
+  radius: z.number(),
+});
+
+export const plinkoPathSchema = z.object({
+  path: z.array(z.object({
+    x: z.number(), 
+    y: z.number()
+  })),
+  direction: z.number(),
+});
+
+export const plinkoGameSchema = z.object({
+  risk: z.enum(['low', 'medium', 'high']),
+  rows: z.number().int().min(8).max(16),
+  pins: z.array(plinkoPinSchema).optional(),
+  paths: z.array(plinkoPathSchema).optional(),
+  multiplier: z.number(),
+  payout: z.number(),
+  isWin: z.boolean(),
+  landingPosition: z.number().int().min(0),
+  multipliers: z.array(z.number()).optional(),
 });
 
 // Roulette bet types
@@ -419,6 +445,9 @@ export const pokerGameStateSchema = z.object({
 export type SlotsPayout = z.infer<typeof slotsPayoutSchema>;
 export type DiceRoll = z.infer<typeof diceRollSchema>;
 export type CrashGame = z.infer<typeof crashGameSchema>;
+export type PlinkoPin = z.infer<typeof plinkoPinSchema>;
+export type PlinkoPath = z.infer<typeof plinkoPathSchema>;
+export type PlinkoGame = z.infer<typeof plinkoGameSchema>;
 export type RouletteBetType = z.infer<typeof rouletteBetTypeSchema>;
 export type SingleBet = z.infer<typeof singleBetSchema>;
 export type RouletteBet = z.infer<typeof rouletteBetSchema>;

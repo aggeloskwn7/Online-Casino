@@ -5,6 +5,7 @@ import {
   slotsPayoutSchema, 
   diceRollSchema, 
   crashGameSchema, 
+  plinkoGameSchema,
   rouletteBetSchema, 
   rouletteResultSchema, 
   RouletteBetType,
@@ -12,7 +13,8 @@ import {
   blackjackStateSchema,
   blackjackActionSchema,
   cardSchema,
-  Card
+  Card,
+  PlinkoGame
 } from "@shared/schema";
 import { z } from "zod";
 import { getAdjustedWinChance, shouldBeBigWin, getBigWinMultiplierBoost } from "./win-rate";
@@ -1422,5 +1424,167 @@ export async function playRoulette(req: Request, res: Response) {
     
     console.error("Roulette game error:", error);
     res.status(500).json({ message: "Failed to process roulette game" });
+  }
+}
+
+/**
+ * Play plinko game
+ */
+export async function playPlinko(req: Request, res: Response) {
+  try {
+    // With JWT auth, user is set by middleware
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    // Validate request body
+    const parsedBody = betSchema.parse(req.body);
+    const { amount } = parsedBody;
+    
+    // Get current user with balance
+    const user = await storage.getUser(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    // Check if user has enough balance
+    if (Number(user.balance) < amount) {
+      return res.status(400).json({ message: "Insufficient balance" });
+    }
+    
+    // Get play count for this user to adjust win rates
+    const playCount = await storage.getUserPlayCount(userId);
+    
+    // Determine the adjusted win chance based on play count
+    const plinkoWinChance = getAdjustedWinChance('plinko', playCount);
+    
+    // Check if this should be a big win (special treatment)
+    const isBigWin = shouldBeBigWin(playCount);
+    
+    // Define plinko multipliers for different risk levels
+    // These are typical values for 16-row plinko
+    const multipliers = [
+      0.2, 0.4, 0.7, 1.5, 3, 5, 8, 13, 20, 40, 100, 200
+    ];
+    
+    // Generate plinko pins (simulate a 16-row plinko board)
+    const rows = 16;
+    const pins = [];
+    
+    for (let r = 0; r < rows; r++) {
+      const pinsInRow = r + 1;
+      const row = [];
+      for (let p = 0; p < pinsInRow; p++) {
+        row.push({ row: r, position: p });
+      }
+      pins.push(row);
+    }
+    
+    // Create a path for the ball to follow
+    // In a real plinko game, this would be determined by physics
+    // Here we'll simulate it with some randomness
+    const path = [];
+    let currentPosition = 0;
+    
+    // For each row, decide if the ball goes left or right
+    // But weight the results to aim for a specific multiplier based on win chance
+    let targetIndex = Math.floor(Math.random() * multipliers.length);
+    
+    // For better win chances, aim for higher multipliers
+    // For worse win chances, aim for lower multipliers
+    if (Math.random() * 100 < plinkoWinChance) {
+      // Higher payout on better win chance
+      targetIndex = Math.floor(Math.random() * (multipliers.length / 2)) + (multipliers.length / 2);
+    } else {
+      // Lower payout on worse win chance
+      targetIndex = Math.floor(Math.random() * (multipliers.length / 2));
+    }
+    
+    // For big wins, aim even higher
+    if (isBigWin) {
+      targetIndex = Math.max(targetIndex, Math.floor(multipliers.length * 0.8));
+    }
+    
+    // Target position in the final row
+    const targetPosition = targetIndex;
+    
+    // Calculate ideal path to reach target position
+    for (let r = 0; r < rows; r++) {
+      // Calculate the ideal position at this row to reach the target
+      const idealPosition = (targetPosition * r) / (rows - 1);
+      
+      // Add some randomness, but generally try to reach the target
+      // The closer we get to the end, the more we try to reach the target
+      const randomFactor = (rows - r) / rows;
+      const goRight = currentPosition < idealPosition || 
+                      (Math.random() < 0.5 && Math.random() < randomFactor);
+      
+      // Add current pin to path
+      path.push({ row: r, position: currentPosition });
+      
+      // Move to next row, either left or right
+      if (goRight && currentPosition < r) {
+        currentPosition += 1;
+      }
+      // Left movement happens implicitly by staying at same position
+      // since each row has one more pin than the previous
+    }
+    
+    // Add final landing position
+    path.push({ row: rows, position: currentPosition });
+    
+    // Determine multiplier based on where the ball landed
+    const landingPosition = path[path.length - 1].position;
+    const multiplier = multipliers[landingPosition];
+    
+    // Determine if it's a win (multiplier > 1.0)
+    const isWin = multiplier > 1.0;
+    
+    // Get VIP subscription win multiplier if applicable
+    const vipMultiplier = await getVipWinMultiplier(userId);
+    
+    // Calculate payout
+    const payout = amount * multiplier * (isWin ? vipMultiplier : 1.0);
+    
+    // Update user balance
+    const newBalance = Number(user.balance) - amount + payout;
+    
+    // Log VIP bonus if applicable
+    if (isWin && vipMultiplier > 1.0) {
+      console.log(`Applied VIP multiplier (${vipMultiplier}x) to user ${userId}'s plinko win. Base payout: ${amount * multiplier}, Final payout: ${payout}`);
+    }
+    await storage.updateUserBalance(userId, newBalance);
+    
+    // Create transaction record
+    await storage.createTransaction({
+      userId,
+      gameType: "plinko",
+      amount: amount.toString(),
+      multiplier: multiplier.toString(),
+      payout: payout.toString(),
+      isWin
+    });
+    
+    // Increment user's play count
+    await storage.incrementPlayCount(userId);
+    
+    // Return result
+    const result = plinkoGameSchema.parse({
+      pins,
+      path,
+      multiplier,
+      payout,
+      isWin
+    });
+    
+    res.status(200).json(result);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: "Invalid bet data", errors: error.errors });
+    }
+    
+    console.error("Plinko game error:", error);
+    res.status(500).json({ message: "Failed to process plinko game" });
   }
 }
