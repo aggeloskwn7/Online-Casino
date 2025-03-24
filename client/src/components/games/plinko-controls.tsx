@@ -16,10 +16,13 @@ type RiskLevel = 'low' | 'medium' | 'high';
 // Interface for the Plinko API response
 interface PlinkoResult {
   isWin: boolean;
-  amount: number;
   payout: number;
   multiplier: number;
   path: PathStep[];
+  pins: any[][];
+  risk: 'low' | 'medium' | 'high';
+  rows: number;
+  landingPosition: number;
 }
 
 // Interface for a path step in the ball drop animation
@@ -50,10 +53,12 @@ export function PlinkoControls({ onBetPlaced, isAnimating }: PlinkoControlsProps
   // Mutation for placing a bet
   const placeBetMutation = useMutation<PlinkoResult, Error, BetData>({
     mutationFn: async (data: BetData) => {
+      console.log('Sending bet data:', data);
       const res = await apiRequest('POST', '/api/games/plinko', data);
       return await res.json();
     },
     onSuccess: (data: PlinkoResult) => {
+      console.log('Received successful result:', data);
       // Pass the result to the parent component
       onBetPlaced(data);
       
@@ -64,7 +69,8 @@ export function PlinkoControls({ onBetPlaced, isAnimating }: PlinkoControlsProps
       // Play sounds
       play('bet');
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
+      console.error('Plinko bet error:', error.response ? error.response.data : error.message);
       toast({
         title: 'Error',
         description: error.message || 'Failed to place bet',

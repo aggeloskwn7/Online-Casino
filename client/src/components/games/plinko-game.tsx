@@ -55,6 +55,10 @@ interface PlinkoResult {
   payout: number;
   multiplier: number;
   path: PathStep[];
+  pins: any[][];
+  risk: 'low' | 'medium' | 'high';
+  rows: number;
+  landingPosition: number;
 }
 
 type RiskLevel = 'low' | 'medium' | 'high';
