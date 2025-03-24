@@ -35,6 +35,7 @@ export interface PlinkoResult {
   rows: number;
   landingPosition: number;
   amount?: number; // Optional to maintain backward compatibility
+  multipliers?: number[]; // The array of multipliers from the server
 }
 
 export interface BetData {
