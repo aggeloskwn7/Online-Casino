@@ -265,7 +265,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Submit ban appeal
-  app.post("/api/user/ban-appeal", authMiddleware, async (req: Request, res: Response) => {
+  app.post("/api/user/ban-appeal", banStatusMiddleware, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.id;
       
