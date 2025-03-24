@@ -40,10 +40,10 @@ export default function PlinkoPage() {
             <div className="max-w-6xl mx-auto space-y-6">
               <h1 className="text-3xl font-bold tracking-tight mb-8">Plinko</h1>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Game area */}
-                <div className="lg:col-span-2 space-y-6">
-                  <div className="bg-card rounded-lg border shadow-sm">
+                <div className="lg:col-span-8 xl:col-span-9 space-y-6">
+                  <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
                     <div className="p-4">
                       <PlinkoGame />
                     </div>
@@ -51,7 +51,7 @@ export default function PlinkoPage() {
                 </div>
 
                 {/* Transaction history */}
-                <div className="space-y-6">
+                <div className="lg:col-span-4 xl:col-span-3 space-y-6">
                   <div className="bg-card rounded-lg border shadow-sm">
                     <div className="p-4">
                       <h2 className="text-xl font-semibold mb-4">Recent Games</h2>
