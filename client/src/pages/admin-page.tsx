@@ -68,10 +68,26 @@ import {
   Megaphone,
   Settings,
   LifeBuoy,
-  Crown
+  Crown,
+  MessagesSquare
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/game-utils';
+
+// Define types for ban appeals
+type BanAppeal = {
+  id: number;
+  userId: number;
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected';
+  adminResponse?: string;
+  adminId?: number;
+  createdAt: string;
+  updatedAt: string;
+  user?: {
+    username: string;
+  };
+};
 
 // Component for the users tab
 function UsersTab() {
@@ -2304,6 +2320,325 @@ function SubscriptionsTab() {
   );
 }
 
+// Component for the ban appeals tab
+function BanAppealsTab() {
+  const { toast } = useToast();
+  const [page, setPage] = useState(1);
+  const [selectedAppeal, setSelectedAppeal] = useState<BanAppeal | null>(null);
+  const [responseText, setResponseText] = useState('');
+  const [isResponseDialogOpen, setIsResponseDialogOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>('pending');
+  
+  // Fetch ban appeals data
+  const {
+    data: appealsData,
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['/api/admin/ban-appeals', statusFilter, page],
+    queryFn: async () => {
+      const queryParams = new URLSearchParams();
+      if (statusFilter) queryParams.append('status', statusFilter);
+      queryParams.append('page', page.toString());
+      
+      const res = await apiRequest('GET', `/api/admin/ban-appeals?${queryParams.toString()}`);
+      return await res.json();
+    }
+  });
+  
+  // Respond to appeal mutation
+  const respondToAppeal = useMutation({
+    mutationFn: async ({ appealId, status, response }: { appealId: number, status: string, response: string }) => {
+      const res = await apiRequest('POST', `/api/admin/ban-appeals/${appealId}/respond`, {
+        status,
+        response
+      });
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Response to ban appeal submitted successfully',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/ban-appeals'] });
+      setIsResponseDialogOpen(false);
+      setResponseText('');
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: `Failed to respond to appeal: ${error.message}`,
+        variant: 'destructive',
+      });
+    }
+  });
+  
+  // Handle opening response dialog
+  const handleOpenResponseDialog = (appeal: BanAppeal) => {
+    setSelectedAppeal(appeal);
+    setIsResponseDialogOpen(true);
+  };
+  
+  // Handle response submission
+  const handleSubmitResponse = (status: 'approved' | 'rejected') => {
+    if (!selectedAppeal) return;
+    
+    if (responseText.trim().length < 10) {
+      toast({
+        title: 'Error',
+        description: 'Please provide a detailed response (minimum 10 characters)',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    respondToAppeal.mutate({
+      appealId: selectedAppeal.id,
+      status,
+      response: responseText
+    });
+  };
+  
+  // Pagination controls
+  const handleNextPage = () => {
+    if (appealsData && appealsData.pagination && page < appealsData.pagination.totalPages) {
+      setPage(page + 1);
+    }
+  };
+  
+  const handlePrevPage = () => {
+    if (page > 1) {
+      setPage(page - 1);
+    }
+  };
+  
+  // Badge color based on status
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return <Badge className="bg-green-600">Approved</Badge>;
+      case 'rejected':
+        return <Badge variant="destructive">Rejected</Badge>;
+      case 'pending':
+      default:
+        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Pending</Badge>;
+    }
+  };
+  
+  if (error) {
+    return (
+      <div className="text-center p-8">
+        <p className="text-red-500">Error loading ban appeals: {(error as Error).message}</p>
+        <Button onClick={() => refetch()} className="mt-4">
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Retry
+        </Button>
+      </div>
+    );
+  }
+  
+  return (
+    <div>
+      <div className="mb-6 flex justify-between items-center">
+        <h2 className="text-xl font-semibold">Ban Appeals</h2>
+        
+        <div className="flex gap-2 items-center">
+          <Label htmlFor="status-filter" className="mr-2">
+            Status:
+          </Label>
+          <Select
+            value={statusFilter}
+            onValueChange={(value) => {
+              setStatusFilter(value);
+              setPage(1); // Reset to first page when filter changes
+            }}
+          >
+            <SelectTrigger id="status-filter" className="w-[180px]">
+              <SelectValue placeholder="Select status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="approved">Approved</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      
+      {isLoading ? (
+        <div className="flex justify-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>User</TableHead>
+                <TableHead>Reason</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {appealsData?.appeals.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8">
+                    No ban appeals found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                appealsData?.appeals.map((appeal: BanAppeal) => (
+                  <TableRow key={appeal.id}>
+                    <TableCell>{appeal.id}</TableCell>
+                    <TableCell>
+                      {appeal.user?.username || `User #${appeal.userId}`}
+                    </TableCell>
+                    <TableCell className="max-w-[300px] truncate">
+                      {appeal.reason}
+                    </TableCell>
+                    <TableCell>
+                      {getStatusBadge(appeal.status)}
+                    </TableCell>
+                    <TableCell>
+                      {new Date(appeal.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenResponseDialog(appeal)}
+                          disabled={appeal.status !== 'pending'}
+                        >
+                          <MessagesSquare className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+          
+          {/* Pagination */}
+          {appealsData && appealsData.pagination && (
+            <div className="flex justify-between items-center mt-4">
+              <div className="text-sm text-muted-foreground">
+                Showing page {page} of {appealsData.pagination.totalPages}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePrevPage}
+                  disabled={page === 1}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNextPage}
+                  disabled={page >= appealsData.pagination.totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+      
+      {/* Appeal Response Dialog */}
+      <Dialog open={isResponseDialogOpen} onOpenChange={setIsResponseDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Respond to Ban Appeal</DialogTitle>
+            <DialogDescription>
+              Review the appeal and provide a response to the user.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedAppeal && (
+            <div className="space-y-4">
+              <div>
+                <Label>User</Label>
+                <div className="font-semibold">
+                  {selectedAppeal.user?.username || `User #${selectedAppeal.userId}`}
+                </div>
+              </div>
+              
+              <div>
+                <Label>Appeal</Label>
+                <div className="p-3 bg-muted rounded-md mt-1">
+                  {selectedAppeal.reason}
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="response" className="text-sm font-medium">
+                  Your Response <span className="text-red-500">*</span>
+                </Label>
+                <Textarea
+                  id="response"
+                  placeholder="Provide a detailed response to the user's appeal..."
+                  value={responseText}
+                  onChange={(e) => setResponseText(e.target.value)}
+                  className="mt-1"
+                  rows={5}
+                />
+                {respondToAppeal.error && responseText.trim().length < 10 && (
+                  <p className="text-sm text-red-500 mt-1">
+                    Response is required and must be at least 10 characters
+                  </p>
+                )}
+              </div>
+              
+              <div className="flex justify-end gap-2 pt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsResponseDialogOpen(false);
+                    setResponseText('');
+                  }}
+                  disabled={respondToAppeal.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => handleSubmitResponse('rejected')}
+                  disabled={respondToAppeal.isPending || responseText.trim().length < 10}
+                >
+                  {respondToAppeal.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  Reject Appeal
+                </Button>
+                <Button
+                  variant="default"
+                  onClick={() => handleSubmitResponse('approved')}
+                  disabled={respondToAppeal.isPending || responseText.trim().length < 10}
+                >
+                  {respondToAppeal.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  Approve & Unban
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
@@ -2361,6 +2696,10 @@ export default function AdminPage() {
               <Crown className="h-4 w-4 mr-2" />
               Subscriptions
             </TabsTrigger>
+            <TabsTrigger value="ban-appeals" className="flex items-center">
+              <MessagesSquare className="h-4 w-4 mr-2" />
+              Ban Appeals
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="users">
@@ -2396,6 +2735,10 @@ export default function AdminPage() {
           
           <TabsContent value="subscriptions">
             <SubscriptionsTab />
+          </TabsContent>
+          
+          <TabsContent value="ban-appeals">
+            <BanAppealsTab />
           </TabsContent>
         </Tabs>
       </div>
