@@ -25,43 +25,14 @@ import { Slider } from '@/components/ui/slider';
 import { formatCurrency, formatMultiplier } from '@/lib/game-utils';
 import { ArrowDown, ArrowUp, Coins, Award, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-// Define types for the Plinko game
-interface PinPosition {
-  row: number;
-  x: number;
-  y: number;
-  radius: number;
-}
-
-interface Bucket {
-  x: number;
-  width: number;
-  multiplier: number;
-}
-
-interface PathStep {
-  row: number;
-  position: number;
-}
-
-interface BallPosition {
-  x: number;
-  y: number;
-}
-
-interface PlinkoResult {
-  isWin: boolean;
-  payout: number;
-  multiplier: number;
-  path: PathStep[];
-  pins: any[][];
-  risk: 'low' | 'medium' | 'high';
-  rows: number;
-  landingPosition: number;
-}
-
-type RiskLevel = 'low' | 'medium' | 'high';
+import { 
+  PlinkoResult, 
+  RiskLevel, 
+  BallPosition, 
+  Bucket, 
+  PathStep, 
+  PinPosition 
+} from '@/types/plinko-types';
 
 // Define the pin grid dimensions
 const ROWS = 10; // Number of rows of pins

@@ -1582,11 +1582,14 @@ export async function playPlinko(req: Request, res: Response) {
     
     // Return result
     const result = plinkoGameSchema.parse({
+      risk,
+      rows,
       pins,
       path,
       multiplier,
       payout,
-      isWin
+      isWin,
+      landingPosition: adjustedPosition
     });
     
     res.status(200).json(result);

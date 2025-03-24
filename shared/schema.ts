@@ -287,17 +287,13 @@ export const crashGameSchema = z.object({
 });
 
 export const plinkoPinSchema = z.object({
-  x: z.number(),
-  y: z.number(),
-  radius: z.number(),
+  row: z.number(),
+  position: z.number()
 });
 
 export const plinkoPathSchema = z.object({
-  path: z.array(z.object({
-    x: z.number(), 
-    y: z.number()
-  })),
-  direction: z.number(),
+  row: z.number(), 
+  position: z.number()
 });
 
 export const plinkoGameSchema = z.object({
