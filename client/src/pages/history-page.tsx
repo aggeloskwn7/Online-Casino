@@ -54,10 +54,23 @@ function HistoryPageContent() {
     refetchOnWindowFocus: true,
   });
 
+  // Log transactions data for debugging
+  console.log("All transactions:", transactions);
+  console.log("Game filter:", gameFilter);
+  
+  // If we have transactions, log the unique game types
+  if (transactions?.length) {
+    const uniqueGameTypes = [...new Set(transactions.map(t => t.gameType))];
+    console.log("Unique game types in transactions:", uniqueGameTypes);
+  }
+  
   // Filter transactions based on selected game
   const filteredTransactions = transactions?.filter(transaction => {
     if (gameFilter === 'all') return true;
-    return transaction.gameType === gameFilter;
+    const matchesFilter = transaction.gameType === gameFilter;
+    // Log for each transaction whether it matches the filter
+    console.log(`Transaction ${transaction.id} of type "${transaction.gameType}" matches filter "${gameFilter}": ${matchesFilter}`);
+    return matchesFilter;
   }) || [];
 
   // Sort transactions
