@@ -697,15 +697,21 @@ export function setupAdminRoutes(app: Express) {
     try {
       const appealId = parseInt(req.params.appealId);
       
-      // Validate request body
-      const responseData = adminBanAppealResponseSchema.parse(req.body);
+      // Validate request body with adjusted schema data
+      const responseData = {
+        appealId, // Include appealId from URL params
+        ...req.body
+      };
+      
+      // Validate the complete data
+      const validatedData = adminBanAppealResponseSchema.parse(responseData);
       
       // Update the appeal with admin response
       const updatedAppeal = await storage.respondToBanAppeal(
         appealId,
         req.user!.id,
-        responseData.status,
-        responseData.response
+        validatedData.status,
+        validatedData.response
       );
       
       res.json({ appeal: updatedAppeal });
