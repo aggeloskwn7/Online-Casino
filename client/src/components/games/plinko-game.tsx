@@ -70,11 +70,11 @@ const BALL_SIZE = 14; // Reduced from 16
 const BOARD_WIDTH = PIN_SPACING_X * (COLUMNS - 1);
 const BOARD_HEIGHT = PIN_SPACING_Y * ROWS + 100; // Reduced extra space
 
-// Define multiplier buckets for different risk levels - fewer buckets
+// Define multiplier buckets for different risk levels - buckets match the number of pins in the last row
 const MULTIPLIERS: Record<RiskLevel, number[]> = {
-  low: [2.0, 1.5, 1.0, 0.5, 0.3, 0.5, 1.0, 1.5, 2.0],
-  medium: [5.0, 2.0, 1.0, 0.5, 0.1, 0.5, 1.0, 2.0, 5.0],
-  high: [10.0, 3.0, 1.5, 0.5, 0.1, 0.5, 1.5, 3.0, 10.0]
+  low: [2.0, 1.5, 1.0, 0.8, 0.5, 0.8, 1.0, 1.5, 2.0, 3.0, 4.0],
+  medium: [5.0, 3.0, 2.0, 1.0, 0.5, 0.2, 0.5, 1.0, 2.0, 3.0, 5.0],
+  high: [10.0, 5.0, 3.0, 1.5, 0.5, 0.1, 0.5, 1.5, 3.0, 5.0, 10.0]
 };
 
 // Calculate pin positions
@@ -332,14 +332,14 @@ export default function PlinkoGame({
             {buckets.map((bucket, index) => (
               <div
                 key={`bucket-${index}`}
-                className={`flex-1 flex items-center justify-center py-2 text-sm md:text-base font-bold ${
+                className={`flex-1 flex items-center justify-center py-1 text-xs font-bold ${
                   landingBucket === index 
                     ? bucket.multiplier >= 1 
-                      ? 'bg-green-500/30 text-green-500 border-green-500/50' 
-                      : 'bg-red-500/30 text-red-500 border-red-500/50'
+                      ? 'bg-green-500/30 text-green-500' 
+                      : 'bg-red-500/30 text-red-500'
                     : bucket.multiplier >= 1 
-                      ? 'bg-primary/20 text-primary border-primary/30' 
-                      : 'bg-muted/40 text-muted-foreground border-muted/30'
+                      ? 'bg-primary/20 text-primary' 
+                      : 'bg-muted/40 text-muted-foreground'
                 }`}
               >
                 {formatMultiplier(bucket.multiplier)}x
