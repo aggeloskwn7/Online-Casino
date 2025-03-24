@@ -299,8 +299,8 @@ export const plinkoPathSchema = z.object({
 export const plinkoGameSchema = z.object({
   risk: z.enum(['low', 'medium', 'high']),
   rows: z.number().int().min(8).max(16),
-  pins: z.array(plinkoPinSchema).optional(),
-  paths: z.array(plinkoPathSchema).optional(),
+  pins: z.array(z.array(plinkoPinSchema)).optional(),
+  path: z.array(plinkoPathSchema),
   multiplier: z.number(),
   payout: z.number(),
   isWin: z.boolean(),
