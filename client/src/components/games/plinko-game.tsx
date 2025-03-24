@@ -134,17 +134,43 @@ export default function PlinkoGame({
   
   const animationRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Update buckets when risk level changes
+  // Update buckets when risk level changes or when result contains multipliers
   useEffect(() => {
-    setBuckets(calculateBuckets(risk));
-  }, [risk]);
+    // If we have external result with multipliers from the server, use those
+    if (result?.multipliers) {
+      // Calculate buckets using server's multipliers 
+      const bucketWidth = PIN_SPACING_X;
+      const totalBucketsWidth = bucketWidth * result.multipliers.length;
+      const centerX = BOARD_WIDTH / 2;
+      const startX = centerX - (totalBucketsWidth / 2);
+      
+      const serverBuckets = result.multipliers.map((multiplier: number, index: number) => {
+        return {
+          x: startX + index * bucketWidth,
+          width: bucketWidth,
+          multiplier
+        };
+      });
+      
+      setBuckets(serverBuckets);
+    } else {
+      // Otherwise use client-side multipliers based on risk level
+      setBuckets(calculateBuckets(risk));
+    }
+  }, [risk, result]);
   
   // Update internal state when external result changes
   useEffect(() => {
     if (externalResult && !isAnimating) {
       setResult(externalResult);
-      setRisk(externalResult.path[0]?.row === 0 ? 'medium' : externalResult.path[0].position === 0 ? 'low' : 'high');
+      // Use the risk level directly from server response
+      setRisk(externalResult.risk);
       animateBall(externalResult.path);
+      
+      console.log('Received game result from server:', externalResult);
+      if (externalResult.multipliers) {
+        console.log('Using server-provided multipliers:', externalResult.multipliers);
+      }
     }
   }, [externalResult]);
   
