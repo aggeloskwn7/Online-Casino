@@ -2339,7 +2339,9 @@ function BanAppealsTab() {
     queryKey: ['/api/admin/ban-appeals', statusFilter, page],
     queryFn: async () => {
       const queryParams = new URLSearchParams();
-      if (statusFilter) queryParams.append('status', statusFilter);
+      if (statusFilter && statusFilter !== 'all') {
+        queryParams.append('status', statusFilter);
+      }
       queryParams.append('page', page.toString());
       
       const res = await apiRequest('GET', `/api/admin/ban-appeals?${queryParams.toString()}`);
@@ -2458,7 +2460,7 @@ function BanAppealsTab() {
               <SelectValue placeholder="Select status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All</SelectItem>
+              <SelectItem value="all">All</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="approved">Approved</SelectItem>
               <SelectItem value="rejected">Rejected</SelectItem>
