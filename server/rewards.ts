@@ -141,21 +141,34 @@ export async function getRewardSchedule(req: Request, res: Response) {
     let multiplier = 1; // Default multiplier
     let minimumReward = 0; // Minimum reward from subscription
     
+    console.log("Reward Schedule - User data:", req.user ? {
+      id: req.user.id,
+      username: req.user.username,
+      subscriptionTier: req.user.subscriptionTier
+    } : "No authenticated user");
+    
     // If user is authenticated and has a subscription, apply their tier bonuses
     if (req.user && req.user.subscriptionTier) {
+      console.log(`User has subscription tier: ${req.user.subscriptionTier}`);
+      
       // Get the subscription plans to find user's plan details
       const subscriptionPlans = await storage.getSubscriptionPlans();
+      console.log("Subscription plans:", subscriptionPlans);
+      
       const userPlan = subscriptionPlans.find(plan => plan.tier === req.user!.subscriptionTier);
+      console.log("User's plan:", userPlan);
       
       if (userPlan) {
         // Apply the VIP multiplier if exists
         if (userPlan.multiplier) {
           multiplier = userPlan.multiplier;
+          console.log(`Applied ${userPlan.tier} multiplier: ${multiplier}x`);
         }
         
         // Set minimum reward from subscription
         if (userPlan.coinReward) {
           minimumReward = userPlan.coinReward;
+          console.log(`Applied ${userPlan.tier} minimum reward: ${minimumReward} coins`);
         }
       }
     }
