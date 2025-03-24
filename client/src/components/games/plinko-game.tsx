@@ -200,7 +200,7 @@ export default function PlinkoGame() {
       return;
     }
     
-    if (user.balance < amount) {
+    if (Number(user.balance) < amount) {
       toast({
         title: 'Insufficient Balance',
         description: 'Not enough coins in your balance',
