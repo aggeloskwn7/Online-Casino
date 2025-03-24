@@ -308,96 +308,107 @@ export default function PlinkoGame({
         </p>
       </div>
       
-      {/* Game board - Full width */}
+      {/* Game board container */}
       <div className="flex flex-col items-center">
         <div 
           className="relative bg-gradient-to-b from-background/80 to-background border rounded-lg overflow-hidden"
           style={{ 
-            width: Math.min(BOARD_WIDTH + 50, 700), 
-            height: Math.min(BOARD_HEIGHT + 60, 600), // Increased height for buckets
-            maxWidth: "100%" 
+            width: Math.min(BOARD_WIDTH + 100, 700),
+            height: Math.min(BOARD_HEIGHT + 60, 600),
+            maxWidth: "100%"
           }}
         >
-          {/* Pins */}
-          {pins.map((pin, index) => (
-            <div
-              key={`pin-${index}`}
-              className="absolute rounded-full bg-primary/70"
-              style={{
-                width: PIN_SIZE,
-                height: PIN_SIZE,
-                left: pin.x - PIN_RADIUS,
-                top: pin.y - PIN_RADIUS,
+          {/* Center everything inside the container */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            {/* Fixed size board for pins and buckets */}
+            <div 
+              className="relative" 
+              style={{ 
+                width: BOARD_WIDTH, 
+                height: BOARD_HEIGHT 
               }}
-            />
-          ))}
-          
-          {/* Bucket separators - vertical lines to separate buckets */}
-          <div className="absolute" style={{ bottom: 0, left: 0, width: "100%", height: 45 }}>
-            {buckets.slice(0, -1).map((bucket, index) => (
-              <div 
-                key={`separator-${index}`}
-                className="absolute h-full w-[1px] bg-primary/30"
-                style={{ 
-                  left: bucket.x + bucket.width,
-                  zIndex: 5
-                }}
-              />
-            ))}
-          </div>
-          
-          {/* Multiplier Buckets - Positioned directly below the pins for proper alignment */}
-          <div className="absolute" style={{ bottom: 0, left: 0, width: "100%", height: 40 }}>
-            {buckets.map((bucket, index) => (
-              <div
-                key={`bucket-${index}`}
-                className={`absolute flex items-center justify-center text-xs font-bold ${
-                  landingBucket === index 
-                    ? bucket.multiplier >= 1 
-                      ? 'bg-green-500/30 text-green-500' 
-                      : 'bg-red-500/30 text-red-500'
-                    : bucket.multiplier >= 1 
-                      ? 'bg-primary/20 text-primary' 
-                      : 'bg-muted/40 text-muted-foreground'
-                }`}
-                style={{
-                  left: bucket.x,
-                  width: bucket.width,
-                  height: "100%",
-                  // Add sloped tops to buckets
-                  clipPath: 'polygon(0% 20%, 50% 0%, 100% 20%, 100% 100%, 0% 100%)'
-                }}
-              >
-                {formatMultiplier(bucket.multiplier)}x
+            >
+              {/* Pins */}
+              {pins.map((pin, index) => (
+                <div
+                  key={`pin-${index}`}
+                  className="absolute rounded-full bg-primary/70"
+                  style={{
+                    width: PIN_SIZE,
+                    height: PIN_SIZE,
+                    left: pin.x - PIN_RADIUS,
+                    top: pin.y - PIN_RADIUS,
+                  }}
+                />
+              ))}
+              
+              {/* Bucket separators */}
+              <div className="absolute" style={{ bottom: 0, left: 0, width: "100%", height: 45 }}>
+                {buckets.slice(0, -1).map((bucket, index) => (
+                  <div 
+                    key={`separator-${index}`}
+                    className="absolute h-full w-[1px] bg-primary/30"
+                    style={{ 
+                      left: bucket.x + bucket.width,
+                      zIndex: 5
+                    }}
+                  />
+                ))}
               </div>
-            ))}
+              
+              {/* Buckets */}
+              <div className="absolute" style={{ bottom: 0, left: 0, width: "100%", height: 40 }}>
+                {buckets.map((bucket, index) => (
+                  <div
+                    key={`bucket-${index}`}
+                    className={`absolute flex items-center justify-center text-xs font-bold ${
+                      landingBucket === index 
+                        ? bucket.multiplier >= 1 
+                          ? 'bg-green-500/30 text-green-500' 
+                          : 'bg-red-500/30 text-red-500'
+                        : bucket.multiplier >= 1 
+                          ? 'bg-primary/20 text-primary' 
+                          : 'bg-muted/40 text-muted-foreground'
+                    }`}
+                    style={{
+                      left: bucket.x,
+                      width: bucket.width,
+                      height: "100%",
+                      clipPath: 'polygon(0% 20%, 50% 0%, 100% 20%, 100% 100%, 0% 100%)'
+                    }}
+                  >
+                    {formatMultiplier(bucket.multiplier)}x
+                  </div>
+                ))}
+              </div>
+              
+              {/* Ball */}
+              <AnimatePresence>
+                {isAnimating && (
+                  <motion.div
+                    className="absolute bg-yellow-400 rounded-full shadow-md shadow-yellow-200 z-10"
+                    style={{
+                      width: BALL_SIZE,
+                      height: BALL_SIZE,
+                    }}
+                    initial={{ 
+                      x: BOARD_WIDTH / 2 - BALL_SIZE / 2,
+                      y: -BALL_SIZE 
+                    }}
+                    animate={{ 
+                      x: ballPosition.x - BALL_SIZE / 2,
+                      y: ballPosition.y - BALL_SIZE / 2
+                    }}
+                    transition={{ type: 'spring', damping: 10 }}
+                  />
+                )}
+              </AnimatePresence>
+            </div>
           </div>
-          
-          {/* Ball */}
-          <AnimatePresence>
-            {isAnimating && (
-              <motion.div
-                className="absolute bg-yellow-400 rounded-full shadow-md shadow-yellow-200 z-10"
-                style={{
-                  width: BALL_SIZE,
-                  height: BALL_SIZE,
-                }}
-                initial={{ 
-                  x: BOARD_WIDTH / 2 - BALL_SIZE / 2,
-                  y: -BALL_SIZE 
-                }}
-                animate={{ 
-                  x: ballPosition.x - BALL_SIZE / 2,
-                  y: ballPosition.y - BALL_SIZE / 2
-                }}
-                transition={{ type: 'spring', damping: 10 }}
-              />
-            )}
-          </AnimatePresence>
         </div>
       </div>
       
-      {/* Result Display - Below everything */}
+      {/* Result Display */}
       {result && (
         <div className="mt-6">
           <AnimatePresence>
