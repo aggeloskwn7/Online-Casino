@@ -1466,12 +1466,12 @@ export async function playPlinko(req: Request, res: Response) {
     // Check if this should be a big win (special treatment)
     const isBigWin = shouldBeBigWin(playCount);
     
-    // Define plinko multipliers for different risk levels
-    // These are adjusted for 10-row plinko with 11 buckets
+    // Define plinko multipliers for different risk levels - match client side values
+    // These are for 10-row plinko with 11 buckets
     const MULTIPLIERS_BY_RISK = {
-      low: [1.2, 1.5, 0.8, 0.5, 0.3, 0.2, 0.3, 0.5, 0.8, 1.5, 2.0],
-      medium: [3.0, 1.5, 1.0, 0.5, 0.3, 0.1, 0.3, 0.5, 1.0, 1.5, 3.0],
-      high: [5.0, 3.0, 1.0, 0.5, 0.3, 0.1, 0.3, 0.5, 1.0, 3.0, 5.0]
+      low: [2.0, 1.5, 1.0, 0.8, 0.5, 0.8, 1.0, 1.5, 2.0, 3.0, 4.0],
+      medium: [5.0, 3.0, 2.0, 1.0, 0.5, 0.2, 0.5, 1.0, 2.0, 3.0, 5.0],
+      high: [10.0, 5.0, 3.0, 1.5, 0.5, 0.1, 0.5, 1.5, 3.0, 5.0, 10.0]
     };
     
     // Get multipliers for the selected risk level
