@@ -60,15 +60,18 @@ export async function claimDailyReward(req: Request, res: Response) {
       const userPlan = subscriptionPlans.find(plan => plan.tier === req.user!.subscriptionTier);
       
       if (userPlan) {
-        // Apply multiplier if available, otherwise give subscription coin reward
+        // First, apply multiplier if available (Silver and Gold tiers)
         if (userPlan.multiplier) {
-          // Apply multiplier to the reward amount
           rewardAmount = Math.round(rewardAmount * userPlan.multiplier);
           console.log(`Applied ${userPlan.tier} multiplier (${userPlan.multiplier}x) to daily reward: ${rewardAmount}`);
-        } else if (userPlan.coinReward > 0) {
-          // Use subscription coin reward if it's higher than the calculated amount
-          rewardAmount = Math.max(rewardAmount, userPlan.coinReward);
-          console.log(`Applied ${userPlan.tier} fixed reward: ${rewardAmount}`);
+        }
+        
+        // Then, check if the minimum reward from subscription is higher than the calculated amount
+        if (userPlan.coinReward > 0) {
+          if (rewardAmount < userPlan.coinReward) {
+            rewardAmount = userPlan.coinReward;
+            console.log(`Applied ${userPlan.tier} minimum fixed reward: ${rewardAmount}`);
+          }
         }
       }
     }
