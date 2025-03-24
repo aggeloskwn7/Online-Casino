@@ -170,14 +170,15 @@ export default function SlotsGame() {
           
           // If auto-spin is active, trigger next spin after a delay
           if (isAutoSpin && !isSpinning) {
-            const canContinueAutoSpin = autoSpinCount < maxAutoSpins && 
+            // First increment auto-spin counter
+            const newAutoSpinCount = autoSpinCount + 1;
+            setAutoSpinCount(newAutoSpinCount);
+            
+            const canContinueAutoSpin = newAutoSpinCount < maxAutoSpins && 
               (user && betAmount <= Number(user.balance)) &&
               !(stopAutoSpinOnWin && lastResult?.isWin);
               
             if (canContinueAutoSpin) {
-              // Increment auto-spin counter
-              setAutoSpinCount(prev => prev + 1);
-              
               // Schedule next auto-spin
               autoSpinTimerRef.current = setTimeout(() => {
                 handleSpin();
@@ -185,7 +186,6 @@ export default function SlotsGame() {
             } else {
               // Auto-spin is complete
               setIsAutoSpin(false);
-              setAutoSpinCount(0);
               
               // Show completion toast
               if (stopAutoSpinOnWin && lastResult?.isWin) {
@@ -193,7 +193,7 @@ export default function SlotsGame() {
                   title: "Auto-spin stopped",
                   description: "Auto-spin stopped because you won!",
                 });
-              } else if (autoSpinCount >= maxAutoSpins) {
+              } else if (newAutoSpinCount >= maxAutoSpins) {
                 toast({
                   title: "Auto-spin complete",
                   description: `Completed ${maxAutoSpins} spins.`,
@@ -236,8 +236,10 @@ export default function SlotsGame() {
     setIsAutoSpin(true);
     setAutoSpinCount(0);
     
-    // Start first spin immediately
-    handleSpin();
+    // Start first spin immediately if not already spinning
+    if (!isSpinning) {
+      handleSpin();
+    }
     
     toast({
       title: 'Auto-spin started',
@@ -641,7 +643,7 @@ export default function SlotsGame() {
               {isAutoSpin ? (
                 <>
                   <Pause size={16} className="text-white" />
-                  <span>{isSpinning ? `Auto (${autoSpinCount}/${maxAutoSpins})` : 'Stop Auto'}</span>
+                  <span>{`Auto (${autoSpinCount}/${maxAutoSpins})`}</span>
                 </>
               ) : (
                 <>
