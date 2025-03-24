@@ -169,7 +169,23 @@ export default function PlinkoGame({
     
     let currentStep = 0;
     const totalSteps = fullPath.length;
-    const stepDuration = 350; // Increased duration (was 100ms) to slow down the animation
+    
+    // Dynamic step duration - ball starts slow, speeds up, then slows down again for realism
+    const getStepDuration = (step: number, total: number): number => {
+      // Start slow (falling from top)
+      if (step < total * 0.2) {
+        return 400 - (step * 15); // Starts at 400ms, gradually speeds up
+      } 
+      // Middle section - faster (ball has momentum)
+      else if (step < total * 0.8) {
+        return 280;
+      } 
+      // End section - slows down as it approaches the buckets
+      else {
+        const remainingSteps = total - step;
+        return 280 + ((total * 0.2 - remainingSteps) * 20); // Gradually slows down to 380ms
+      }
+    };
     
     const animate = (): void => {
       if (currentStep >= totalSteps) {
@@ -228,16 +244,19 @@ export default function PlinkoGame({
           play('lose');
         }
         
-        // Show result toast
-        if (result) {
-          toast({
-            title: result.isWin ? 'You Won!' : 'Better Luck Next Time',
-            description: result.isWin 
-              ? `You won ${formatCurrency(result.payout)} coins with a ${formatMultiplier(result.multiplier)}x multiplier!`
-              : `Ball landed on ${formatMultiplier(result.multiplier)}x`,
-            variant: result.isWin ? 'default' : 'default'
-          });
-        }
+        // Delay showing the result toast until after animation is complete
+        // This will happen after the ball has landed in the bucket
+        setTimeout(() => {
+          if (result) {
+            toast({
+              title: result.isWin ? 'You Won!' : 'Better Luck Next Time',
+              description: result.isWin 
+                ? `You won ${formatCurrency(result.payout)} coins with a ${formatMultiplier(result.multiplier)}x multiplier!`
+                : `Ball landed on ${formatMultiplier(result.multiplier)}x`,
+              variant: result.isWin ? 'default' : 'default'
+            });
+          }
+        }, 500); // Delay showing the result by half a second after the animation completes
         
         return;
       }
@@ -277,9 +296,14 @@ export default function PlinkoGame({
         play('click');
       }
       
-      // Move to next step
+      // Move to next step with dynamic duration based on current position
       currentStep++;
-      animationRef.current = setTimeout(animate, stepDuration);
+      
+      // Calculate the duration for the next step based on position
+      const nextDuration = getStepDuration(currentStep, totalSteps);
+      
+      // Schedule next animation frame with dynamic timing
+      animationRef.current = setTimeout(animate, nextDuration);
     };
     
     // Start animation

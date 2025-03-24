@@ -15,6 +15,22 @@ export default function PlinkoPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [gameResult, setGameResult] = useState<PlinkoResult | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [showHistory, setShowHistory] = useState(true); // Initially show history
+  
+  // Hide history during animation and show it again after
+  React.useEffect(() => {
+    if (isAnimating) {
+      // Hide history while animation is in progress
+      setShowHistory(false);
+    } else if (gameResult) {
+      // After animation completes (isAnimating becomes false)
+      // Wait a bit longer to make sure user sees the result first
+      const timer = setTimeout(() => {
+        setShowHistory(true);
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [isAnimating, gameResult]);
 
   return (
     <>
@@ -63,15 +79,17 @@ export default function PlinkoPage() {
                 </div>
               </div>
               
-              {/* Recent games BELOW everything */}
-              <div className="w-full bg-card rounded-lg border shadow-sm">
-                <div className="p-4">
-                  <h2 className="text-xl font-semibold mb-4">Recent Games</h2>
-                  <ScrollArea className="h-[300px] pr-4">
-                    <TransactionHistory gameType="plinko" maxItems={25} />
-                  </ScrollArea>
+              {/* Recent games BELOW everything - conditionally shown */}
+              {showHistory && (
+                <div className="w-full bg-card rounded-lg border shadow-sm">
+                  <div className="p-4">
+                    <h2 className="text-xl font-semibold mb-4">Recent Games</h2>
+                    <ScrollArea className="h-[300px] pr-4">
+                      <TransactionHistory gameType="plinko" maxItems={25} />
+                    </ScrollArea>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </main>
         </div>
