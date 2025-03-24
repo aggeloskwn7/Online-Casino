@@ -80,6 +80,7 @@ function UsersTab() {
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [banReason, setBanReason] = useState('');
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
   const [isBanDialogOpen, setIsBanDialogOpen] = useState(false);
   const [isAdminDialogOpen, setIsAdminDialogOpen] = useState(false);
