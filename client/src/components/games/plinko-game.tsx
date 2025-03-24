@@ -261,19 +261,7 @@ export default function PlinkoGame({
           play('lose');
         }
         
-        // Delay showing the result toast until after the ball has completely settled
-        // The total bounce sequence takes 690ms (120ms*4 + 150ms + 180ms), so wait even longer to ensure it's fully settled
-        setTimeout(() => {
-          if (result) {
-            toast({
-              title: result.isWin ? 'You Won!' : 'Better Luck Next Time',
-              description: result.isWin 
-                ? `You won ${formatCurrency(result.payout)} coins with a ${formatMultiplier(result.multiplier)}x multiplier!`
-                : `Ball landed on ${formatMultiplier(result.multiplier)}x`,
-              variant: result.isWin ? 'default' : 'default'
-            });
-          }
-        }, 1200); // Delay showing the result by 1.2 seconds after the animation completes
+        // Removed toast notifications as requested
         
         return;
       }
@@ -526,49 +514,7 @@ export default function PlinkoGame({
         </div>
       </div>
       
-      {/* Result Display */}
-      {result && (
-        <div className="mt-6">
-          <AnimatePresence>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className={`p-4 rounded-lg ${
-                result.isWin ? 'bg-green-500/10 border border-green-500/20' : 'bg-muted/10 border border-muted/20'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  {result.isWin ? (
-                    <Award className="h-6 w-6 text-green-500 mr-2" />
-                  ) : (
-                    <Coins className="h-6 w-6 text-muted-foreground mr-2" />
-                  )}
-                  <div>
-                    <h3 className={`font-bold ${result.isWin ? 'text-green-500' : 'text-muted-foreground'}`}>
-                      {result.isWin ? 'You Won!' : 'Better Luck Next Time'}
-                    </h3>
-                    <p className="text-sm">
-                      {result.isWin 
-                        ? `${formatCurrency(result.payout)} coins with ${formatMultiplier(result.multiplier)}x multiplier!` 
-                        : `Ball landed on ${formatMultiplier(result.multiplier)}x`}
-                    </p>
-                  </div>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handlePlayAgain}
-                  disabled={isAnimating}
-                >
-                  Play Again
-                </Button>
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      )}
+      {/* Result Display removed as requested */}
     </div>
   );
 }
