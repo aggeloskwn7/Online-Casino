@@ -34,32 +34,24 @@ export default function PlinkoPage() {
           <MobileNav type="top" onMenuClick={() => setSidebarOpen(true)} />
         )}
 
-        {/* Main content */}
+        {/* Main content - with extra padding to avoid sidebar overlap */}
         <div className="flex-1 flex flex-col">
-          <main className="flex-1 p-4 md:p-6">
-            <div className="max-w-6xl mx-auto space-y-6">
+          <main className="flex-1 p-4 md:p-6 md:pl-10">
+            <div className="max-w-7xl mx-auto space-y-6">
               <h1 className="text-3xl font-bold tracking-tight mb-8">Plinko</h1>
-
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* Game area */}
-                <div className="lg:col-span-8 xl:col-span-9 space-y-6">
-                  <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
-                    <div className="p-4">
-                      <PlinkoGame />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Transaction history */}
-                <div className="lg:col-span-4 xl:col-span-3 space-y-6">
-                  <div className="bg-card rounded-lg border shadow-sm">
-                    <div className="p-4">
-                      <h2 className="text-xl font-semibold mb-4">Recent Games</h2>
-                      <ScrollArea className="h-[400px] pr-4">
-                        <TransactionHistory gameType="plinko" maxItems={25} />
-                      </ScrollArea>
-                    </div>
-                  </div>
+              
+              {/* Game area - Full width */}
+              <div className="bg-card rounded-lg border shadow-sm overflow-hidden mb-6">
+                <PlinkoGame />
+              </div>
+              
+              {/* Transaction history - Below the game */}
+              <div className="bg-card rounded-lg border shadow-sm">
+                <div className="p-4">
+                  <h2 className="text-xl font-semibold mb-4">Recent Games</h2>
+                  <ScrollArea className="h-[300px] pr-4">
+                    <TransactionHistory gameType="plinko" maxItems={25} />
+                  </ScrollArea>
                 </div>
               </div>
             </div>
