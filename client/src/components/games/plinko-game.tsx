@@ -60,21 +60,21 @@ interface PlinkoResult {
 type RiskLevel = 'low' | 'medium' | 'high';
 
 // Define the pin grid dimensions
-const ROWS = 16;
-const COLUMNS = 17; // Maximum pins in the last row
-const PIN_SIZE = 14;
-const PIN_SPACING_X = 45;
-const PIN_SPACING_Y = 45;
+const ROWS = 10; // Reduced from 16
+const COLUMNS = 11; // Reduced from 17
+const PIN_SIZE = 10; // Reduced from 14
+const PIN_SPACING_X = 40; // Reduced from 45
+const PIN_SPACING_Y = 40; // Reduced from 45
 const PIN_RADIUS = PIN_SIZE / 2;
-const BALL_SIZE = 16;
+const BALL_SIZE = 14; // Reduced from 16
 const BOARD_WIDTH = PIN_SPACING_X * (COLUMNS - 1);
-const BOARD_HEIGHT = PIN_SPACING_Y * ROWS + 250; // Extra space for buckets and bottom area
+const BOARD_HEIGHT = PIN_SPACING_Y * ROWS + 100; // Reduced extra space
 
-// Define multiplier buckets for different risk levels
+// Define multiplier buckets for different risk levels - fewer buckets
 const MULTIPLIERS: Record<RiskLevel, number[]> = {
-  low: [1.5, 1.2, 1.0, 0.5, 0.3, 0.2, 0.3, 0.5, 1.0, 1.2, 1.5, 2.0, 3.0],
-  medium: [5.0, 2.0, 1.5, 1.0, 0.5, 0.2, 0.1, 0.2, 0.5, 1.0, 1.5, 2.0, 5.0],
-  high: [10.0, 3.0, 1.5, 0.5, 0.3, 0.2, 0.1, 0.2, 0.3, 0.5, 1.5, 3.0, 10.0]
+  low: [2.0, 1.5, 1.0, 0.5, 0.3, 0.5, 1.0, 1.5, 2.0],
+  medium: [5.0, 2.0, 1.0, 0.5, 0.1, 0.5, 1.0, 2.0, 5.0],
+  high: [10.0, 3.0, 1.5, 0.5, 0.1, 0.5, 1.5, 3.0, 10.0]
 };
 
 // Calculate pin positions
@@ -328,9 +328,6 @@ export default function PlinkoGame({
         
         {/* Multiplier Buckets - Below the game board */}
         <div className="mt-2 w-full max-w-[700px]">
-          <div className="text-center text-sm text-muted-foreground mb-1">
-            Multipliers
-          </div>
           <div className="flex rounded-md overflow-hidden border">
             {buckets.map((bucket, index) => (
               <div
