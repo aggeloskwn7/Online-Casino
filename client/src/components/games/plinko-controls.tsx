@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useSound } from "@/hooks/use-sound";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { formatCurrency, formatMultiplier } from "@/lib/game-utils";
+import { formatCurrency } from "@/lib/game-utils";
 import { ArrowUp, ArrowDown, Zap } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

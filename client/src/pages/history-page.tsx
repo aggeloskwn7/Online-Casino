@@ -329,7 +329,7 @@ function HistoryPageContent() {
                                 {transaction.multiplier && (
                                   <div className="flex justify-between">
                                     <span className="text-gray-400">Multiplier:</span>
-                                    <span className="font-mono">{formatMultiplier(transaction.multiplier)}</span>
+                                    <span className="font-mono">{formatMultiplier(transaction.multiplier)}×</span>
                                   </div>
                                 )}
                               </div>
