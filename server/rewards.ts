@@ -198,5 +198,5 @@ export function setupRewardRoutes(app: any) {
   app.get("/api/rewards/check", authMiddleware, checkDailyReward);
   app.post("/api/rewards/claim", authMiddleware, claimDailyReward);
   app.get("/api/rewards/history", authMiddleware, getRewardHistory);
-  app.get("/api/rewards/schedule", getRewardSchedule);
+  app.get("/api/rewards/schedule", authMiddleware, getRewardSchedule);
 }
