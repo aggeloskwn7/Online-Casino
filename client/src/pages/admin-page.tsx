@@ -151,7 +151,10 @@ function UsersTab() {
         if (!banReason || banReason.trim().length < 3) {
           throw new Error('Ban reason is required and must be at least 3 characters');
         }
-        const res = await apiRequest('POST', `/api/admin/users/${userId}/ban`, { banReason });
+        // Send just the banReason (not the userId, as it's in the URL)
+        const res = await apiRequest('POST', `/api/admin/users/${userId}/ban`, { 
+          banReason: banReason 
+        });
         return await res.json();
       }
     },
