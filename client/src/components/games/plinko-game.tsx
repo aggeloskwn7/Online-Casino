@@ -192,6 +192,11 @@ export default function PlinkoGame({
         const safeBucketIndex = Math.min(Math.max(0, bucketIndex), buckets.length - 1);
         setLandingBucket(safeBucketIndex);
         
+        // Update ball position to land in the bucket
+        const bucketWidth = BOARD_WIDTH / buckets.length;
+        const bucketCenter = (safeBucketIndex * bucketWidth) + (bucketWidth / 2);
+        setBallPosition({ x: bucketCenter, y: BOARD_HEIGHT - 25 });
+        
         // Play sound based on win/loss
         if (result && result.isWin) {
           play('win');
@@ -285,7 +290,7 @@ export default function PlinkoGame({
           className="relative bg-gradient-to-b from-background/80 to-background border rounded-lg overflow-hidden"
           style={{ 
             width: Math.min(BOARD_WIDTH + 50, 700), 
-            height: Math.min(BOARD_HEIGHT, 600),
+            height: Math.min(BOARD_HEIGHT + 60, 600), // Increased height for buckets
             maxWidth: "100%" 
           }}
         >
@@ -302,6 +307,49 @@ export default function PlinkoGame({
               }}
             />
           ))}
+          
+          {/* Bucket separators - little triangles pointing up to separate buckets */}
+          <div className="absolute" style={{ bottom: 40, left: 0, width: "100%", height: 10 }}>
+            {Array.from({ length: buckets.length - 1 }).map((_, index) => (
+              <div 
+                key={`separator-${index}`}
+                className="absolute border-t-primary border-t-[5px] border-l-transparent border-l-[5px] border-r-transparent border-r-[5px]"
+                style={{ 
+                  left: `${((index + 1) / buckets.length) * 100}%`,
+                  transform: 'translateX(-50%)',
+                  zIndex: 5
+                }}
+              />
+            ))}
+          </div>
+          
+          {/* Multiplier Buckets - Directly below the pins INSIDE the board */}
+          <div 
+            className="absolute flex"
+            style={{ 
+              width: "100%",
+              bottom: 5,
+              left: 0,
+              height: 40
+            }}
+          >
+            {buckets.map((bucket, index) => (
+              <div
+                key={`bucket-${index}`}
+                className={`flex-1 flex items-center justify-center text-xs font-bold border-r last:border-r-0 ${
+                  landingBucket === index 
+                    ? bucket.multiplier >= 1 
+                      ? 'bg-green-500/30 text-green-500 border-green-500/50' 
+                      : 'bg-red-500/30 text-red-500 border-red-500/50'
+                    : bucket.multiplier >= 1 
+                      ? 'bg-primary/20 text-primary border-primary/30' 
+                      : 'bg-muted/40 text-muted-foreground border-muted/30'
+                }`}
+              >
+                {formatMultiplier(bucket.multiplier)}x
+              </div>
+            ))}
+          </div>
           
           {/* Ball */}
           <AnimatePresence>
@@ -324,28 +372,6 @@ export default function PlinkoGame({
               />
             )}
           </AnimatePresence>
-        </div>
-        
-        {/* Multiplier Buckets - Below the game board */}
-        <div className="mt-2 w-full max-w-[700px]">
-          <div className="flex rounded-md overflow-hidden border">
-            {buckets.map((bucket, index) => (
-              <div
-                key={`bucket-${index}`}
-                className={`flex-1 flex items-center justify-center py-1 text-xs font-bold ${
-                  landingBucket === index 
-                    ? bucket.multiplier >= 1 
-                      ? 'bg-green-500/30 text-green-500' 
-                      : 'bg-red-500/30 text-red-500'
-                    : bucket.multiplier >= 1 
-                      ? 'bg-primary/20 text-primary' 
-                      : 'bg-muted/40 text-muted-foreground'
-                }`}
-              >
-                {formatMultiplier(bucket.multiplier)}x
-              </div>
-            ))}
-          </div>
         </div>
       </div>
       
