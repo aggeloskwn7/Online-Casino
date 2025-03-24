@@ -173,46 +173,29 @@ export default function SlotsGame() {
           
           setShowWinMessage(true);
           
-          // If auto-spin is active, trigger next spin after a delay
-          if (isAutoSpin && autoSpinCount > 0) {
-            // Only continue if not already spinning
-            if (!isSpinning) {
-              // Check if we should continue auto spinning
-              const newAutoSpinCount = autoSpinCount + 1;
+          // If auto-spin is active, increment counter for next spin
+          if (isAutoSpin) {
+            const newAutoSpinCount = autoSpinCount + 1;
+            
+            if (newAutoSpinCount <= maxAutoSpins && 
+                !(stopAutoSpinOnWin && lastResult?.isWin)) {
+              // Increment counter
+              setAutoSpinCount(newAutoSpinCount);
+            } else {
+              // Auto-spin is complete
+              setIsAutoSpin(false);
               
-              const canContinueAutoSpin = newAutoSpinCount <= maxAutoSpins && 
-                (user && betAmount <= Number(user.balance)) &&
-                !(stopAutoSpinOnWin && lastResult?.isWin);
-                
-              if (canContinueAutoSpin) {
-                // Increment counter
-                setAutoSpinCount(newAutoSpinCount);
-                
-                // Schedule next auto-spin
-                autoSpinTimerRef.current = setTimeout(() => {
-                  handleSpin();
-                }, isFastSpin ? 500 : 1000);
+              // Show completion toast
+              if (stopAutoSpinOnWin && lastResult?.isWin) {
+                toast({
+                  title: "Auto-spin stopped",
+                  description: "Auto-spin stopped because you won!",
+                });
               } else {
-                // Auto-spin is complete
-                setIsAutoSpin(false);
-                
-                // Show completion toast
-                if (stopAutoSpinOnWin && lastResult?.isWin) {
-                  toast({
-                    title: "Auto-spin stopped",
-                    description: "Auto-spin stopped because you won!",
-                  });
-                } else if (autoSpinCount >= maxAutoSpins) {
-                  toast({
-                    title: "Auto-spin complete",
-                    description: `Completed ${maxAutoSpins} spins.`,
-                  });
-                } else {
-                  toast({
-                    title: "Auto-spin stopped",
-                    description: "Insufficient balance to continue.",
-                  });
-                }
+                toast({
+                  title: "Auto-spin complete",
+                  description: `Completed ${maxAutoSpins} spins.`,
+                });
               }
             }
           }
@@ -260,14 +243,53 @@ export default function SlotsGame() {
     });
   }, [toast]);
   
-  // Clean up any timers when component unmounts
+  // Set up an effect to monitor auto-spin status
   useEffect(() => {
+    // If auto-spin is active but not spinning, and we have spins left, trigger next spin
+    // This effect will run whenever relevant state changes
+    if (isAutoSpin && !isSpinning && autoSpinCount > 0 && autoSpinCount <= maxAutoSpins) {
+      const canContinueSpin = user && betAmount <= Number(user.balance) &&
+        !(stopAutoSpinOnWin && lastResult?.isWin);
+        
+      if (canContinueSpin) {
+        // Schedule next auto-spin with a slight delay
+        autoSpinTimerRef.current = setTimeout(() => {
+          slotsMutation.mutate(betAmount);
+        }, isFastSpin ? 500 : 1000);
+      } else {
+        // Auto-spin should stop due to win condition or insufficient balance
+        setIsAutoSpin(false);
+        setAutoSpinCount(0);
+        
+        // Show completion toast
+        if (stopAutoSpinOnWin && lastResult?.isWin) {
+          toast({
+            title: "Auto-spin stopped",
+            description: "Auto-spin stopped because you won!",
+          });
+        } else if (autoSpinCount >= maxAutoSpins) {
+          toast({
+            title: "Auto-spin complete",
+            description: `Completed ${maxAutoSpins} spins.`,
+          });
+        } else {
+          toast({
+            title: "Auto-spin stopped",
+            description: "Insufficient balance to continue.",
+          });
+        }
+      }
+    }
+    
+    // Clean up any timers when component unmounts or dependencies change
     return () => {
       if (autoSpinTimerRef.current) {
         clearTimeout(autoSpinTimerRef.current);
+        autoSpinTimerRef.current = null;
       }
     };
-  }, []);
+  }, [isAutoSpin, isSpinning, autoSpinCount, maxAutoSpins, user, betAmount, 
+      stopAutoSpinOnWin, lastResult, isFastSpin, toast]);
   
   const handleSpin = () => {
     // Validate bet amount
