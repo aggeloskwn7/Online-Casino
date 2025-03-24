@@ -322,95 +322,145 @@ export default function PlinkoGame() {
   };
   
   return (
-    <div className="flex flex-col space-y-6">
-      <div className="flex flex-col items-center">
+    <div className="container mx-auto py-4 max-w-6xl">
+      <div className="text-center mb-6">
         <h2 className="text-2xl font-bold mb-2">Plinko</h2>
-        <p className="text-muted-foreground mb-4">
+        <p className="text-muted-foreground">
           Watch the ball drop and win big with multipliers up to 100x!
         </p>
       </div>
       
-      {/* Main Game Container - Board and Controls Side by Side */}
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Plinko Board */}
-        <div className="flex justify-center lg:flex-1">
-          <div 
-            className="relative bg-gradient-to-b from-background/80 to-background border rounded-lg p-4"
-            style={{ width: BOARD_WIDTH + 50, height: BOARD_HEIGHT + 20 }}
-          >
-            {/* Pins */}
-            {pins.map((pin, index) => (
-              <div
-                key={`pin-${index}`}
-                className="absolute rounded-full bg-primary/70"
-                style={{
-                  width: PIN_SIZE,
-                  height: PIN_SIZE,
-                  left: pin.x - PIN_RADIUS,
-                  top: pin.y - PIN_RADIUS,
-                }}
-              />
-            ))}
-            
-            {/* Multiplier Buckets */}
+      {/* Main Game Container - Fixed grid layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        {/* Game board - takes 8 columns on large screens */}
+        <div className="lg:col-span-8 bg-background rounded-lg border shadow-sm overflow-hidden">
+          <div className="w-full flex justify-center p-4">
             <div 
-              className="absolute flex"
+              className="relative bg-gradient-to-b from-background/80 to-background border rounded-lg overflow-hidden"
               style={{ 
-                bottom: 10, 
-                left: 0, 
-                width: BOARD_WIDTH, 
-                height: 80 
+                width: Math.min(BOARD_WIDTH, 640), 
+                height: Math.min(BOARD_HEIGHT, 640),
+                maxWidth: "100%" 
               }}
             >
-              {buckets.map((bucket, index) => (
+              {/* Pins */}
+              {pins.map((pin, index) => (
                 <div
-                  key={`bucket-${index}`}
-                  className={`flex items-center justify-center text-xs font-bold border-r last:border-r-0 ${
-                    landingBucket === index 
-                      ? bucket.multiplier >= 1 
-                        ? 'bg-green-500/20 text-green-500' 
-                        : 'bg-red-500/20 text-red-500'
-                      : bucket.multiplier >= 1 
-                        ? 'bg-primary/10 text-primary' 
-                        : 'bg-muted/30 text-muted-foreground'
-                  }`}
+                  key={`pin-${index}`}
+                  className="absolute rounded-full bg-primary/70"
                   style={{
-                    width: bucket.width,
-                    height: '100%',
+                    width: PIN_SIZE,
+                    height: PIN_SIZE,
+                    left: pin.x - PIN_RADIUS,
+                    top: pin.y - PIN_RADIUS,
                   }}
-                >
-                  {formatMultiplier(bucket.multiplier)}x
-                </div>
-              ))}
-            </div>
-            
-            {/* Ball */}
-            <AnimatePresence>
-              {isAnimating && (
-                <motion.div
-                  className="absolute bg-yellow-400 rounded-full shadow-md shadow-yellow-200 z-10"
-                  style={{
-                    width: BALL_SIZE,
-                    height: BALL_SIZE,
-                  }}
-                  initial={{ 
-                    x: BOARD_WIDTH / 2 - BALL_SIZE / 2,
-                    y: -BALL_SIZE 
-                  }}
-                  animate={{ 
-                    x: ballPosition.x - BALL_SIZE / 2,
-                    y: ballPosition.y - BALL_SIZE / 2
-                  }}
-                  transition={{ type: 'spring', damping: 10 }}
                 />
-              )}
-            </AnimatePresence>
+              ))}
+              
+              {/* Multiplier Buckets */}
+              <div 
+                className="absolute flex"
+                style={{ 
+                  bottom: 10, 
+                  left: 0, 
+                  width: "100%", 
+                  height: 70 
+                }}
+              >
+                {buckets.map((bucket, index) => (
+                  <div
+                    key={`bucket-${index}`}
+                    className={`flex items-center justify-center text-xs font-bold border-r last:border-r-0 ${
+                      landingBucket === index 
+                        ? bucket.multiplier >= 1 
+                          ? 'bg-green-500/20 text-green-500' 
+                          : 'bg-red-500/20 text-red-500'
+                        : bucket.multiplier >= 1 
+                          ? 'bg-primary/10 text-primary' 
+                          : 'bg-muted/30 text-muted-foreground'
+                    }`}
+                    style={{
+                      width: bucket.width,
+                      height: '100%',
+                    }}
+                  >
+                    {formatMultiplier(bucket.multiplier)}x
+                  </div>
+                ))}
+              </div>
+              
+              {/* Ball */}
+              <AnimatePresence>
+                {isAnimating && (
+                  <motion.div
+                    className="absolute bg-yellow-400 rounded-full shadow-md shadow-yellow-200 z-10"
+                    style={{
+                      width: BALL_SIZE,
+                      height: BALL_SIZE,
+                    }}
+                    initial={{ 
+                      x: BOARD_WIDTH / 2 - BALL_SIZE / 2,
+                      y: -BALL_SIZE 
+                    }}
+                    animate={{ 
+                      x: ballPosition.x - BALL_SIZE / 2,
+                      y: ballPosition.y - BALL_SIZE / 2
+                    }}
+                    transition={{ type: 'spring', damping: 10 }}
+                  />
+                )}
+              </AnimatePresence>
+            </div>
           </div>
+          
+          {/* Result Display - Below the game board */}
+          {result && (
+            <div className="px-4 pb-4">
+              <AnimatePresence>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className={`p-4 rounded-lg ${
+                    result.isWin ? 'bg-green-500/10 border border-green-500/20' : 'bg-muted/10 border border-muted/20'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      {result.isWin ? (
+                        <Award className="h-6 w-6 text-green-500 mr-2" />
+                      ) : (
+                        <Coins className="h-6 w-6 text-muted-foreground mr-2" />
+                      )}
+                      <div>
+                        <h3 className={`font-bold ${result.isWin ? 'text-green-500' : 'text-muted-foreground'}`}>
+                          {result.isWin ? 'You Won!' : 'Better Luck Next Time'}
+                        </h3>
+                        <p className="text-sm">
+                          {result.isWin 
+                            ? `${formatCurrency(result.payout)} coins with ${formatMultiplier(result.multiplier)}x multiplier!` 
+                            : `Ball landed on ${formatMultiplier(result.multiplier)}x`}
+                        </p>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handlePlaceBet}
+                      disabled={isAnimating || placeBetMutation.isPending}
+                    >
+                      Play Again
+                    </Button>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          )}
         </div>
         
-        {/* Game Controls */}
-        <div className="lg:w-80">
-          <Card className="w-full h-full">
+        {/* Game Controls - takes 4 columns on large screens */}
+        <div className="lg:col-span-4">
+          <Card className="shadow-sm">
             <CardHeader>
               <CardTitle>Place Your Bet</CardTitle>
               <CardDescription>
@@ -552,6 +602,7 @@ export default function PlinkoGame() {
               <Button 
                 className="w-full"
                 size="lg"
+                variant="default"
                 disabled={
                   isAnimating || 
                   placeBetMutation.isPending || 
@@ -563,7 +614,7 @@ export default function PlinkoGame() {
                 onClick={handlePlaceBet}
               >
                 {isAnimating || placeBetMutation.isPending ? (
-                  <div className="flex items-center">
+                  <div className="flex items-center justify-center">
                     <span className="animate-spin mr-2">⏳</span>
                     Dropping...
                   </div>
@@ -578,48 +629,6 @@ export default function PlinkoGame() {
           </Card>
         </div>
       </div>
-      
-      {/* Result Display */}
-      {result && (
-        <AnimatePresence>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className={`p-4 rounded-lg ${
-              result.isWin ? 'bg-green-500/10 border border-green-500/20' : 'bg-muted/10 border border-muted/20'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                {result.isWin ? (
-                  <Award className="h-6 w-6 text-green-500 mr-2" />
-                ) : (
-                  <Coins className="h-6 w-6 text-muted-foreground mr-2" />
-                )}
-                <div>
-                  <h3 className={`font-bold ${result.isWin ? 'text-green-500' : 'text-muted-foreground'}`}>
-                    {result.isWin ? 'You Won!' : 'Better Luck Next Time'}
-                  </h3>
-                  <p className="text-sm">
-                    {result.isWin 
-                      ? `${formatCurrency(result.payout)} coins with ${formatMultiplier(result.multiplier)}x multiplier!` 
-                      : `Ball landed on ${formatMultiplier(result.multiplier)}x`}
-                  </p>
-                </div>
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handlePlaceBet}
-                disabled={isAnimating || placeBetMutation.isPending}
-              >
-                Play Again
-              </Button>
-            </div>
-          </motion.div>
-        </AnimatePresence>
-      )}
     </div>
   );
 }
