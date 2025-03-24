@@ -1581,6 +1581,7 @@ export async function playPlinko(req: Request, res: Response) {
     await storage.incrementPlayCount(userId);
     
     // Return result
+    // Make sure we match the expected client schema
     const result = plinkoGameSchema.parse({
       risk,
       rows,
@@ -1589,7 +1590,8 @@ export async function playPlinko(req: Request, res: Response) {
       multiplier,
       payout,
       isWin,
-      landingPosition: adjustedPosition
+      landingPosition: adjustedPosition,
+      multipliers: multipliers // Include the multipliers array for client display
     });
     
     res.status(200).json(result);
