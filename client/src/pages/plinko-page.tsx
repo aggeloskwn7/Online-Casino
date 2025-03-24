@@ -8,7 +8,7 @@ import TransactionHistory from '@/components/transaction-history';
 import MobileNav from '@/components/ui/mobile-nav';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useState } from 'react';
-import { PlinkoResult } from '@/types/plinko-types';
+import { PlinkoResult, RiskLevel } from '@/types/plinko-types';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -74,6 +74,7 @@ export default function PlinkoPage() {
   const [gameResult, setGameResult] = useState<PlinkoResult | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
   const [showHistory, setShowHistory] = useState(true); // Initially show history
+  const [currentRisk, setCurrentRisk] = useState<RiskLevel>('medium'); // Add shared risk state
   
   // Hide history during animation and show it again after
   React.useEffect(() => {

@@ -113,12 +113,16 @@ interface PlinkoGameProps {
   onResultChange?: (result: PlinkoResult | null) => void;
   onAnimatingChange?: (isAnimating: boolean) => void;
   externalResult?: PlinkoResult | null;
+  risk?: RiskLevel; // Add risk prop
+  onRiskChange?: (risk: RiskLevel) => void; // Add risk change callback
 }
 
 export default function PlinkoGame({ 
   onResultChange, 
   onAnimatingChange,
-  externalResult 
+  externalResult,
+  risk: externalRisk, // Use a different name to avoid conflict
+  onRiskChange 
 }: PlinkoGameProps = {}) {
   const { play } = useSound();
   const { toast } = useToast();
@@ -126,7 +130,8 @@ export default function PlinkoGame({
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
   const [currentPath, setCurrentPath] = useState<PathStep[] | null>(null);
   const [result, setResult] = useState<PlinkoResult | null>(null);
-  const [risk, setRisk] = useState<RiskLevel>('medium');
+  // Use external risk if provided, otherwise default to medium
+  const [risk, setRisk] = useState<RiskLevel>(externalRisk || 'medium');
   const [pins, setPins] = useState<PinPosition[]>(calculatePins());
   const [buckets, setBuckets] = useState<Bucket[]>(calculateBuckets('medium'));
   const [ballPosition, setBallPosition] = useState<BallPosition>({ x: BOARD_WIDTH / 2, y: 0 });
@@ -174,6 +179,14 @@ export default function PlinkoGame({
     }
   }, [externalResult]);
   
+  // Sync with external risk level
+  useEffect(() => {
+    if (externalRisk && externalRisk !== risk) {
+      setRisk(externalRisk);
+      console.log('Risk level updated from parent:', externalRisk);
+    }
+  }, [externalRisk, risk]);
+  
   // Notify parent component of animation state changes
   useEffect(() => {
     if (onAnimatingChange) {
@@ -187,6 +200,13 @@ export default function PlinkoGame({
       onResultChange(result);
     }
   }, [result, onResultChange]);
+  
+  // Notify parent component of risk changes
+  useEffect(() => {
+    if (onRiskChange) {
+      onRiskChange(risk);
+    }
+  }, [risk, onRiskChange]);
   
   // Animation function for the ball
   const animateBall = (path: PathStep[]): void => {

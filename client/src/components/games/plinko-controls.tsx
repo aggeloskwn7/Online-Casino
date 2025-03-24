@@ -15,6 +15,8 @@ import { PlinkoResult, BetData, RiskLevel } from "@/types/plinko-types";
 interface PlinkoControlsProps {
   onBetPlaced: (result: PlinkoResult) => void;
   isAnimating: boolean;
+  risk?: RiskLevel;
+  onRiskChange?: (risk: RiskLevel) => void;
 }
 
 export function PlinkoControls({ onBetPlaced, isAnimating }: PlinkoControlsProps) {
