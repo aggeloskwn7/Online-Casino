@@ -136,9 +136,7 @@ export function BanNotification() {
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction>Understood</AlertDialogAction>
-          </AlertDialogFooter>
+          {/* Removed the "Understood" button to make the notification unremovable */}
         </AlertDialogContent>
       </AlertDialog>
     );
@@ -207,9 +205,7 @@ export function BanNotification() {
             )}
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogAction>Understood</AlertDialogAction>
-        </AlertDialogFooter>
+        {/* Removed the "Understood" button to make the notification unremovable */}
       </AlertDialogContent>
     </AlertDialog>
   );

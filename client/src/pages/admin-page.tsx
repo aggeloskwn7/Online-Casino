@@ -140,9 +140,20 @@ function UsersTab() {
   
   // Ban/unban user mutation
   const updateBanStatus = useMutation({
-    mutationFn: async ({ userId, isBanned }: { userId: number, isBanned: boolean }) => {
-      const res = await apiRequest('PATCH', `/api/admin/users/${userId}/ban`, { isBanned });
-      return await res.json();
+    mutationFn: async ({ userId, isBanned, banReason }: { userId: number, isBanned: boolean, banReason?: string }) => {
+      // For banning, use POST to /api/admin/users/:userId/ban with banReason
+      // For unbanning, use POST to /api/admin/users/:userId/unban
+      if (isBanned) {
+        const res = await apiRequest('POST', `/api/admin/users/${userId}/unban`);
+        return await res.json();
+      } else {
+        // When banning, require a reason
+        if (!banReason || banReason.trim().length < 3) {
+          throw new Error('Ban reason is required and must be at least 3 characters');
+        }
+        const res = await apiRequest('POST', `/api/admin/users/${userId}/ban`, { banReason });
+        return await res.json();
+      }
     },
     onSuccess: () => {
       toast({
@@ -152,6 +163,7 @@ function UsersTab() {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users/search'] });
       setIsBanDialogOpen(false);
+      setBanReason(''); // Reset the ban reason
     },
     onError: (error: Error) => {
       toast({
@@ -433,10 +445,35 @@ function UsersTab() {
                 <div className="font-semibold">{selectedUser.username}</div>
               </div>
               
+              {/* Show ban reason input only when banning (not unbanning) */}
+              {!selectedUser.isBanned && (
+                <div>
+                  <Label htmlFor="banReason" className="text-sm font-medium">
+                    Ban Reason <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    id="banReason"
+                    placeholder="Please provide a reason for banning this user..."
+                    value={banReason}
+                    onChange={(e) => setBanReason(e.target.value)}
+                    className="mt-1"
+                    rows={3}
+                  />
+                  {updateBanStatus.error && banReason.trim().length < 3 && (
+                    <p className="text-sm text-red-500 mt-1">
+                      Ban reason is required and must be at least 3 characters
+                    </p>
+                  )}
+                </div>
+              )}
+              
               <div className="flex justify-end gap-2 pt-4">
                 <Button 
                   variant="outline" 
-                  onClick={() => setIsBanDialogOpen(false)}
+                  onClick={() => {
+                    setIsBanDialogOpen(false);
+                    setBanReason(''); // Reset the ban reason when closing
+                  }}
                   disabled={updateBanStatus.isPending}
                 >
                   Cancel
@@ -445,9 +482,10 @@ function UsersTab() {
                   variant={selectedUser.isBanned ? "default" : "destructive"}
                   onClick={() => updateBanStatus.mutate({
                     userId: selectedUser.id,
-                    isBanned: !selectedUser.isBanned
+                    isBanned: selectedUser.isBanned,
+                    banReason: banReason
                   })}
-                  disabled={updateBanStatus.isPending}
+                  disabled={updateBanStatus.isPending || (!selectedUser.isBanned && banReason.trim().length < 3)}
                 >
                   {updateBanStatus.isPending && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
