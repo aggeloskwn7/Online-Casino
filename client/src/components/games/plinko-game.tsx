@@ -62,11 +62,11 @@ type RiskLevel = 'low' | 'medium' | 'high';
 // Define the pin grid dimensions
 const ROWS = 16;
 const COLUMNS = 17; // Maximum pins in the last row
-const PIN_SIZE = 12;
-const PIN_SPACING_X = 40;
-const PIN_SPACING_Y = 40;
+const PIN_SIZE = 14;
+const PIN_SPACING_X = 45;
+const PIN_SPACING_Y = 45;
 const PIN_RADIUS = PIN_SIZE / 2;
-const BALL_SIZE = 14;
+const BALL_SIZE = 16;
 const BOARD_WIDTH = PIN_SPACING_X * (COLUMNS - 1);
 const BOARD_HEIGHT = PIN_SPACING_Y * ROWS + 150; // Extra space for buckets
 
@@ -336,8 +336,8 @@ export default function PlinkoGame() {
           <div 
             className="relative bg-gradient-to-b from-background/80 to-background border rounded-lg overflow-hidden"
             style={{ 
-              width: Math.min(BOARD_WIDTH, 550), 
-              height: Math.min(BOARD_HEIGHT, 550),
+              width: Math.min(BOARD_WIDTH + 50, 650), 
+              height: Math.min(BOARD_HEIGHT + 50, 650),
               maxWidth: "100%" 
             }}
           >

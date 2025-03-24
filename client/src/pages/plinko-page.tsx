@@ -36,22 +36,25 @@ export default function PlinkoPage() {
 
         {/* Main content - with extra padding to avoid sidebar overlap */}
         <div className="flex-1 flex flex-col">
-          <main className="flex-1 p-4 md:p-6 md:pl-10">
+          <main className="flex-1 p-4 md:p-6 md:pl-20">
             <div className="max-w-7xl mx-auto space-y-6">
               <h1 className="text-3xl font-bold tracking-tight mb-8">Plinko</h1>
               
-              {/* Game area - Full width */}
-              <div className="bg-card rounded-lg border shadow-sm overflow-hidden mb-6">
-                <PlinkoGame />
-              </div>
-              
-              {/* Transaction history - Below the game */}
-              <div className="bg-card rounded-lg border shadow-sm">
-                <div className="p-4">
-                  <h2 className="text-xl font-semibold mb-4">Recent Games</h2>
-                  <ScrollArea className="h-[300px] pr-4">
-                    <TransactionHistory gameType="plinko" maxItems={25} />
-                  </ScrollArea>
+              {/* Two column layout */}
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                {/* Game area - Takes 3 columns */}
+                <div className="lg:col-span-3 bg-card rounded-lg border shadow-sm overflow-hidden">
+                  <PlinkoGame />
+                </div>
+                
+                {/* Transaction history - Takes 1 column on the right */}
+                <div className="bg-card rounded-lg border shadow-sm h-fit">
+                  <div className="p-4">
+                    <h2 className="text-xl font-semibold mb-4">Recent Games</h2>
+                    <ScrollArea className="h-[400px] pr-4">
+                      <TransactionHistory gameType="plinko" maxItems={25} />
+                    </ScrollArea>
+                  </div>
                 </div>
               </div>
             </div>
