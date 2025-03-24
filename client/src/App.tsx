@@ -47,6 +47,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <BanNotification />
         <Router />
         <Toaster />
       </AuthProvider>
