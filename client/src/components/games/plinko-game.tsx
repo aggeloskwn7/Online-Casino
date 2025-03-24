@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, ChangeEvent } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/use-auth';
@@ -26,6 +26,39 @@ import { formatCurrency, formatMultiplier } from '@/lib/game-utils';
 import { ArrowDown, ArrowUp, Coins, Award, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// Define types for the Plinko game
+interface PinPosition {
+  row: number;
+  x: number;
+  y: number;
+  radius: number;
+}
+
+interface Bucket {
+  x: number;
+  width: number;
+  multiplier: number;
+}
+
+interface PathStep {
+  row: number;
+  position: number;
+}
+
+interface BallPosition {
+  x: number;
+  y: number;
+}
+
+interface PlinkoResult {
+  isWin: boolean;
+  payout: number;
+  multiplier: number;
+  path: PathStep[];
+}
+
+type RiskLevel = 'low' | 'medium' | 'high';
+
 // Define the pin grid dimensions
 const ROWS = 16;
 const COLUMNS = 17; // Maximum pins in the last row
@@ -38,15 +71,15 @@ const BOARD_WIDTH = PIN_SPACING_X * (COLUMNS - 1);
 const BOARD_HEIGHT = PIN_SPACING_Y * ROWS + 150; // Extra space for buckets
 
 // Define multiplier buckets for different risk levels
-const MULTIPLIERS = {
+const MULTIPLIERS: Record<RiskLevel, number[]> = {
   low: [1.5, 1.2, 1.0, 0.5, 0.3, 0.2, 0.3, 0.5, 1.0, 1.2, 1.5, 2.0, 3.0],
   medium: [5.0, 2.0, 1.5, 1.0, 0.5, 0.2, 0.1, 0.2, 0.5, 1.0, 1.5, 2.0, 5.0],
   high: [10.0, 3.0, 1.5, 0.5, 0.3, 0.2, 0.1, 0.2, 0.3, 0.5, 1.5, 3.0, 10.0]
 };
 
 // Calculate pin positions
-const calculatePins = () => {
-  const pins = [];
+const calculatePins = (): PinPosition[] => {
+  const pins: PinPosition[] = [];
   
   for (let row = 0; row < ROWS; row++) {
     const pinsInRow = row + 1;
@@ -66,11 +99,11 @@ const calculatePins = () => {
 };
 
 // Calculate bucket positions
-const calculateBuckets = (riskLevel) => {
+const calculateBuckets = (riskLevel: RiskLevel): Bucket[] => {
   const multipliers = MULTIPLIERS[riskLevel];
   const bucketWidth = BOARD_WIDTH / multipliers.length;
   
-  return multipliers.map((multiplier, index) => {
+  return multipliers.map((multiplier: number, index: number) => {
     return {
       x: index * bucketWidth + bucketWidth / 2,
       width: bucketWidth,
@@ -79,36 +112,43 @@ const calculateBuckets = (riskLevel) => {
   });
 };
 
+// Main component
 export default function PlinkoGame() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { play } = useSound();
   
-  const [amount, setAmount] = useState(10);
-  const [risk, setRisk] = useState('medium');
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [currentPath, setCurrentPath] = useState(null);
-  const [result, setResult] = useState(null);
-  const [pins, setPins] = useState(calculatePins());
-  const [buckets, setBuckets] = useState(calculateBuckets('medium'));
-  const [ballPosition, setBallPosition] = useState({ x: BOARD_WIDTH / 2, y: 0 });
-  const [landingBucket, setLandingBucket] = useState(null);
+  const [amount, setAmount] = useState<number>(10);
+  const [risk, setRisk] = useState<RiskLevel>('medium');
+  const [isAnimating, setIsAnimating] = useState<boolean>(false);
+  const [currentPath, setCurrentPath] = useState<PathStep[] | null>(null);
+  const [result, setResult] = useState<PlinkoResult | null>(null);
+  const [pins, setPins] = useState<PinPosition[]>(calculatePins());
+  const [buckets, setBuckets] = useState<Bucket[]>(calculateBuckets('medium'));
+  const [ballPosition, setBallPosition] = useState<BallPosition>({ x: BOARD_WIDTH / 2, y: 0 });
+  const [landingBucket, setLandingBucket] = useState<number | null>(null);
   
-  const canvasRef = useRef(null);
-  const animationRef = useRef(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const animationRef = useRef<NodeJS.Timeout | null>(null);
   
   // Update buckets when risk level changes
   useEffect(() => {
     setBuckets(calculateBuckets(risk));
   }, [risk]);
   
+  // Interface for the bet data
+  interface BetData {
+    amount: number;
+    risk: RiskLevel;
+  }
+  
   // Mutation for placing a bet
-  const placeBetMutation = useMutation({
-    mutationFn: async (data) => {
+  const placeBetMutation = useMutation<PlinkoResult, Error, BetData>({
+    mutationFn: async (data: BetData) => {
       const res = await apiRequest('POST', '/api/games/plinko', data);
       return await res.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data: PlinkoResult) => {
       // Start animation with the returned path
       animateBall(data.path);
       setResult(data);
@@ -120,7 +160,7 @@ export default function PlinkoGame() {
       // Play sounds
       play('bet');
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error',
         description: error.message || 'Failed to place bet',
@@ -130,7 +170,7 @@ export default function PlinkoGame() {
   });
   
   // Handle bet form submission
-  const handlePlaceBet = () => {
+  const handlePlaceBet = (): void => {
     if (isAnimating) return;
     
     if (!user) {
@@ -174,7 +214,7 @@ export default function PlinkoGame() {
   };
   
   // Animation function for the ball
-  const animateBall = (path) => {
+  const animateBall = (path: PathStep[]): void => {
     setIsAnimating(true);
     
     // Reset ball position to the top center
@@ -188,7 +228,7 @@ export default function PlinkoGame() {
     const totalSteps = fullPath.length;
     const stepDuration = 100; // ms per step
     
-    const animate = () => {
+    const animate = (): void => {
       if (currentStep >= totalSteps) {
         // Animation complete
         setIsAnimating(false);
@@ -213,7 +253,7 @@ export default function PlinkoGame() {
             description: result.isWin 
               ? `You won ${formatCurrency(result.payout)} coins with a ${formatMultiplier(result.multiplier)}x multiplier!`
               : `Ball landed on ${formatMultiplier(result.multiplier)}x`,
-            variant: result.isWin ? 'success' : 'default'
+            variant: result.isWin ? 'default' : 'default'
           });
         }
         
@@ -243,8 +283,8 @@ export default function PlinkoGame() {
   };
   
   // Helper function to generate a random path (for testing)
-  const generateRandomPath = () => {
-    const path = [];
+  const generateRandomPath = (): PathStep[] => {
+    const path: PathStep[] = [];
     let position = 0;
     
     for (let row = 0; row < ROWS; row++) {
@@ -271,12 +311,12 @@ export default function PlinkoGame() {
     };
   }, []);
   
-  const handleAmountChange = (e) => {
+  const handleAmountChange = (e: ChangeEvent<HTMLInputElement>): void => {
     const newAmount = parseInt(e.target.value, 10) || 0;
     setAmount(newAmount);
   };
   
-  const adjustAmount = (adjustment) => {
+  const adjustAmount = (adjustment: number): void => {
     const newAmount = Math.max(1, amount + adjustment);
     setAmount(newAmount);
   };
@@ -380,7 +420,7 @@ export default function PlinkoGame() {
             <label className="text-sm font-medium">Risk Level</label>
             <Select
               value={risk}
-              onValueChange={(value) => setRisk(value)}
+              onValueChange={(value: RiskLevel) => setRisk(value)}
               disabled={isAnimating || placeBetMutation.isPending}
             >
               <SelectTrigger>
@@ -429,7 +469,7 @@ export default function PlinkoGame() {
                 variant="outline" 
                 size="sm" 
                 className="flex-1"
-                onClick={() => setAmount(Math.max(1, amount / 2))}
+                onClick={() => setAmount(Math.max(1, Math.floor(amount / 2)))}
                 disabled={amount <= 1 || isAnimating || placeBetMutation.isPending}
               >
                 ½
@@ -447,7 +487,11 @@ export default function PlinkoGame() {
                 variant="outline" 
                 size="sm"
                 className="flex-1"
-                onClick={() => setAmount(Math.floor(user?.balance || 0))}
+                onClick={() => {
+                  if (user?.balance) {
+                    setAmount(Math.floor(user.balance));
+                  }
+                }}
                 disabled={!user?.balance || isAnimating || placeBetMutation.isPending}
               >
                 Max

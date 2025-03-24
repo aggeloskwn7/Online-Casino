@@ -110,6 +110,7 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
             <GameLink href="/slots" emoji="🎰" label="Slots" />
             <GameLink href="/blackjack" emoji="♠️" label="Blackjack" />
             <GameLink href="/roulette" emoji="🎯" label="Roulette" />
+            <GameLink href="/plinko" emoji="🔴" label="Plinko" />
             <GameLink href="/crash" emoji="🚀" label="Crash" />
             <GameLink href="/dice" emoji="🎲" label="Dice" />
           </nav>

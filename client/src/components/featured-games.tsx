@@ -36,19 +36,50 @@ const featuredGames = [
     )
   },
   {
-    id: 'slots',
-    name: 'Lucky Slots',
-    description: 'Classic slot machine with multiple paylines',
-    path: '/slots',
-    icon: 'ri-slot-machine-line',
-    rating: 4.8,
-    tag: 'Popular',
-    tagColor: '#5465FF',
+    id: 'plinko',
+    name: 'Lucky Plinko',
+    description: 'Drop the ball and watch it bounce for big multipliers',
+    path: '/plinko',
+    icon: 'ri-checkbox-multiple-blank-fill',
+    rating: 4.9,
+    tag: 'NEW',
+    tagColor: '#FF5555',
     preview: (
-      <div className="flex space-x-2 scale-90">
-        <div className="w-14 h-24 bg-[#2A2A2A] rounded-lg flex items-center justify-center text-4xl">🍒</div>
-        <div className="w-14 h-24 bg-[#2A2A2A] rounded-lg flex items-center justify-center text-4xl">7️⃣</div>
-        <div className="w-14 h-24 bg-[#2A2A2A] rounded-lg flex items-center justify-center text-4xl">💎</div>
+      <div className="relative scale-90">
+        <div className="w-32 h-32 rounded-lg bg-[#1a1a1a] flex items-center justify-center relative overflow-hidden">
+          {/* Pins */}
+          {[0, 1, 2, 3].map((row) => (
+            <div key={`row-${row}`} className="absolute flex" style={{ top: `${25 + row * 20}%` }}>
+              {Array(row + 3).fill(0).map((_, i) => (
+                <div
+                  key={`pin-${row}-${i}`}
+                  className="w-2 h-2 bg-primary/70 rounded-full mx-1"
+                  style={{ marginLeft: row === 0 ? `${i * 30}px` : row === 1 ? `${i * 26}px` : row === 2 ? `${i * 22}px` : `${i * 18}px` }}
+                />
+              ))}
+            </div>
+          ))}
+          {/* Ball */}
+          <div className="absolute w-3 h-3 bg-yellow-400 rounded-full animate-bounce" style={{ top: '15%', left: '45%' }} />
+          {/* Buckets */}
+          <div className="absolute bottom-0 w-full flex">
+            {['0.2x', '1x', '3x', '5x', '0.2x'].map((mult, i) => (
+              <div 
+                key={`bucket-${i}`} 
+                className={`flex-1 text-center text-[8px] pb-1 ${
+                  mult === '5x' ? 'bg-green-500/20 text-green-500' : 
+                  mult === '0.2x' ? 'bg-red-500/20 text-red-500' : 
+                  'bg-primary/10 text-primary'
+                }`}
+              >
+                {mult}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="absolute top-[-8px] right-[5px] font-bold bg-red-500 text-white px-2 rounded-full text-xs py-1 animate-pulse">
+          NEW!
+        </div>
       </div>
     )
   },
