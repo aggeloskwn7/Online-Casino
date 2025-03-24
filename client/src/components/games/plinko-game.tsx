@@ -77,12 +77,14 @@ const MULTIPLIERS: Record<RiskLevel, number[]> = {
   high: [10.0, 5.0, 3.0, 1.5, 0.5, 0.1, 0.5, 1.5, 3.0, 5.0, 10.0]
 };
 
-// Calculate pin positions
+// Calculate pin positions - ensure they line up with buckets
 const calculatePins = (): PinPosition[] => {
   const pins: PinPosition[] = [];
   
+  // Make sure pins line up with bucket positions
   for (let row = 0; row < ROWS; row++) {
     const pinsInRow = row + 1;
+    // Calculate start X the same way we calculate bucket positions
     const startX = (BOARD_WIDTH - (pinsInRow - 1) * PIN_SPACING_X) / 2;
     
     for (let i = 0; i < pinsInRow; i++) {
@@ -98,14 +100,18 @@ const calculatePins = (): PinPosition[] => {
   return pins;
 };
 
-// Calculate bucket positions
+// Calculate bucket positions - precisely align with pins in the last row
 const calculateBuckets = (riskLevel: RiskLevel): Bucket[] => {
   const multipliers = MULTIPLIERS[riskLevel];
-  const bucketWidth = BOARD_WIDTH / multipliers.length;
+  // Calculate width based on pin positions in the last row
+  const pinsInLastRow = ROWS; // Number of pins in the last row = ROWS
+  const lastRowStartX = (BOARD_WIDTH - (pinsInLastRow - 1) * PIN_SPACING_X) / 2;
+  const bucketWidth = PIN_SPACING_X; // Equal to spacing between pins
   
   return multipliers.map((multiplier: number, index: number) => {
+    // Calculate position to align with where balls would fall between pins
     return {
-      x: index * bucketWidth + bucketWidth / 2,
+      x: lastRowStartX + index * bucketWidth,
       width: bucketWidth,
       multiplier
     };
@@ -186,16 +192,19 @@ export default function PlinkoGame({
         // Animation complete
         setIsAnimating(false);
         
-        // Calculate which bucket the ball landed in
-        const finalX = fullPath[fullPath.length - 1].position * PIN_SPACING_X + (BOARD_WIDTH - (ROWS * PIN_SPACING_X)) / 2;
-        const bucketIndex = Math.floor((finalX / BOARD_WIDTH) * buckets.length);
-        const safeBucketIndex = Math.min(Math.max(0, bucketIndex), buckets.length - 1);
+        // Get the final position from the path
+        const finalPosition = fullPath[fullPath.length - 1].position;
+        // Match the bucket directly with the final position
+        const safeBucketIndex = Math.min(Math.max(0, finalPosition), buckets.length - 1);
         setLandingBucket(safeBucketIndex);
         
-        // Update ball position to land in the bucket
-        const bucketWidth = BOARD_WIDTH / buckets.length;
-        const bucketCenter = (safeBucketIndex * bucketWidth) + (bucketWidth / 2);
-        setBallPosition({ x: bucketCenter, y: BOARD_HEIGHT - 25 });
+        // Get the exact position of the bucket from our buckets array
+        const bucket = buckets[safeBucketIndex];
+        // Center the ball in the bucket - position it where it looks visually correct
+        setBallPosition({ 
+          x: bucket.x + (bucket.width / 2), 
+          y: BOARD_HEIGHT - 20 // Adjust vertical position to match the sloped bucket top
+        });
         
         // Play sound based on win/loss
         if (result && result.isWin) {
@@ -218,9 +227,12 @@ export default function PlinkoGame({
         return;
       }
       
-      // Calculate new position
+      // Calculate new position based on pin locations
       const pathStep = fullPath[currentStep];
-      const x = pathStep.position * PIN_SPACING_X + (BOARD_WIDTH - (pathStep.row * PIN_SPACING_X)) / 2;
+      // Use the same calculation logic as the pin positions
+      const pinsInRow = pathStep.row + 1;
+      const startX = (BOARD_WIDTH - (pinsInRow - 1) * PIN_SPACING_X) / 2;
+      const x = startX + pathStep.position * PIN_SPACING_X;
       const y = pathStep.row * PIN_SPACING_Y + 60;
       
       // Update ball position
@@ -308,43 +320,41 @@ export default function PlinkoGame({
             />
           ))}
           
-          {/* Bucket separators - little triangles pointing up to separate buckets */}
-          <div className="absolute" style={{ bottom: 40, left: 0, width: "100%", height: 10 }}>
-            {Array.from({ length: buckets.length - 1 }).map((_, index) => (
+          {/* Bucket separators - vertical lines to separate buckets */}
+          <div className="absolute" style={{ bottom: 0, left: 0, width: "100%", height: 45 }}>
+            {buckets.slice(0, -1).map((bucket, index) => (
               <div 
                 key={`separator-${index}`}
-                className="absolute border-t-primary border-t-[5px] border-l-transparent border-l-[5px] border-r-transparent border-r-[5px]"
+                className="absolute h-full w-[1px] bg-primary/30"
                 style={{ 
-                  left: `${((index + 1) / buckets.length) * 100}%`,
-                  transform: 'translateX(-50%)',
+                  left: bucket.x + bucket.width,
                   zIndex: 5
                 }}
               />
             ))}
           </div>
           
-          {/* Multiplier Buckets - Directly below the pins INSIDE the board */}
-          <div 
-            className="absolute flex"
-            style={{ 
-              width: "100%",
-              bottom: 5,
-              left: 0,
-              height: 40
-            }}
-          >
+          {/* Multiplier Buckets - Positioned directly below the pins for proper alignment */}
+          <div className="absolute" style={{ bottom: 0, left: 0, width: "100%", height: 40 }}>
             {buckets.map((bucket, index) => (
               <div
                 key={`bucket-${index}`}
-                className={`flex-1 flex items-center justify-center text-xs font-bold border-r last:border-r-0 ${
+                className={`absolute flex items-center justify-center text-xs font-bold ${
                   landingBucket === index 
                     ? bucket.multiplier >= 1 
-                      ? 'bg-green-500/30 text-green-500 border-green-500/50' 
-                      : 'bg-red-500/30 text-red-500 border-red-500/50'
+                      ? 'bg-green-500/30 text-green-500' 
+                      : 'bg-red-500/30 text-red-500'
                     : bucket.multiplier >= 1 
-                      ? 'bg-primary/20 text-primary border-primary/30' 
-                      : 'bg-muted/40 text-muted-foreground border-muted/30'
+                      ? 'bg-primary/20 text-primary' 
+                      : 'bg-muted/40 text-muted-foreground'
                 }`}
+                style={{
+                  left: bucket.x,
+                  width: bucket.width,
+                  height: "100%",
+                  // Add sloped tops to buckets
+                  clipPath: 'polygon(0% 20%, 50% 0%, 100% 20%, 100% 100%, 0% 100%)'
+                }}
               >
                 {formatMultiplier(bucket.multiplier)}x
               </div>
