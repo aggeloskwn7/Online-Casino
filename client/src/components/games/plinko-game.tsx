@@ -105,18 +105,17 @@ const calculatePins = (): PinPosition[] => {
   return pins;
 };
 
-// Calculate bucket positions - precisely align with pins in the last row
+// Calculate bucket positions - centered precisely in the card
 const calculateBuckets = (riskLevel: RiskLevel): Bucket[] => {
   const multipliers = MULTIPLIERS[riskLevel];
   
-  // Use the same center-based calculation as with pins
-  const centerX = BOARD_WIDTH / 2;
-  // Total width of the entire last row of pins
-  const rowWidth = (ROWS - 1) * PIN_SPACING_X;
-  // Starting position for buckets, aligned with where pins would be
-  const startX = centerX - rowWidth / 2;
+  // Get total width of all buckets combined
+  const bucketWidth = PIN_SPACING_X; // Each bucket has width equal to pin spacing
+  const totalBucketsWidth = bucketWidth * multipliers.length;
   
-  const bucketWidth = PIN_SPACING_X; // Equal to spacing between pins
+  // Center the buckets in the card by starting from the center point
+  const centerX = BOARD_WIDTH / 2;
+  const startX = centerX - (totalBucketsWidth / 2);
   
   return multipliers.map((multiplier: number, index: number) => {
     // Calculate position to align with where balls would fall
@@ -208,11 +207,16 @@ export default function PlinkoGame({
         const safeBucketIndex = Math.min(Math.max(0, finalPosition), buckets.length - 1);
         setLandingBucket(safeBucketIndex);
         
-        // Get the exact position of the bucket from our buckets array
-        const bucket = buckets[safeBucketIndex];
+        // Calculate the final position using the exact same bucket centering math
+        const bucketWidth = PIN_SPACING_X;
+        const totalBucketsWidth = bucketWidth * BUCKET_COUNT;
+        const centerX = BOARD_WIDTH / 2;
+        const startX = centerX - (totalBucketsWidth / 2);
+        const finalX = startX + safeBucketIndex * bucketWidth + bucketWidth / 2;
+        
         // Center the ball in the bucket - position it where it looks visually correct
         setBallPosition({ 
-          x: bucket.x + (bucket.width / 2), 
+          x: finalX,
           y: BOARD_HEIGHT - 20 // Adjust vertical position to match the sloped bucket top
         });
         
@@ -239,16 +243,29 @@ export default function PlinkoGame({
       
       // Calculate new position based on pin locations
       const pathStep = fullPath[currentStep];
-      // Use the exact same calculation logic as our pins
-      const pinsInRow = pathStep.row + 1;
-      const centerX = BOARD_WIDTH / 2;
-      const rowWidth = (pinsInRow - 1) * PIN_SPACING_X;
-      const startX = centerX - rowWidth / 2;
-      const x = startX + pathStep.position * PIN_SPACING_X;
-      const y = pathStep.row * PIN_SPACING_Y + 60;
+      let newX = 0;
+      let newY = 0;
+      
+      if (pathStep.row < ROWS) {
+        // For pins (rows 0 to ROWS-1), use the pin calculation
+        const pinsInRow = pathStep.row + 1;
+        const centerX = BOARD_WIDTH / 2;
+        const rowWidth = (pinsInRow - 1) * PIN_SPACING_X;
+        const startX = centerX - rowWidth / 2;
+        newX = startX + pathStep.position * PIN_SPACING_X;
+        newY = pathStep.row * PIN_SPACING_Y + 60;
+      } else {
+        // For the final row (buckets), use the bucket calculation
+        const bucketWidth = PIN_SPACING_X;
+        const totalBucketsWidth = bucketWidth * BUCKET_COUNT;
+        const centerX = BOARD_WIDTH / 2;
+        const startX = centerX - (totalBucketsWidth / 2);
+        newX = startX + pathStep.position * bucketWidth + bucketWidth / 2;
+        newY = BOARD_HEIGHT - 20;
+      }
       
       // Update ball position
-      setBallPosition({ x, y });
+      setBallPosition({ x: newX, y: newY });
       
       // Play pin hit sound
       if (currentStep > 0 && currentStep < totalSteps - 1) {
