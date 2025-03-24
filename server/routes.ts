@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, authMiddleware } from "./auth";
+import { setupAuth, authMiddleware, banStatusMiddleware } from "./auth";
 import { setupAdminRoutes } from "./admin";
 import { setupRewardRoutes } from "./rewards";
 import { 
@@ -233,7 +233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupRewardRoutes(app);
   
   // Ban appeal endpoints
-  app.get("/api/user/ban-status", authMiddleware, async (req: Request, res: Response) => {
+  app.get("/api/user/ban-status", banStatusMiddleware, async (req: Request, res: Response) => {
     try {
       const userId = req.user!.id;
       const user = await storage.getUser(userId);

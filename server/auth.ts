@@ -66,6 +66,42 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
   }
 }
 
+// Special middleware for routes that should be accessible by banned users
+export function banStatusMiddleware(req: Request, res: Response, next: NextFunction) {
+  try {
+    // Get token from Authorization header
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log("Ban Status middleware: No Bearer token provided");
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: number };
+    
+    // Attach user to request
+    storage.getUser(decoded.userId)
+      .then(user => {
+        if (!user) {
+          console.log("Ban Status middleware: User not found for token");
+          return res.status(401).json({ message: "Unauthorized" });
+        }
+        
+        // Important: Allow access even if the user is banned
+        req.user = user;
+        next();
+      })
+      .catch(err => {
+        console.error("Error fetching user:", err);
+        res.status(500).json({ message: "Server error" });
+      });
+  } catch (error) {
+    console.error("Token validation error:", error);
+    res.status(401).json({ message: "Unauthorized" });
+  }
+}
+
 // Admin-only middleware - must come after authMiddleware
 export function adminMiddleware(req: Request, res: Response, next: NextFunction) {
   if (!req.user) {
