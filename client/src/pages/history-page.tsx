@@ -54,10 +54,15 @@ function HistoryPageContent() {
     refetchOnWindowFocus: true,
   });
 
+  // Debug: log the first transaction to see its structure
+  if (transactions && transactions.length > 0) {
+    console.log("First transaction:", JSON.stringify(transactions[0]));
+  }
+
   // Filter transactions based on selected game
   const filteredTransactions = transactions?.filter(transaction => {
     if (gameFilter === 'all') return true;
-    return transaction.gameType === gameFilter;
+    return transaction.gameType.toLowerCase() === gameFilter.toLowerCase();
   }) || [];
 
   // Sort transactions
