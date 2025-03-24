@@ -280,12 +280,12 @@ export default function PlinkoGame({
       </div>
       
       {/* Game board - Full width */}
-      <div className="flex justify-center">
+      <div className="flex flex-col items-center">
         <div 
           className="relative bg-gradient-to-b from-background/80 to-background border rounded-lg overflow-hidden"
           style={{ 
             width: Math.min(BOARD_WIDTH + 50, 700), 
-            height: Math.min(BOARD_HEIGHT + 50, 700),
+            height: Math.min(BOARD_HEIGHT, 600),
             maxWidth: "100%" 
           }}
         >
@@ -302,48 +302,6 @@ export default function PlinkoGame({
               }}
             />
           ))}
-          
-          {/* Multiplier label */}
-          <div className="absolute text-center font-medium text-muted-foreground"
-            style={{
-              bottom: 160,
-              left: 0,
-              width: "100%"
-            }}>
-            Multipliers
-          </div>
-          
-          {/* Multiplier Buckets */}
-          <div 
-            className="absolute flex"
-            style={{ 
-              bottom: 80, 
-              left: 0, 
-              width: "100%", 
-              height: 80 
-            }}
-          >
-            {buckets.map((bucket, index) => (
-              <div
-                key={`bucket-${index}`}
-                className={`flex items-center justify-center text-sm md:text-base font-bold rounded-md m-[1px] ${
-                  landingBucket === index 
-                    ? bucket.multiplier >= 1 
-                      ? 'bg-green-500/30 text-green-500 border border-green-500/50' 
-                      : 'bg-red-500/30 text-red-500 border border-red-500/50'
-                    : bucket.multiplier >= 1 
-                      ? 'bg-primary/20 text-primary border border-primary/30' 
-                      : 'bg-muted/40 text-muted-foreground border border-muted/30'
-                }`}
-                style={{
-                  width: bucket.width,
-                  height: '100%',
-                }}
-              >
-                {formatMultiplier(bucket.multiplier)}x
-              </div>
-            ))}
-          </div>
           
           {/* Ball */}
           <AnimatePresence>
@@ -366,6 +324,31 @@ export default function PlinkoGame({
               />
             )}
           </AnimatePresence>
+        </div>
+        
+        {/* Multiplier Buckets - Below the game board */}
+        <div className="mt-2 w-full max-w-[700px]">
+          <div className="text-center text-sm text-muted-foreground mb-1">
+            Multipliers
+          </div>
+          <div className="flex rounded-md overflow-hidden border">
+            {buckets.map((bucket, index) => (
+              <div
+                key={`bucket-${index}`}
+                className={`flex-1 flex items-center justify-center py-2 text-sm md:text-base font-bold ${
+                  landingBucket === index 
+                    ? bucket.multiplier >= 1 
+                      ? 'bg-green-500/30 text-green-500 border-green-500/50' 
+                      : 'bg-red-500/30 text-red-500 border-red-500/50'
+                    : bucket.multiplier >= 1 
+                      ? 'bg-primary/20 text-primary border-primary/30' 
+                      : 'bg-muted/40 text-muted-foreground border-muted/30'
+                }`}
+              >
+                {formatMultiplier(bucket.multiplier)}x
+              </div>
+            ))}
+          </div>
         </div>
       </div>
       
