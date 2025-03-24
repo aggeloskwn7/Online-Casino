@@ -1439,8 +1439,12 @@ export async function playPlinko(req: Request, res: Response) {
     }
     
     // Validate request body
-    const parsedBody = betSchema.parse(req.body);
-    const { amount } = parsedBody;
+    const parsedBody = z.object({
+      amount: z.number().positive().min(1).max(10000),
+      risk: z.enum(['low', 'medium', 'high']).default('medium')
+    }).parse(req.body);
+    
+    const { amount, risk } = parsedBody;
     
     // Get current user with balance
     const user = await storage.getUser(userId);
@@ -1463,13 +1467,18 @@ export async function playPlinko(req: Request, res: Response) {
     const isBigWin = shouldBeBigWin(playCount);
     
     // Define plinko multipliers for different risk levels
-    // These are typical values for 16-row plinko
-    const multipliers = [
-      0.2, 0.4, 0.7, 1.5, 3, 5, 8, 13, 20, 40, 100, 200
-    ];
+    // These are adjusted for 10-row plinko with 11 buckets
+    const MULTIPLIERS_BY_RISK = {
+      low: [1.2, 1.5, 0.8, 0.5, 0.3, 0.2, 0.3, 0.5, 0.8, 1.5, 2.0],
+      medium: [3.0, 1.5, 1.0, 0.5, 0.3, 0.1, 0.3, 0.5, 1.0, 1.5, 3.0],
+      high: [5.0, 3.0, 1.0, 0.5, 0.3, 0.1, 0.3, 0.5, 1.0, 3.0, 5.0]
+    };
     
-    // Generate plinko pins (simulate a 16-row plinko board)
-    const rows = 16;
+    // Get multipliers for the selected risk level
+    const multipliers = MULTIPLIERS_BY_RISK[risk];
+    
+    // Generate plinko pins (10-row plinko board to match frontend)
+    const rows = 10;
     const pins = [];
     
     for (let r = 0; r < rows; r++) {
@@ -1536,7 +1545,9 @@ export async function playPlinko(req: Request, res: Response) {
     
     // Determine multiplier based on where the ball landed
     const landingPosition = path[path.length - 1].position;
-    const multiplier = multipliers[landingPosition];
+    // Ensure position is within bounds for our 11 multiplier buckets
+    const adjustedPosition = Math.min(landingPosition, multipliers.length - 1);
+    const multiplier = multipliers[adjustedPosition];
     
     // Determine if it's a win (multiplier > 1.0)
     const isWin = multiplier > 1.0;
