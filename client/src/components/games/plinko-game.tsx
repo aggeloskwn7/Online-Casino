@@ -93,38 +93,6 @@ const MULTIPLIERS: Record<RiskLevel, number[]> = {
 };
 
 // Main helper functions use the dimensions object
-// These are the default implementations that work with the dimensions state
-const calculatePinsWithSpacing = (
-  spacingX: number, 
-  spacingY: number,
-  boardWidth = spacingX * BUCKET_COUNT
-): PinPosition[] => {
-  const pins: PinPosition[] = [];
-  
-  // Calculate the center point of the board
-  const centerX = boardWidth / 2;
-  
-  // Start from the top with a single pin
-  for (let row = 0; row < ROWS; row++) {
-    const pinsInRow = row + 1;
-    // Total width of pins in this row
-    const rowWidth = (pinsInRow - 1) * spacingX;
-    // Calculate starting X to center pins on the board
-    const startX = centerX - rowWidth / 2;
-    
-    for (let i = 0; i < pinsInRow; i++) {
-      pins.push({
-        row,
-        x: startX + i * spacingX,
-        y: row * spacingY + 60, // Add top margin
-        radius: PIN_RADIUS
-      });
-    }
-  }
-  
-  return pins;
-};
-
 // Calculate bucket positions - centered precisely in the card
 const calculateBucketsWithSpacing = (
   riskLevel: RiskLevel, 
@@ -196,6 +164,23 @@ export default function PlinkoGame({
   
   const animationRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Helper function to calculate dimensions based on container width
+  const calculateDimensions = (containerWidth: number) => {
+    // Base spacing on container width
+    const pinSpacingX = containerWidth < 400 ? 30 : containerWidth < 600 ? 40 : 50;
+    const pinSpacingY = containerWidth < 400 ? 30 : containerWidth < 600 ? 40 : 50;
+    const boardWidth = pinSpacingX * BUCKET_COUNT;
+    // Ensure board height is proportional to width
+    const boardHeight = (pinSpacingY * ROWS) + 110;
+    
+    return {
+      pinSpacingX,
+      pinSpacingY,
+      boardWidth,
+      boardHeight
+    };
+  };
+
   // ResizeObserver to monitor container size changes
   useEffect(() => {
     // Function to update dimensions based on container width
@@ -279,21 +264,7 @@ export default function PlinkoGame({
     return pins;
   };
   
-  const calculateBucketsWithSpacing = (riskLevel: RiskLevel, spacingX: number, boardWidth: number): Bucket[] => {
-    const multipliers = MULTIPLIERS[riskLevel];
-    const bucketWidth = spacingX;
-    const totalBucketsWidth = bucketWidth * multipliers.length;
-    const centerX = boardWidth / 2;
-    const startX = centerX - (totalBucketsWidth / 2);
-    
-    return multipliers.map((multiplier: number, index: number) => {
-      return {
-        x: startX + index * bucketWidth,
-        width: bucketWidth,
-        multiplier
-      };
-    });
-  };
+
   
   // Update buckets when risk level changes or when result contains multipliers
   useEffect(() => {
