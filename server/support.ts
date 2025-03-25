@@ -206,7 +206,16 @@ export function setupSupportRoutes(app: Express) {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
       
       const tickets = await storage.getSupportTickets(status, page, limit);
-      res.json(tickets);
+      
+      // Return a structured response object with tickets property
+      res.json({
+        tickets: tickets,
+        pagination: {
+          currentPage: page,
+          totalPages: Math.ceil(tickets.length / limit),
+          totalItems: tickets.length
+        }
+      });
     } catch (error) {
       console.error("Error fetching support tickets:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
@@ -229,7 +238,11 @@ export function setupSupportRoutes(app: Express) {
         return res.status(404).json({ message: "Ticket not found" });
       }
       
-      res.json(ticket);
+      // Make sure we return a format that includes the messages property the client expects
+      res.json({
+        ...ticket,
+        messages: ticket.messages || []
+      });
     } catch (error) {
       console.error("Error fetching ticket details:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
