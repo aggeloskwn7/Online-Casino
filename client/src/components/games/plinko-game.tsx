@@ -79,6 +79,30 @@ const calculateDimensions = (containerWidth: number) => {
   };
 };
 
+// Helper function to calculate pin positions with given spacing
+const calculatePinsWithSpacing = (spacingX: number, spacingY: number): PinPosition[] => {
+  const pins: PinPosition[] = [];
+  const boardWidth = spacingX * BUCKET_COUNT;
+  const centerX = boardWidth / 2;
+  
+  for (let row = 0; row < ROWS; row++) {
+    const pinsInRow = row + 1;
+    const rowWidth = (pinsInRow - 1) * spacingX;
+    const startX = centerX - rowWidth / 2;
+    
+    for (let i = 0; i < pinsInRow; i++) {
+      pins.push({
+        row,
+        x: startX + i * spacingX,
+        y: row * spacingY + 60,
+        radius: PIN_RADIUS
+      });
+    }
+  }
+  
+  return pins;
+};
+
 // Define multiplier buckets for different risk levels - buckets match the number of pins in the last row
 // These should match server-side values in games.ts
 const MULTIPLIERS: Record<RiskLevel, number[]> = {
@@ -163,23 +187,6 @@ export default function PlinkoGame({
   const [ballSize, setBallSize] = useState(14);
   
   const animationRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Helper function to calculate dimensions based on container width
-  const calculateDimensions = (containerWidth: number) => {
-    // Base spacing on container width
-    const pinSpacingX = containerWidth < 400 ? 30 : containerWidth < 600 ? 40 : 50;
-    const pinSpacingY = containerWidth < 400 ? 30 : containerWidth < 600 ? 40 : 50;
-    const boardWidth = pinSpacingX * BUCKET_COUNT;
-    // Ensure board height is proportional to width
-    const boardHeight = (pinSpacingY * ROWS) + 110;
-    
-    return {
-      pinSpacingX,
-      pinSpacingY,
-      boardWidth,
-      boardHeight
-    };
-  };
 
   // ResizeObserver to monitor container size changes
   useEffect(() => {
@@ -240,29 +247,7 @@ export default function PlinkoGame({
     };
   }, [risk]);
   
-  // Helper functions to calculate pins and buckets with dynamic spacing
-  const calculatePinsWithSpacing = (spacingX: number, spacingY: number): PinPosition[] => {
-    const pins: PinPosition[] = [];
-    const boardWidth = spacingX * BUCKET_COUNT;
-    const centerX = boardWidth / 2;
-    
-    for (let row = 0; row < ROWS; row++) {
-      const pinsInRow = row + 1;
-      const rowWidth = (pinsInRow - 1) * spacingX;
-      const startX = centerX - rowWidth / 2;
-      
-      for (let i = 0; i < pinsInRow; i++) {
-        pins.push({
-          row,
-          x: startX + i * spacingX,
-          y: row * spacingY + 60,
-          radius: PIN_RADIUS
-        });
-      }
-    }
-    
-    return pins;
-  };
+  // We're using the function defined above
   
 
   
