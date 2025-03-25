@@ -18,7 +18,7 @@ export default function MobileNav({ type = 'top', onMenuClick }: MobileNavProps)
           <button className="text-2xl" onClick={onMenuClick}>
             <i className="ri-menu-line"></i>
           </button>
-          <h1 className="text-xl font-heading font-bold bg-gradient-to-r from-[#5465FF] to-[#00E701] bg-clip-text text-transparent">CRYPTO CASINO</h1>
+          <h1 className="text-xl font-heading font-bold bg-gradient-to-r from-[#5465FF] to-[#00E701] bg-clip-text text-transparent">RAGE BET</h1>
           <div className="flex items-center space-x-1">
             <i className="ri-coin-line text-yellow-500"></i>
             <span className="font-mono font-medium">

@@ -82,7 +82,7 @@ export default function Sidebar({ mobile = false, onClose }: SidebarProps) {
       )}
       
       <div className="p-6 flex items-center justify-center border-b border-[#333333]">
-        <h1 className="text-2xl font-heading font-bold bg-gradient-to-r from-[#5465FF] to-[#00E701] bg-clip-text text-transparent">CRYPTO CASINO</h1>
+        <h1 className="text-2xl font-heading font-bold bg-gradient-to-r from-[#5465FF] to-[#00E701] bg-clip-text text-transparent">RAGE BET</h1>
       </div>
       
       <div className="flex flex-col flex-grow overflow-y-auto p-4">

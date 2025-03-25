@@ -113,7 +113,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
             <div className="flex flex-1 items-center justify-between">
               <Link href="/">
                 <a className="flex items-center space-x-2">
-                  <span className="font-bold text-xl">CasinoApp</span>
+                  <span className="font-bold text-xl">Rage Bet</span>
                 </a>
               </Link>
               
@@ -337,7 +337,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
             <div className="flex h-14 items-center border-b px-4">
               <Link href="/">
                 <a className="flex items-center space-x-2">
-                  <span className="font-bold text-xl">CasinoApp</span>
+                  <span className="font-bold text-xl">Rage Bet</span>
                 </a>
               </Link>
             </div>
@@ -403,7 +403,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
               <div className="flex h-14 items-center px-4">
                 <Link href="/">
                   <a className="lg:hidden flex items-center space-x-2">
-                    <span className="font-bold text-xl">CasinoApp</span>
+                    <span className="font-bold text-xl">Rage Bet</span>
                   </a>
                 </Link>
                 

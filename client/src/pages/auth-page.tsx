@@ -92,7 +92,7 @@ export default function AuthPage() {
           <CardContent className="pt-6">
             <div className="text-center mb-6">
               <h1 className="text-2xl font-heading font-bold bg-gradient-to-r from-[#5465FF] to-[#00E701] bg-clip-text text-transparent mb-2">
-                CRYPTO CASINO
+                RAGE BET
               </h1>
               <p className="text-gray-400">Sign in to start playing or create a new account</p>
             </div>
@@ -284,10 +284,10 @@ export default function AuthPage() {
         <div className="max-w-lg">
           <div className="text-center md:text-left mb-6">
             <h2 className="text-3xl md:text-4xl font-heading font-bold mb-4">
-              Experience the Thrill of <span className="text-[#5465FF]">Crypto</span> <span className="text-[#00E701]">Casino</span>
+              Experience the Thrill of <span className="text-[#5465FF]">Rage</span> <span className="text-[#00E701]">Bet</span>
             </h2>
             <p className="text-gray-400 mb-6">
-              Join thousands of players in the most exciting crypto casino games. Play Slots, Dice, and Crash games with our virtual currency.
+              Join thousands of players in the most exciting Rage Bet games. Play Slots, Dice, and Crash games with our virtual currency.
             </p>
           </div>
           
