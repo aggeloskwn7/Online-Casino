@@ -293,7 +293,7 @@ export default function SlotsGame() {
   
   const handleSpin = () => {
     // Validate bet amount
-    if (!user || betAmount <= 0 || betAmount > Number(user.balance)) {
+    if (!user || betAmount <= 0) {
       toast({
         title: 'Invalid bet',
         description: 'Please enter a valid bet amount',
@@ -305,6 +305,17 @@ export default function SlotsGame() {
         stopAutoSpin();
       }
       
+      return;
+    }
+    
+    // Check maximum bet limit
+    if (betAmount > 10000) {
+      setBetAmount(10000);
+      toast({
+        title: 'Maximum bet limit',
+        description: 'Maximum bet amount is 10,000 coins',
+        variant: 'warning',
+      });
       return;
     }
     
@@ -360,7 +371,8 @@ export default function SlotsGame() {
   
   // Function to create bet value buttons
   const renderBetButtons = () => {
-    const betValues = [1, 5, 10, 25, 50, 100, 500];
+    const betValues = [1, 5, 10, 25, 50, 100, 500, 1000, 5000];
+    
     return (
       <div className="flex flex-wrap gap-2 justify-center mt-3">
         {betValues.map(value => (
@@ -380,6 +392,22 @@ export default function SlotsGame() {
             {formatCurrency(value)}
           </button>
         ))}
+        
+        {/* Max Bet Button */}
+        <button
+          className={`
+            py-1 px-3 rounded-full text-sm font-bold transition-all duration-200 w-full mt-1
+            ${betAmount === 10000 
+              ? 'bg-gradient-to-r from-yellow-500 to-amber-600 text-black scale-105' 
+              : 'bg-gradient-to-r from-amber-700/40 to-amber-600/40 text-amber-300 hover:from-amber-700/50 hover:to-amber-600/50'
+            }
+            ${isSpinning ? 'opacity-50 cursor-not-allowed' : 'hover:scale-102'}
+          `}
+          onClick={() => setBetAmount(10000)}
+          disabled={isSpinning}
+        >
+          MAX BET: {formatCurrency(10000)}
+        </button>
       </div>
     );
   };
