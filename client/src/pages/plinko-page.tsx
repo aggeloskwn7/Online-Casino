@@ -130,9 +130,9 @@ export default function PlinkoPage() {
                 </div>
               ) : (
                 /* Game board and controls side by side - only shown when logged in */
-                <div className="grid grid-cols-12 gap-6 mb-8">
-                  {/* Game board */}
-                  <div className="col-span-12 lg:col-span-8 bg-card rounded-lg border shadow-sm overflow-hidden">
+                <div className="flex flex-col md:flex-row gap-6 mb-8">
+                  {/* Game board - full width on mobile */}
+                  <div className="w-full md:w-2/3 bg-card rounded-lg border shadow-sm overflow-hidden">
                     <PlinkoGame 
                       externalResult={gameResult}
                       onAnimatingChange={setIsAnimating}
@@ -141,8 +141,8 @@ export default function PlinkoPage() {
                     />
                   </div>
                   
-                  {/* Controls right next to the board */}
-                  <div className="col-span-12 lg:col-span-4">
+                  {/* Controls stacked below on mobile, beside on desktop */}
+                  <div className="w-full md:w-1/3 flex-shrink-0">
                     <PlinkoControls 
                       onBetPlaced={setGameResult}
                       isAnimating={isAnimating}

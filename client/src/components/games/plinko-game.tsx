@@ -595,7 +595,7 @@ export default function PlinkoGame({
                 {buckets.map((bucket, index) => (
                   <div
                     key={`bucket-${index}`}
-                    className={`absolute flex items-center justify-center text-xs font-bold ${
+                    className={`absolute flex items-center justify-center text-[0.6rem] xs:text-xs font-bold ${
                       landingBucket === index 
                         ? bucket.multiplier >= 1 
                           ? 'bg-green-500/30 text-green-500' 
@@ -611,7 +611,10 @@ export default function PlinkoGame({
                       clipPath: 'polygon(0% 20%, 50% 0%, 100% 20%, 100% 100%, 0% 100%)'
                     }}
                   >
-                    {formatMultiplier(bucket.multiplier)}×
+                    {/* Shorter format for smaller screens */}
+                    <span className="transform scale-90">
+                      {formatMultiplier(bucket.multiplier)}×
+                    </span>
                   </div>
                 ))}
               </div>
