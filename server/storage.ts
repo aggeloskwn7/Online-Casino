@@ -176,7 +176,7 @@ export class DatabaseStorage implements IStorage {
   async updateUserLastLogin(userId: number): Promise<User> {
     const [updatedUser] = await db
       .update(users)
-      .set({ lastLogin: new Date() })
+      .set({ last_login: new Date() })
       .where(eq(users.id, userId))
       .returning();
     
