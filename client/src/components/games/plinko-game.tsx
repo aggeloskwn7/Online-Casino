@@ -37,7 +37,7 @@ import {
 // Define the pin grid dimensions
 const ROWS = 10; // Number of rows of pins
 const BUCKET_COUNT = 11; // Number of buckets (should match multipliers array length)
-const PIN_SIZE = 10;
+const PIN_SIZE = 12; // Increased pin size
 const PIN_RADIUS = PIN_SIZE / 2;
 // Ball size will be dynamically calculated based on container width
 
@@ -94,7 +94,7 @@ const calculatePinsWithSpacing = (spacingX: number, spacingY: number): PinPositi
   // Calculate the available height for pins (total height minus bucket space and padding)
   const availablePinHeight = boardWidth - bucketHeight;
   // Distribute pins evenly in the available space
-  const pinStartY = 100; // Start pins lower down from the top
+  const pinStartY = 80; // Move pins higher up from previous position
   
   for (let row = 0; row < pinRows; row++) {
     // Each row has one more pin than the previous
@@ -469,7 +469,7 @@ export default function PlinkoGame({
         // Use the same formula from the pin calculation to match Y positions
         const bucketHeight = 60;
         const availablePinHeight = dimensions.boardWidth - bucketHeight;
-        const pinStartY = 100;
+        const pinStartY = 80; // Make sure this matches the value in calculatePinsWithSpacing function
         newY = pinStartY + (pathStep.row * (availablePinHeight / (ROWS - 1)));
       } else {
         // For the final row (buckets), use the bucket calculation
@@ -617,10 +617,13 @@ export default function PlinkoGame({
                   key={`pin-${index}`}
                   className="absolute rounded-full bg-primary/70"
                   style={{
-                    width: PIN_SIZE,
+                    width: PIN_SIZE, 
                     height: PIN_SIZE,
                     left: pin.x - PIN_RADIUS,
                     top: pin.y - PIN_RADIUS,
+                    transform: 'translate(-50%, -50%)',
+                    marginLeft: PIN_RADIUS,
+                    marginTop: PIN_RADIUS,
                   }}
                 />
               )) : (
