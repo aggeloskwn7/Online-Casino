@@ -214,6 +214,29 @@ export function setupSupportRoutes(app: Express) {
     }
   });
   
+  // Get specific ticket details (admin)
+  app.get('/api/admin/support/tickets/:id', adminMiddleware, async (req, res) => {
+    try {
+      const ticketId = parseInt(req.params.id);
+      
+      if (isNaN(ticketId)) {
+        return res.status(400).json({ message: "Invalid ticket ID" });
+      }
+      
+      const ticket = await storage.getSupportTicket(ticketId);
+      
+      if (!ticket) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+      
+      res.json(ticket);
+    } catch (error) {
+      console.error("Error fetching ticket details:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Failed to fetch ticket details", error: errorMessage });
+    }
+  });
+  
   // Admin update ticket status
   app.patch('/api/admin/support/tickets/:id/status', adminMiddleware, async (req, res) => {
     try {
