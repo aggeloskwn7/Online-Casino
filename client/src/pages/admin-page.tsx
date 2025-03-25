@@ -1556,10 +1556,10 @@ function SupportTab() {
     isLoading: isLoadingTicket,
     refetch: refetchTicket
   } = useQuery({
-    queryKey: ['/api/support/tickets/details', selectedTicket?.id],
+    queryKey: ['/api/admin/support/tickets/details', selectedTicket?.id],
     queryFn: async () => {
       if (!selectedTicket) return null;
-      const res = await apiRequest('GET', `/api/support/tickets/${selectedTicket.id}`);
+      const res = await apiRequest('GET', `/api/admin/support/tickets/${selectedTicket.id}`);
       return await res.json();
     },
     enabled: !!selectedTicket
