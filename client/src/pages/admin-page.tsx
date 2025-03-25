@@ -87,7 +87,9 @@ import {
   MessagesSquare,
   BarChart3,
   Activity,
-  Users
+  Users,
+  Key,
+  Lock
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/game-utils';
