@@ -41,12 +41,23 @@ export async function claimDailyReward(req: Request, res: Response) {
     }
     
     const userId = req.user.id;
+    console.log(`Attempting to claim daily reward for User ID ${userId}, username: ${req.user.username}`);
     
-    // Check if user is eligible for a reward
+    // Get the user's specific information to ensure each user's rewards are tracked separately
+    const user = await storage.getUser(userId);
+    if (!user) {
+      console.error(`Error claiming reward: User ID ${userId} not found at claim time`);
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    // Check if this specific user is eligible for a reward
     const isEligible = await storage.checkDailyRewardStatus(userId);
     if (!isEligible) {
+      console.log(`User ${user.username} (ID: ${userId}) is not eligible for a reward today`);
       return res.status(400).json({ message: "You've already claimed your daily reward today" });
     }
+    
+    console.log(`User ${user.username} (ID: ${userId}) is eligible for a reward, proceeding...`);
     
     // Calculate the next login streak day
     // If undefined/null, use 0 so the first claim is Day 1

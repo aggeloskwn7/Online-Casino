@@ -299,6 +299,9 @@ export class DatabaseStorage implements IStorage {
       throw new Error(`User ID ${userId} not found`);
     }
     
+    // Get the user's specific information for rewards tracking
+    const userCreationDate = user.createdAt ? new Date(user.createdAt) : new Date();
+    console.log(`User ${user.username} (ID: ${userId}) creation date: ${userCreationDate.toISOString()}`);
     console.log(`User ${user.username} (ID: ${userId}) last reward date: ${user.lastRewardDate || 'never'}`);
     
     // If no lastRewardDate, they have never claimed a reward
@@ -313,11 +316,13 @@ export class DatabaseStorage implements IStorage {
     // Use UTC date strings to avoid timezone issues
     const lastRewardDay = lastReward.toISOString().split('T')[0];
     const todayDay = now.toISOString().split('T')[0];
+    
+    // Check if the last reward was claimed on a different day
+    // This ensures each user has their own eligibility tracking
     const isEligible = lastRewardDay !== todayDay;
     
     console.log(`User ${user.username} (ID: ${userId}) last reward on ${lastRewardDay}, today is ${todayDay}, eligible: ${isEligible}`);
     
-    // Check if the last reward was claimed on a different day
     return isEligible;
   }
 
