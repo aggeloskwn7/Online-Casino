@@ -19,6 +19,86 @@ import { z } from "zod";
  */
 export function setupAdminRoutes(app: Express) {
   console.log("Setting up admin API routes...");
+  
+  // === ANALYTICS ENDPOINTS ===
+  
+  // Get analytics data
+  app.get("/api/admin/analytics", authMiddleware, adminMiddleware, async (req, res) => {
+    try {
+      const { timeframe } = req.query;
+      let startDate;
+      const endDate = new Date();
+      
+      // Set time range based on timeframe
+      switch(timeframe) {
+        case 'today':
+          startDate = new Date();
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case 'yesterday':
+          startDate = new Date();
+          startDate.setDate(startDate.getDate() - 1);
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case 'week':
+          startDate = new Date();
+          startDate.setDate(startDate.getDate() - 7);
+          break;
+        case 'month':
+          startDate = new Date();
+          startDate.setMonth(startDate.getMonth() - 1);
+          break;
+        case 'year':
+          startDate = new Date();
+          startDate.setFullYear(startDate.getFullYear() - 1);
+          break;
+        default:
+          startDate = new Date();
+          startDate.setHours(0, 0, 0, 0); // Default to today
+      }
+      
+      // Get active users count (users who logged in during the timeframe)
+      const activeUsers = await storage.getActiveUsersCount(startDate, endDate);
+      
+      // Get total user count
+      const totalUsers = await storage.getUserCount();
+      
+      // Get total coins spent and earned during the timeframe
+      const coinsSpent = await storage.getCoinsSpent(startDate, endDate);
+      const coinsEarned = await storage.getCoinsEarned(startDate, endDate);
+      
+      // Get most played game
+      const mostPlayedGame = await storage.getMostPlayedGame(startDate, endDate);
+      
+      // Get game distribution
+      const gameDistribution = await storage.getGameDistribution(startDate, endDate);
+      
+      // Get daily new users for past 30 days
+      const dailyNewUsers = await storage.getDailyNewUsers();
+      
+      // Get daily transactions for past 30 days
+      const dailyTransactions = await storage.getDailyTransactions();
+      
+      // Get subscription stats
+      const subscriptionStats = await storage.getSubscriptionStats();
+      
+      res.json({
+        activeUsers,
+        totalUsers,
+        coinsSpent,
+        coinsEarned,
+        mostPlayedGame,
+        gameDistribution,
+        dailyNewUsers,
+        dailyTransactions,
+        subscriptionStats,
+        timeframe: timeframe || 'today'
+      });
+    } catch (error) {
+      console.error("Error in analytics endpoint:", error);
+      res.status(500).json({ message: "Failed to get analytics data" });
+    }
+  });
 
   // === USER MANAGEMENT ENDPOINTS ===
   

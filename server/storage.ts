@@ -51,6 +51,16 @@ export interface IStorage {
   updateLoginStreak(userId: number, streak: number): Promise<User>;
   checkDailyRewardStatus(userId: number): Promise<boolean>;
   
+  // Analytics operations
+  getActiveUsersCount(startDate: Date, endDate: Date): Promise<number>;
+  getCoinsSpent(startDate: Date, endDate: Date): Promise<number>;
+  getCoinsEarned(startDate: Date, endDate: Date): Promise<number>;
+  getMostPlayedGame(startDate: Date, endDate: Date): Promise<{gameType: string, count: number}>;
+  getGameDistribution(startDate: Date, endDate: Date): Promise<{gameType: string, count: number}[]>;
+  getDailyNewUsers(): Promise<{date: string, count: number}[]>;
+  getDailyTransactions(): Promise<{date: string, bets: number, wins: number}[]>;
+  getSubscriptionStats(): Promise<{tier: string, count: number}[]>;
+  
   // Transaction operations
   getUserTransactions(userId: number, limit?: number): Promise<Transaction[]>;
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
@@ -461,6 +471,190 @@ export class DatabaseStorage implements IStorage {
     return baseReward * bonusMultiplier;
   }
   
+  // === ANALYTICS OPERATIONS ===
+  async getActiveUsersCount(startDate: Date, endDate: Date): Promise<number> {
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(users)
+      .where(and(
+        sql`"lastLogin" IS NOT NULL`,
+        sql`"lastLogin" >= ${startDate}`,
+        sql`"lastLogin" <= ${endDate}`
+      ));
+    
+    return result[0].count;
+  }
+  
+  async getCoinsSpent(startDate: Date, endDate: Date): Promise<number> {
+    const result = await db
+      .select({
+        total: sql<string>`COALESCE(SUM(CAST("amount" AS NUMERIC)), 0)`
+      })
+      .from(transactions)
+      .where(and(
+        sql`"gameType" IS NOT NULL`,
+        sql`"timestamp" >= ${startDate}`,
+        sql`"timestamp" <= ${endDate}`,
+        sql`"isWin" = false`
+      ));
+    
+    return parseFloat(result[0].total);
+  }
+  
+  async getCoinsEarned(startDate: Date, endDate: Date): Promise<number> {
+    const result = await db
+      .select({
+        total: sql<string>`COALESCE(SUM(CAST("payout" AS NUMERIC)), 0)`
+      })
+      .from(transactions)
+      .where(and(
+        sql`"gameType" IS NOT NULL`,
+        sql`"timestamp" >= ${startDate}`,
+        sql`"timestamp" <= ${endDate}`,
+        sql`"isWin" = true`
+      ));
+    
+    return parseFloat(result[0].total);
+  }
+  
+  async getMostPlayedGame(startDate: Date, endDate: Date): Promise<{gameType: string, count: number}> {
+    const result = await db
+      .select({
+        gameType: transactions.gameType,
+        count: sql<number>`count(*)`
+      })
+      .from(transactions)
+      .where(and(
+        sql`"gameType" IS NOT NULL`,
+        sql`"timestamp" >= ${startDate}`,
+        sql`"timestamp" <= ${endDate}`
+      ))
+      .groupBy(transactions.gameType)
+      .orderBy(sql`count(*) DESC`)
+      .limit(1);
+    
+    if (result.length === 0) {
+      return { gameType: 'none', count: 0 };
+    }
+    
+    return { 
+      gameType: result[0].gameType!, 
+      count: result[0].count 
+    };
+  }
+  
+  async getGameDistribution(startDate: Date, endDate: Date): Promise<{gameType: string, count: number}[]> {
+    const result = await db
+      .select({
+        gameType: transactions.gameType,
+        count: sql<number>`count(*)`
+      })
+      .from(transactions)
+      .where(and(
+        sql`"gameType" IS NOT NULL`,
+        sql`"timestamp" >= ${startDate}`,
+        sql`"timestamp" <= ${endDate}`
+      ))
+      .groupBy(transactions.gameType)
+      .orderBy(sql`count(*) DESC`);
+    
+    return result.map(row => ({
+      gameType: row.gameType!,
+      count: row.count
+    }));
+  }
+  
+  async getDailyNewUsers(): Promise<{date: string, count: number}[]> {
+    // Get data for the last 30 days
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 30);
+    startDate.setHours(0, 0, 0, 0);
+    
+    const result = await db
+      .select({
+        date: sql<string>`DATE_TRUNC('day', "createdAt")::date`,
+        count: sql<number>`count(*)`
+      })
+      .from(users)
+      .where(sql`"createdAt" >= ${startDate}`)
+      .groupBy(sql`DATE_TRUNC('day', "createdAt")::date`)
+      .orderBy(sql`DATE_TRUNC('day', "createdAt")::date`);
+    
+    return result.map(row => ({
+      date: row.date,
+      count: row.count
+    }));
+  }
+  
+  async getDailyTransactions(): Promise<{date: string, bets: number, wins: number}[]> {
+    // Get data for the last 30 days
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 30);
+    startDate.setHours(0, 0, 0, 0);
+    
+    // Get total bets per day
+    const betsResult = await db
+      .select({
+        date: sql<string>`DATE_TRUNC('day', "timestamp")::date`,
+        count: sql<number>`count(*)`
+      })
+      .from(transactions)
+      .where(and(
+        sql`"timestamp" >= ${startDate}`,
+        sql`"gameType" IS NOT NULL`
+      ))
+      .groupBy(sql`DATE_TRUNC('day', "timestamp")::date`)
+      .orderBy(sql`DATE_TRUNC('day', "timestamp")::date`);
+    
+    // Get winning bets per day
+    const winsResult = await db
+      .select({
+        date: sql<string>`DATE_TRUNC('day', "timestamp")::date`,
+        count: sql<number>`count(*)`
+      })
+      .from(transactions)
+      .where(and(
+        sql`"timestamp" >= ${startDate}`,
+        sql`"gameType" IS NOT NULL`,
+        sql`"isWin" = true`
+      ))
+      .groupBy(sql`DATE_TRUNC('day', "timestamp")::date`)
+      .orderBy(sql`DATE_TRUNC('day', "timestamp")::date`);
+    
+    // Combine the results
+    const betsMap = new Map(betsResult.map(row => [row.date, row.count]));
+    const winsMap = new Map(winsResult.map(row => [row.date, row.count]));
+    
+    // Get all unique dates
+    const allDates = [...new Set([...betsMap.keys(), ...winsMap.keys()])].sort();
+    
+    return allDates.map(date => ({
+      date,
+      bets: betsMap.get(date) || 0,
+      wins: winsMap.get(date) || 0
+    }));
+  }
+  
+  async getSubscriptionStats(): Promise<{tier: string, count: number}[]> {
+    const result = await db
+      .select({
+        tier: users.subscriptionTier,
+        count: sql<number>`count(*)`
+      })
+      .from(users)
+      .groupBy(users.subscriptionTier)
+      .orderBy(asc(users.subscriptionTier));
+    
+    // Make sure we include all tiers in the result
+    const tiers = ['bronze', 'silver', 'gold', null]; // null for no subscription
+    const resultMap = new Map(result.map(row => [row.tier, row.count]));
+    
+    return tiers.map(tier => ({
+      tier: tier || 'none',
+      count: resultMap.get(tier) || 0
+    }));
+  }
+
   // === ANNOUNCEMENT OPERATIONS ===
   // Since we don't have a dedicated table for announcements yet, we'll store in memory
   private announcements: any[] = [];
