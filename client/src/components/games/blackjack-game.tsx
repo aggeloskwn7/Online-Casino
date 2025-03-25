@@ -192,14 +192,7 @@ export default function BlackjackGame() {
         return;
       }
       
-      if (betAmount > Number(user.balance)) {
-        toast({
-          title: 'Insufficient balance',
-          description: 'You don\'t have enough balance for this bet',
-          variant: 'destructive',
-        });
-        return;
-      }
+      // Removed balance check to allow unlimited betting
       
       startGameMutation.mutate({ amount: betAmount });
     }
@@ -378,7 +371,6 @@ export default function BlackjackGame() {
               value={betAmount}
               onChange={handleBetAmountChange}
               min={1}
-              max={user ? Number(user.balance) : 100}
               className="w-24"
             />
           </div>

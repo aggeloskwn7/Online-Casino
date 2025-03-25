@@ -302,10 +302,10 @@ export default function CrashGame() {
   
   const handleStartGame = () => {
     // Validate bet amount
-    if (!user || betAmount <= 0 || betAmount > Number(user.balance)) {
+    if (!user || betAmount <= 0) {
       toast({
         title: 'Invalid bet',
-        description: 'Please enter a valid bet amount',
+        description: 'Bet amount must be greater than 0',
         variant: 'destructive',
       });
       return;
