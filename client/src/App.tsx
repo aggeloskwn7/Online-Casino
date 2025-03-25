@@ -19,6 +19,7 @@ import HistoryPage from "@/pages/history-page";
 import PurchasePage from "@/pages/purchase-page";
 import RewardsPage from "@/pages/rewards-page";
 import SubscriptionPage from "@/pages/subscription-page";
+import SupportPage from "@/pages/support-page";
 import PrivacyPolicyPage from "@/pages/privacy-policy-page";
 import TermsOfServicePage from "@/pages/terms-of-service-page";
 import { ProtectedRoute } from "./lib/protected-route";
@@ -37,6 +38,7 @@ function Router() {
       <ProtectedRoute path="/purchase" component={PurchasePage} />
       <ProtectedRoute path="/rewards" component={RewardsPage} />
       <ProtectedRoute path="/subscriptions" component={SubscriptionPage} />
+      <ProtectedRoute path="/support" component={SupportPage} />
       <ProtectedRoute path="/admin" component={AdminPage} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/privacy-policy" component={PrivacyPolicyPage} />
