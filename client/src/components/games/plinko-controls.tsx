@@ -99,14 +99,7 @@ export function PlinkoControls({
       return;
     }
     
-    if (amount > 10000) {
-      toast({
-        title: 'Invalid Bet',
-        description: 'Maximum bet is 10,000 coins',
-        variant: 'destructive'
-      });
-      return;
-    }
+    // Removed maximum bet limit check as per requirements
     
     if (Number(user.balance) < amount) {
       toast({
@@ -210,7 +203,6 @@ export function PlinkoControls({
               value={amount}
               onChange={handleAmountChange}
               min={1}
-              max={10000}
               className="text-center"
               disabled={isAnimating || placeBetMutation.isPending}
             />
@@ -314,7 +306,6 @@ export function PlinkoControls({
             placeBetMutation.isPending || 
             !user || 
             amount < 1 || 
-            amount > 10000 || 
             (user && Number(user.balance) < amount)
           }
           onClick={handlePlaceBet}

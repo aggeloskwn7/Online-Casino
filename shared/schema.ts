@@ -259,7 +259,7 @@ export type ManageSubscription = z.infer<typeof manageSubscriptionSchema>;
 
 // Game related schemas
 export const betSchema = z.object({
-  amount: z.number().positive().min(1).max(10000),
+  amount: z.number().positive().min(1), // Removed max limit for unlimited betting
 });
 
 export const slotsPayoutSchema = z.object({
@@ -326,7 +326,7 @@ export const rouletteBetTypeSchema = z.enum([
 ]);
 
 export const singleBetSchema = z.object({
-  amount: z.number().positive().min(1).max(10000),
+  amount: z.number().positive().min(1), // Removed max limit for unlimited betting
   type: rouletteBetTypeSchema,
   numbers: z.array(z.number().int().min(0).max(36)), // Array of numbers being bet on (can be a single number, or multiple)
 });
@@ -383,7 +383,7 @@ export const blackjackStateSchema = z.object({
 });
 
 export const blackjackBetSchema = z.object({
-  amount: z.number().positive().min(1).max(10000),
+  amount: z.number().positive().min(1), // Removed max limit for unlimited betting
   action: blackjackActionSchema.optional(),
   handIndex: z.number().int().min(0).optional(),
 });
