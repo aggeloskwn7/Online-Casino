@@ -58,16 +58,28 @@ export async function claimDailyReward(req: Request, res: Response) {
     
     // Apply VIP subscription benefits if applicable
     if (req.user.subscriptionTier) {
+      // Log the subscription tier for debugging
+      console.log(`User subscription tier for reward calculation: ${req.user.subscriptionTier}`);
+      
       // Get subscription plans to retrieve multipliers and bonuses
       const subscriptionPlans = await storage.getSubscriptionPlans();
+      console.log(`Available subscription plans for reward calculation: ${subscriptionPlans.map(p => p.tier).join(', ')}`);
+      
+      // Find the exact matching plan using strict equality
       const userPlan = subscriptionPlans.find(plan => plan.tier === req.user!.subscriptionTier);
+      console.log(`Found matching plan for ${req.user.subscriptionTier}: ${userPlan ? 'Yes' : 'No'}`);
       
       if (userPlan) {
+        // Log the plan details
+        console.log(`User's specific plan details: tier=${userPlan.tier}, multiplier=${userPlan.multiplier}, coinReward=${userPlan.coinReward}`);
+        
         // 1. Apply multiplier to the base reward amount if available (Silver and Gold tiers)
         if (userPlan.multiplier) {
           multiplierApplied = userPlan.multiplier;
           rewardAmount = Math.round(baseRewardAmount * userPlan.multiplier);
           console.log(`Applied ${userPlan.tier} multiplier (${userPlan.multiplier}x) to daily reward: ${baseRewardAmount} -> ${rewardAmount}`);
+        } else {
+          console.log(`No multiplier found for tier ${userPlan.tier}, using base reward amount`);
         }
         
         // 2. Add the fixed VIP bonus on top of the multiplied base reward
@@ -75,8 +87,14 @@ export async function claimDailyReward(req: Request, res: Response) {
           vipBonusAmount = userPlan.coinReward;
           rewardAmount += vipBonusAmount;
           console.log(`Added ${userPlan.tier} fixed bonus (${vipBonusAmount} coins) to daily reward: Total = ${rewardAmount}`);
+        } else {
+          console.log(`No coin reward found for tier ${userPlan.tier}`);
         }
+      } else {
+        console.log(`Warning: User has subscription tier ${req.user.subscriptionTier} but no matching plan configuration was found`);
       }
+    } else {
+      console.log("User has no subscription tier - using standard reward calculations");
     }
     
     // Update user's streak and last reward date
@@ -159,36 +177,58 @@ export async function getRewardSchedule(req: Request, res: Response) {
     let multiplier = 1; // Default multiplier
     let minimumReward = 0; // Minimum reward from subscription
     
-    console.log("Reward Schedule - User data:", req.user ? {
+    // Make sure user is authenticated
+    if (!req.user) {
+      console.log("Reward schedule requested by unauthenticated user");
+      
+      // For unauthenticated users, return the basic schedule without any VIP bonuses
+      for (let day = 1; day <= 30; day++) {
+        const baseAmount = await storage.getRewardAmountForDay(day);
+        rewardSchedule.push({
+          day,
+          amount: baseAmount,
+          baseAmount,
+          isMilestone: (day % 7 === 0 || day % 5 === 0 || day === 30)
+        });
+      }
+      
+      return res.status(200).json(rewardSchedule);
+    }
+    
+    console.log("Reward Schedule - User data:", {
       id: req.user.id,
       username: req.user.username,
-      subscriptionTier: req.user.subscriptionTier
-    } : "No authenticated user");
+      subscriptionTier: req.user.subscriptionTier || "none"
+    });
     
-    // If user is authenticated and has a subscription, apply their tier bonuses
-    if (req.user && req.user.subscriptionTier) {
+    // If user has a subscription, apply their specific tier bonuses
+    if (req.user.subscriptionTier) {
       console.log(`User has subscription tier: ${req.user.subscriptionTier}`);
       
       // Get the subscription plans to find user's plan details
       const subscriptionPlans = await storage.getSubscriptionPlans();
-      console.log("Subscription plans:", subscriptionPlans);
+      console.log("Available subscription plans found:", subscriptionPlans.length);
       
       const userPlan = subscriptionPlans.find(plan => plan.tier === req.user!.subscriptionTier);
-      console.log("User's plan:", userPlan);
+      console.log("User's plan:", userPlan ? `${userPlan.tier} tier found` : "No matching tier found");
       
       if (userPlan) {
         // Apply the VIP multiplier if exists
         if (userPlan.multiplier) {
           multiplier = userPlan.multiplier;
-          console.log(`Applied ${userPlan.tier} multiplier: ${multiplier}x - Standard rewards will be multiplied by this value`);
+          console.log(`Applying ${userPlan.tier} multiplier: ${multiplier}x - Standard rewards will be multiplied by this value`);
         }
         
         // Set VIP daily bonus reward
         if (userPlan.coinReward) {
           minimumReward = userPlan.coinReward;
-          console.log(`Applied ${userPlan.tier} VIP bonus: ${minimumReward} coins - This will be added on top of the multiplied base rewards`);
+          console.log(`Applying ${userPlan.tier} VIP bonus: ${minimumReward} coins - This will be added on top of the multiplied base rewards`);
         }
+      } else {
+        console.log(`Warning: User has tier ${req.user.subscriptionTier} but no matching plan was found`);
       }
+    } else {
+      console.log("User has no subscription tier - using default reward values");
     }
     
     for (let day = 1; day <= 30; day++) {
