@@ -6,6 +6,8 @@ import {
   loginRewards,
   subscriptions,
   banAppeals,
+  supportTickets,
+  ticketMessages,
   User, 
   InsertUser, 
   Transaction, 
@@ -18,6 +20,10 @@ import {
   InsertBanAppeal,
   AdminBanAppealResponse,
   AdminAnnouncement,
+  SupportTicket,
+  InsertSupportTicket,
+  TicketMessage,
+  InsertTicketMessage,
   AdminGameConfig,
   AdminMassBonus,
   Payment,
@@ -568,29 +574,80 @@ export class DatabaseStorage implements IStorage {
   }
   
   // === SUPPORT TICKET OPERATIONS ===
-  // Since we don't have a dedicated table yet, we'll store in memory
-  private supportTickets: any[] = [];
-  private ticketIdCounter = 1;
+  // Now using database tables
   
   async getSupportTickets(status?: string, page = 1, limit = 20): Promise<any[]> {
-    let filteredTickets = this.supportTickets;
+    let query = db.select({
+      ticket: supportTickets,
+      user: {
+        username: users.username
+      }
+    })
+    .from(supportTickets)
+    .leftJoin(users, eq(supportTickets.userId, users.id))
+    .orderBy(desc(supportTickets.updatedAt));
     
     if (status) {
-      filteredTickets = filteredTickets.filter(ticket => ticket.status === status);
+      query = query.where(eq(supportTickets.status, status));
     }
     
-    // Sort by most recent first
-    filteredTickets.sort((a, b) => 
-      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    const offset = (page - 1) * limit;
+    const results = await query.limit(limit).offset(offset);
+    
+    // For each ticket, fetch its messages
+    const ticketsWithMessages = await Promise.all(
+      results.map(async (result) => {
+        const messages = await this.getTicketMessages(result.ticket.id);
+        
+        return {
+          ...result.ticket,
+          username: result.user.username,
+          messages
+        };
+      })
     );
     
-    // Apply pagination
-    const offset = (page - 1) * limit;
-    return filteredTickets.slice(offset, offset + limit);
+    return ticketsWithMessages;
+  }
+  
+  async getTicketMessages(ticketId: number): Promise<any[]> {
+    const messageResults = await db.select({
+      message: ticketMessages,
+      user: {
+        username: users.username
+      }
+    })
+    .from(ticketMessages)
+    .leftJoin(users, eq(ticketMessages.userId, users.id))
+    .where(eq(ticketMessages.ticketId, ticketId))
+    .orderBy(asc(ticketMessages.createdAt));
+    
+    return messageResults.map(result => ({
+      ...result.message,
+      username: result.user.username
+    }));
   }
   
   async getSupportTicket(id: number): Promise<any | undefined> {
-    return this.supportTickets.find(ticket => ticket.id === id);
+    const [result] = await db.select({
+      ticket: supportTickets,
+      user: {
+        username: users.username
+      }
+    })
+    .from(supportTickets)
+    .leftJoin(users, eq(supportTickets.userId, users.id))
+    .where(eq(supportTickets.id, id));
+    
+    if (!result) return undefined;
+    
+    const messages = await this.getTicketMessages(id);
+    
+    return {
+      ...result.ticket,
+      username: result.user.username,
+      messages
+    };
   }
   
   async createSupportTicket(userId: number, subject: string, message: string): Promise<any> {
