@@ -173,8 +173,10 @@ export default function BlackjackGame() {
   
   // Handle bet amount changes
   const handleBetAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value);
+    let value = parseFloat(e.target.value);
     if (!isNaN(value) && value > 0) {
+      // Enforce the maximum bet limit of 10,000 coins
+      value = Math.min(value, 10000);
       setBetAmount(value);
     }
   };
@@ -192,7 +194,16 @@ export default function BlackjackGame() {
         return;
       }
       
-      // Removed balance check to allow unlimited betting
+      // Enforce maximum bet limit
+      if (betAmount > 10000) {
+        toast({
+          title: 'Exceeded maximum bet',
+          description: 'Maximum bet amount is 10,000 coins',
+          variant: 'destructive',
+        });
+        setBetAmount(10000);
+        return;
+      }
       
       startGameMutation.mutate({ amount: betAmount });
     }
@@ -371,15 +382,20 @@ export default function BlackjackGame() {
               value={betAmount}
               onChange={handleBetAmountChange}
               min={1}
+              max={10000}
+              step="0.01"
               className="w-24"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button onClick={() => setBetAmount(5)}>5</Button>
             <Button onClick={() => setBetAmount(10)}>10</Button>
             <Button onClick={() => setBetAmount(25)}>25</Button>
             <Button onClick={() => setBetAmount(50)}>50</Button>
             <Button onClick={() => setBetAmount(100)}>100</Button>
+            <Button onClick={() => setBetAmount(500)}>500</Button>
+            <Button onClick={() => setBetAmount(1000)}>1000</Button>
+            <Button onClick={() => setBetAmount(10000)} variant="destructive">MAX 10000</Button>
           </div>
           <Button 
             onClick={handleStartGame} 
