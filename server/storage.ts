@@ -492,10 +492,10 @@ export class DatabaseStorage implements IStorage {
       })
       .from(transactions)
       .where(and(
-        sql`"gameType" IS NOT NULL`,
+        sql`"game_type" IS NOT NULL`,
         sql`"timestamp" >= ${startDate}`,
         sql`"timestamp" <= ${endDate}`,
-        sql`"isWin" = false`
+        sql`"is_win" = false`
       ));
     
     return parseFloat(result[0].total);
@@ -508,10 +508,10 @@ export class DatabaseStorage implements IStorage {
       })
       .from(transactions)
       .where(and(
-        sql`"gameType" IS NOT NULL`,
+        sql`"game_type" IS NOT NULL`,
         sql`"timestamp" >= ${startDate}`,
         sql`"timestamp" <= ${endDate}`,
-        sql`"isWin" = true`
+        sql`"is_win" = true`
       ));
     
     return parseFloat(result[0].total);
@@ -525,7 +525,7 @@ export class DatabaseStorage implements IStorage {
       })
       .from(transactions)
       .where(and(
-        sql`"gameType" IS NOT NULL`,
+        sql`"game_type" IS NOT NULL`,
         sql`"timestamp" >= ${startDate}`,
         sql`"timestamp" <= ${endDate}`
       ))
@@ -551,7 +551,7 @@ export class DatabaseStorage implements IStorage {
       })
       .from(transactions)
       .where(and(
-        sql`"gameType" IS NOT NULL`,
+        sql`"game_type" IS NOT NULL`,
         sql`"timestamp" >= ${startDate}`,
         sql`"timestamp" <= ${endDate}`
       ))
@@ -601,7 +601,7 @@ export class DatabaseStorage implements IStorage {
       .from(transactions)
       .where(and(
         sql`"timestamp" >= ${startDate}`,
-        sql`"gameType" IS NOT NULL`
+        sql`"game_type" IS NOT NULL`
       ))
       .groupBy(sql`DATE_TRUNC('day', "timestamp")::date`)
       .orderBy(sql`DATE_TRUNC('day', "timestamp")::date`);
@@ -615,8 +615,8 @@ export class DatabaseStorage implements IStorage {
       .from(transactions)
       .where(and(
         sql`"timestamp" >= ${startDate}`,
-        sql`"gameType" IS NOT NULL`,
-        sql`"isWin" = true`
+        sql`"game_type" IS NOT NULL`,
+        sql`"is_win" = true`
       ))
       .groupBy(sql`DATE_TRUNC('day', "timestamp")::date`)
       .orderBy(sql`DATE_TRUNC('day', "timestamp")::date`);
