@@ -1544,9 +1544,22 @@ function SupportTab() {
   } = useQuery({
     queryKey: ['/api/admin/support/tickets', statusFilter, page],
     queryFn: async () => {
-      const status = statusFilter === 'all' ? '' : statusFilter;
-      const res = await apiRequest('GET', `/api/admin/support/tickets?status=${status}&page=${page}`);
-      return await res.json();
+      try {
+        const status = statusFilter === 'all' ? '' : statusFilter;
+        const res = await apiRequest('GET', `/api/admin/support/tickets?status=${status}&page=${page}`);
+        return await res.json();
+      } catch (error) {
+        console.error("Error fetching tickets:", error);
+        // Return a default structure with an empty tickets array rather than throwing
+        return {
+          tickets: [],
+          pagination: {
+            currentPage: 1,
+            totalPages: 0,
+            totalItems: 0
+          }
+        };
+      }
     }
   });
   
@@ -1559,8 +1572,17 @@ function SupportTab() {
     queryKey: ['/api/admin/support/tickets/details', selectedTicket?.id],
     queryFn: async () => {
       if (!selectedTicket) return null;
-      const res = await apiRequest('GET', `/api/admin/support/tickets/${selectedTicket.id}`);
-      return await res.json();
+      try {
+        const res = await apiRequest('GET', `/api/admin/support/tickets/${selectedTicket.id}`);
+        return await res.json();
+      } catch (error) {
+        console.error("Error fetching ticket details:", error);
+        // Return a default structure with the ticket data we already have and an empty messages array
+        return {
+          ...selectedTicket,
+          messages: []
+        };
+      }
     },
     enabled: !!selectedTicket
   });
