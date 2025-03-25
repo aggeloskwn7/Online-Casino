@@ -295,27 +295,54 @@ export default function DiceGame() {
       <div className="flex gap-2 mb-4">
         <div className="w-1/2">
           <span className="text-sm text-gray-400 block mb-1">Bet Amount</span>
-          <div className="relative">
-            <Input
-              type="text"
-              value={betAmount.toString()}
-              onChange={(e) => {
-                const value = e.target.value.replace(/[^0-9.]/g, '');
-                // Ensure only one decimal point
-                const parts = value.split('.');
-                const sanitized = parts[0] + (parts.length > 1 ? '.' + parts.slice(1).join('') : '');
-                setBetAmount(Number(sanitized) || 0);
-              }}
-              className="w-full bg-[#121212] rounded-lg border border-[#333333] p-2 font-mono"
-              disabled={isRolling}
-            />
-            <button 
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-[#5465FF]"
-              onClick={() => user && setBetAmount(Number(user.balance))}
-              disabled={isRolling}
-            >
-              MAX
-            </button>
+          <div className="flex flex-col gap-1">
+            <div className="relative">
+              <Input
+                type="text"
+                value={betAmount.toString()}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9.]/g, '');
+                  // Ensure only one decimal point
+                  const parts = value.split('.');
+                  const sanitized = parts[0] + (parts.length > 1 ? '.' + parts.slice(1).join('') : '');
+                  const amount = Number(sanitized) || 0;
+                  // Limit to max 10,000
+                  setBetAmount(amount > 10000 ? 10000 : amount);
+                }}
+                className="w-full bg-[#121212] rounded-lg border border-[#333333] p-2 font-mono"
+                disabled={isRolling}
+              />
+              <button 
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-[#5465FF]"
+                onClick={() => user && setBetAmount(Number(user.balance))}
+                disabled={isRolling}
+              >
+                MAX
+              </button>
+            </div>
+            <div className="flex gap-1 text-xs">
+              <button 
+                className="bg-[#1a1a1a] hover:bg-[#333] text-white px-2 py-1 rounded"
+                onClick={() => setBetAmount(10000)}
+                disabled={isRolling}
+              >
+                10,000
+              </button>
+              <button 
+                className="bg-[#1a1a1a] hover:bg-[#333] text-white px-2 py-1 rounded"
+                onClick={() => setBetAmount(1000)}
+                disabled={isRolling}
+              >
+                1,000
+              </button>
+              <button 
+                className="bg-[#1a1a1a] hover:bg-[#333] text-white px-2 py-1 rounded"
+                onClick={() => setBetAmount(100)}
+                disabled={isRolling}
+              >
+                100
+              </button>
+            </div>
           </div>
         </div>
         <div className="w-1/2">

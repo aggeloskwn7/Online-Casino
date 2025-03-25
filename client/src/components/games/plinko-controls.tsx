@@ -101,14 +101,7 @@ export function PlinkoControls({
     
     // Removed maximum bet limit check as per requirements
     
-    if (Number(user.balance) < amount) {
-      toast({
-        title: 'Insufficient Balance',
-        description: 'Not enough coins in your balance',
-        variant: 'destructive'
-      });
-      return;
-    }
+    // Removed balance check as requested
     
     // Place the bet
     placeBetMutation.mutate({ amount, risk });
@@ -116,7 +109,8 @@ export function PlinkoControls({
   
   const handleAmountChange = (e: ChangeEvent<HTMLInputElement>): void => {
     const newAmount = parseInt(e.target.value, 10) || 0;
-    setAmount(newAmount);
+    // Limit to max 10,000
+    setAmount(newAmount > 10000 ? 10000 : newAmount);
   };
   
   const adjustAmount = (adjustment: number): void => {
@@ -294,6 +288,14 @@ export function PlinkoControls({
           >
             5K
           </Button>
+          <Button 
+            variant="outline"
+            className="col-span-3 bg-gradient-to-r from-amber-100/10 to-amber-300/10 hover:from-amber-100/20 hover:to-amber-300/20 border-amber-500/30 text-amber-500 font-bold"
+            onClick={() => setAmount(10000)}
+            disabled={isAnimating || placeBetMutation.isPending}
+          >
+            MAX BET: 10,000
+          </Button>
         </div>
       </CardContent>
       <CardFooter>
@@ -305,8 +307,7 @@ export function PlinkoControls({
             isAnimating || 
             placeBetMutation.isPending || 
             !user || 
-            amount < 1 || 
-            (user && Number(user.balance) < amount)
+            amount < 1
           }
           onClick={handlePlaceBet}
         >
