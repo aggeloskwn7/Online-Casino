@@ -38,12 +38,35 @@ import {
 const ROWS = 10; // Number of rows of pins
 const BUCKET_COUNT = 11; // Number of buckets (should match multipliers array length)
 const PIN_SIZE = 10;
+// Create responsive spacing based on viewport width
+const getSpacing = () => {
+  // Check if window is available (client-side)
+  if (typeof window !== 'undefined') {
+    // For mobile screens, use smaller spacing
+    if (window.innerWidth < 480) {
+      return { x: 24, y: 24 };
+    }
+    // For small tablets
+    else if (window.innerWidth < 768) {
+      return { x: 32, y: 32 };
+    }
+    // For larger screens
+    else {
+      return { x: 40, y: 40 };
+    }
+  }
+  // Default fallback for SSR
+  return { x: 40, y: 40 };
+};
+
+// Initial spacing values - will be updated in useEffect
 const PIN_SPACING_X = 40;
 const PIN_SPACING_Y = 40;
 const PIN_RADIUS = PIN_SIZE / 2;
 const BALL_SIZE = 14;
-const BOARD_WIDTH = PIN_SPACING_X * (BUCKET_COUNT);
-const BOARD_HEIGHT = PIN_SPACING_Y * ROWS + 60; // Extra space for buckets
+// These values will be dynamically calculated based on screen size
+let BOARD_WIDTH = PIN_SPACING_X * (BUCKET_COUNT);
+let BOARD_HEIGHT = PIN_SPACING_Y * ROWS + 60; // Extra space for buckets
 
 // Define multiplier buckets for different risk levels - buckets match the number of pins in the last row
 // These should match server-side values in games.ts
@@ -136,8 +159,82 @@ export default function PlinkoGame({
   const [buckets, setBuckets] = useState<Bucket[]>(calculateBuckets('medium'));
   const [ballPosition, setBallPosition] = useState<BallPosition>({ x: BOARD_WIDTH / 2, y: 0 });
   const [landingBucket, setLandingBucket] = useState<number | null>(null);
+  // Add state for spacing
+  const [spacing, setSpacing] = useState({ x: PIN_SPACING_X, y: PIN_SPACING_Y });
+  const [boardDimensions, setBoardDimensions] = useState({ width: BOARD_WIDTH, height: BOARD_HEIGHT });
   
   const animationRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Add a resize handler to recalculate board dimensions based on screen size
+  useEffect(() => {
+    const handleResize = () => {
+      const newSpacing = getSpacing();
+      // Update spacing values
+      setSpacing(newSpacing);
+      
+      // Recalculate board dimensions
+      const newWidth = newSpacing.x * BUCKET_COUNT;
+      const newHeight = newSpacing.y * ROWS + 60;
+      
+      setBoardDimensions({ width: newWidth, height: newHeight });
+      
+      // Recalculate pins with new spacing
+      const pinPositions = calculatePinsWithSpacing(newSpacing.x, newSpacing.y);
+      setPins(pinPositions);
+      
+      // Recalculate buckets with new spacing
+      setBuckets(calculateBucketsWithSpacing(risk, newSpacing.x, newWidth));
+    };
+    
+    // Call once on mount
+    handleResize();
+    
+    // Add resize listener
+    window.addEventListener('resize', handleResize);
+    
+    // Cleanup
+    return () => window.removeEventListener('resize', handleResize);
+  }, [risk]);
+  
+  // Helper functions to calculate pins and buckets with dynamic spacing
+  const calculatePinsWithSpacing = (spacingX: number, spacingY: number): PinPosition[] => {
+    const pins: PinPosition[] = [];
+    const boardWidth = spacingX * BUCKET_COUNT;
+    const centerX = boardWidth / 2;
+    
+    for (let row = 0; row < ROWS; row++) {
+      const pinsInRow = row + 1;
+      const rowWidth = (pinsInRow - 1) * spacingX;
+      const startX = centerX - rowWidth / 2;
+      
+      for (let i = 0; i < pinsInRow; i++) {
+        pins.push({
+          row,
+          x: startX + i * spacingX,
+          y: row * spacingY + 60,
+          radius: PIN_RADIUS
+        });
+      }
+    }
+    
+    return pins;
+  };
+  
+  const calculateBucketsWithSpacing = (riskLevel: RiskLevel, spacingX: number, boardWidth: number): Bucket[] => {
+    const multipliers = MULTIPLIERS[riskLevel];
+    const bucketWidth = spacingX;
+    const totalBucketsWidth = bucketWidth * multipliers.length;
+    const centerX = boardWidth / 2;
+    const startX = centerX - (totalBucketsWidth / 2);
+    
+    return multipliers.map((multiplier: number, index: number) => {
+      return {
+        x: startX + index * bucketWidth,
+        width: bucketWidth,
+        multiplier
+      };
+    });
+  };
   
   // Update buckets when risk level changes or when result contains multipliers
   useEffect(() => {
@@ -448,19 +545,21 @@ export default function PlinkoGame({
         <div 
           className="relative bg-gradient-to-b from-background/80 to-background border rounded-lg overflow-hidden"
           style={{ 
-            width: Math.min(BOARD_WIDTH + 100, 700),
-            height: Math.min(BOARD_HEIGHT + 60, 600),
-            maxWidth: "100%"
+            width: Math.min(boardDimensions.width + 60, 700),
+            height: Math.min(boardDimensions.height + 40, 600),
+            maxWidth: "100%",
+            transition: "width 0.3s, height 0.3s" // Smooth transition when dimensions change
           }}
         >
           {/* Center everything inside the container */}
           <div className="absolute inset-0 flex items-center justify-center">
-            {/* Fixed size board for pins and buckets */}
+            {/* Dynamic size board for pins and buckets */}
             <div 
-              className="relative" 
+              className="relative scale-[0.9] sm:scale-100" 
               style={{ 
-                width: BOARD_WIDTH, 
-                height: BOARD_HEIGHT 
+                width: boardDimensions.width, 
+                height: boardDimensions.height,
+                transition: "width 0.3s, height 0.3s" // Smooth transition when dimensions change
               }}
             >
               {/* Pins */}
