@@ -176,7 +176,7 @@ export class DatabaseStorage implements IStorage {
   async updateUserLastLogin(userId: number): Promise<User> {
     const [updatedUser] = await db
       .update(users)
-      .set({ last_login: new Date() })
+      .set({ lastLogin: new Date() })
       .where(eq(users.id, userId))
       .returning();
     
@@ -572,13 +572,13 @@ export class DatabaseStorage implements IStorage {
     
     const result = await db
       .select({
-        date: sql<string>`DATE_TRUNC('day', "createdAt")::date`,
+        date: sql<string>`DATE_TRUNC('day', "created_at")::date`,
         count: sql<number>`count(*)`
       })
       .from(users)
-      .where(sql`"createdAt" >= ${startDate}`)
-      .groupBy(sql`DATE_TRUNC('day', "createdAt")::date`)
-      .orderBy(sql`DATE_TRUNC('day', "createdAt")::date`);
+      .where(sql`"created_at" >= ${startDate}`)
+      .groupBy(sql`DATE_TRUNC('day', "created_at")::date`)
+      .orderBy(sql`DATE_TRUNC('day', "created_at")::date`);
     
     return result.map(row => ({
       date: row.date,
@@ -626,7 +626,10 @@ export class DatabaseStorage implements IStorage {
     const winsMap = new Map(winsResult.map(row => [row.date, row.count]));
     
     // Get all unique dates
-    const allDates = [...new Set([...betsMap.keys(), ...winsMap.keys()])].sort();
+    const betsKeys = Array.from(betsMap.keys());
+    const winsKeys = Array.from(winsMap.keys());
+    const allDatesSet = new Set([...betsKeys, ...winsKeys]);
+    const allDates = Array.from(allDatesSet).sort();
     
     return allDates.map(date => ({
       date,
