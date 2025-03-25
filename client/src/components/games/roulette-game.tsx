@@ -524,17 +524,16 @@ export default function RouletteGame({ onSpin }: RouletteGameProps) {
                 <Input
                   type="number"
                   value={betAmount}
-                  onChange={(e) => setBetAmount(Math.max(1, Math.min(10000, parseInt(e.target.value) || 0)))}
+                  onChange={(e) => setBetAmount(Math.max(1, parseInt(e.target.value) || 0))}
                   min="1"
-                  max="10000"
                   className="text-center"
                   disabled={isSpinning}
                 />
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={betAmount >= 10000 || isSpinning}
-                  onClick={() => setBetAmount(Math.min(10000, betAmount * 2))}
+                  disabled={isSpinning}
+                  onClick={() => setBetAmount(betAmount * 2)}
                 >
                   2×
                 </Button>

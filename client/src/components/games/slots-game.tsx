@@ -346,7 +346,7 @@ export default function SlotsGame() {
                       betAmount < 1000 ? 100 : 1000;
     
     const increment = amount > 0 ? adjustAmount : -adjustAmount;
-    const newBet = Math.max(0.1, Math.min(10000, betAmount + increment));
+    const newBet = Math.max(0.1, betAmount + increment);
     setBetAmount(Math.round(newBet * 100) / 100); // Round to 2 decimal places
   };
   
@@ -615,7 +615,7 @@ export default function SlotsGame() {
               <Slider 
                 defaultValue={[1]} 
                 min={0.10} 
-                max={100} 
+                max={10000} 
                 step={0.10}
                 value={[betAmount]}
                 onValueChange={handleBetChange}
