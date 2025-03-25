@@ -314,7 +314,7 @@ export default function SlotsGame() {
       toast({
         title: 'Maximum bet limit',
         description: 'Maximum bet amount is 10,000 coins',
-        variant: 'warning',
+        variant: 'destructive',
       });
       return;
     }

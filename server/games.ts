@@ -112,6 +112,11 @@ export async function playSlots(req: Request, res: Response) {
     const parsedBody = betSchema.parse(req.body);
     const { amount } = parsedBody;
     
+    // Enforce maximum bet limit of 10,000 coins
+    if (amount > 10000) {
+      return res.status(400).json({ message: "Maximum bet amount is 10,000 coins" });
+    }
+    
     // Get current user with balance
     const user = await storage.getUser(userId);
     if (!user) {
