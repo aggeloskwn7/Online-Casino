@@ -22,7 +22,7 @@ export default function HomePage() {
           
           <div className="relative">
             <div className="flex items-center gap-3 mb-2">
-              <h2 className="text-2xl md:text-3xl font-heading font-bold">Welcome to Crypto Casino</h2>
+              <h2 className="text-2xl md:text-3xl font-heading font-bold">Welcome to Rage Bet</h2>
               
               {/* VIP Badge if user has subscription */}
               {user?.subscriptionTier && (
@@ -37,7 +37,7 @@ export default function HomePage() {
             </div>
             
             <p className="text-gray-400 max-w-xl mb-4">
-              Experience the thrill of crypto casino games with our virtual currency. Play responsibly!
+              Experience the thrill of Rage Bet casino games with our virtual currency. Play responsibly!
               {user?.subscriptionTier && (
                 <span className="block mt-1 text-yellow-500/80">
                   {user.subscriptionTier === 'bronze' && 'Your Bronze VIP status grants you 300 daily coins and exclusive benefits!'}
