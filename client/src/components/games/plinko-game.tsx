@@ -379,7 +379,8 @@ export default function PlinkoGame({
         // Get the final position from the path
         const finalPosition = fullPath[fullPath.length - 1].position;
         // Match the bucket directly with the final position
-        const safeBucketIndex = Math.min(Math.max(0, finalPosition), buckets.length - 1);
+        // Make sure we can reach all buckets including far left (0) and far right (buckets.length - 1)
+        const safeBucketIndex = Math.min(Math.max(0, finalPosition), BUCKET_COUNT - 1);
         setLandingBucket(safeBucketIndex);
         
         // Calculate the final position using the dimensions for responsive sizing
@@ -477,7 +478,11 @@ export default function PlinkoGame({
         const totalBucketsWidth = bucketWidth * BUCKET_COUNT;
         const centerX = dimensions.boardWidth / 2;
         const startX = centerX - (totalBucketsWidth / 2);
-        newX = startX + pathStep.position * bucketWidth + bucketWidth / 2;
+        
+        // Ensure position is within bounds (can be 0 to BUCKET_COUNT-1)
+        const safePosition = Math.min(Math.max(0, pathStep.position), BUCKET_COUNT - 1);
+        
+        newX = startX + safePosition * bucketWidth + bucketWidth / 2;
         // Position ball near the top of the buckets for a nice visual transition
         newY = dimensions.boardHeight - 45; 
       }

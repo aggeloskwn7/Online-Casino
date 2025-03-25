@@ -1626,13 +1626,27 @@ export async function playPlinko(req: Request, res: Response) {
     // Calculate ideal path to reach target position
     for (let r = 0; r < rows; r++) {
       // Calculate the ideal position at this row to reach the target
+      // More aggressive targeting to reach extreme buckets if needed
       const idealPosition = (targetPosition * r) / (rows - 1);
       
       // Add some randomness, but generally try to reach the target
       // The closer we get to the end, the more we try to reach the target
       const randomFactor = (rows - r) / rows;
-      const goRight = currentPosition < idealPosition || 
-                      (Math.random() < 0.5 && Math.random() < randomFactor);
+      
+      // For extreme targets (0 or 10), be more aggressive in path selection
+      // to ensure we can reach the far left and right buckets
+      let goRight;
+      if (targetPosition <= 1 && r > rows/2) {
+        // Targeting far left - stay left more often
+        goRight = Math.random() < 0.2;
+      } else if (targetPosition >= multipliers.length - 2 && r > rows/2) {
+        // Targeting far right - go right more often
+        goRight = currentPosition < r || Math.random() < 0.8;
+      } else {
+        // Normal targeting for middle positions
+        goRight = currentPosition < idealPosition || 
+                  (Math.random() < 0.5 && Math.random() < randomFactor);
+      }
       
       // Add current pin to path
       path.push({ row: r, position: currentPosition });
