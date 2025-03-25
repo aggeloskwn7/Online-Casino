@@ -140,7 +140,25 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // === USER OPERATIONS ===
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
+    console.log(`Getting user with ID ${id}`);
+    
+    if (!id || isNaN(id)) {
+      console.error(`Invalid ID provided to getUser: ${id}`);
+      throw new Error(`Invalid user ID: ${id}`);
+    }
+    
+    // Get user with explicit ID filtering
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, id));
+    
+    if (user) {
+      console.log(`Found user: ${user.username} (ID: ${user.id})`);
+    } else {
+      console.log(`No user found with ID ${id}`);
+    }
+    
     return user;
   }
 
@@ -231,19 +249,29 @@ export class DatabaseStorage implements IStorage {
   async updateLoginStreak(userId: number, streak: number): Promise<User> {
     console.log(`Updating login streak for user ID ${userId} to ${streak}`);
     
-    // First verify the user exists
-    const user = await this.getUser(userId);
+    // Get the current timestamp with milliseconds for precise tracking
+    const currentTimestamp = new Date();
+    console.log(`Current timestamp for reward claim: ${currentTimestamp.toISOString()}`);
+    
+    // First verify the user exists with direct SQL query
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId));
+      
     if (!user) {
       console.error(`Error updating streak: User ID ${userId} not found`);
       throw new Error(`User ID ${userId} not found`);
     }
+    
+    console.log(`Found user ${user.username} (ID: ${userId}) with current streak: ${user.currentLoginStreak || 0}`);
     
     // Update with SQL query explicitly filtering on the user ID
     const [updatedUser] = await db
       .update(users)
       .set({ 
         currentLoginStreak: streak,
-        lastRewardDate: new Date()
+        lastRewardDate: currentTimestamp  // Use the precise timestamp
       })
       .where(eq(users.id, userId))
       .returning();
@@ -253,14 +281,19 @@ export class DatabaseStorage implements IStorage {
       throw new Error(`Failed to update user ID ${userId}`);
     }
     
-    console.log(`Successfully updated login streak for user ${updatedUser.username} (ID: ${userId}) to day ${streak}`);
+    console.log(`Successfully updated login streak for user ${updatedUser.username} (ID: ${userId}) to day ${streak}, timestamp: ${updatedUser.lastRewardDate}`);
     return updatedUser;
   }
   
   async checkDailyRewardStatus(userId: number): Promise<boolean> {
     console.log(`Checking daily reward eligibility for user ID ${userId}`);
     
-    const user = await this.getUser(userId);
+    // Get the user directly with explicit ID filtering to ensure account isolation
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId));
+    
     if (!user) {
       console.error(`Error checking reward status: User ID ${userId} not found`);
       throw new Error(`User ID ${userId} not found`);
@@ -277,11 +310,12 @@ export class DatabaseStorage implements IStorage {
     const lastReward = new Date(user.lastRewardDate);
     const now = new Date();
     
-    const lastRewardDay = lastReward.toDateString();
-    const todayDay = now.toDateString();
+    // Use UTC date strings to avoid timezone issues
+    const lastRewardDay = lastReward.toISOString().split('T')[0];
+    const todayDay = now.toISOString().split('T')[0];
     const isEligible = lastRewardDay !== todayDay;
     
-    console.log(`User ${user.username} last reward on ${lastRewardDay}, today is ${todayDay}, eligible: ${isEligible}`);
+    console.log(`User ${user.username} (ID: ${userId}) last reward on ${lastRewardDay}, today is ${todayDay}, eligible: ${isEligible}`);
     
     // Check if the last reward was claimed on a different day
     return isEligible;
@@ -501,21 +535,57 @@ export class DatabaseStorage implements IStorage {
   
   // === LOGIN REWARD OPERATIONS ===
   async createLoginReward(reward: InsertLoginReward): Promise<LoginReward> {
+    // Extra validation to ensure userId is set and valid
+    if (!reward.userId) {
+      console.error("ERROR: Attempt to create login reward without userId");
+      throw new Error("userId is required for login rewards");
+    }
+    
+    // Log the reward being created
+    console.log(`REWARD CREATE: Creating login reward for user ID ${reward.userId}, day ${reward.day}, amount ${reward.amount}`);
+    
+    // Create the reward with explicit userId filtering
     const [newReward] = await db
       .insert(loginRewards)
-      .values(reward)
+      .values({
+        ...reward,
+        // Ensure we're using the passed userId and not accidentally sharing rewards
+        userId: reward.userId 
+      })
       .returning();
     
+    if (!newReward) {
+      console.error(`ERROR: Failed to create login reward for user ID ${reward.userId}`);
+      throw new Error(`Failed to create login reward for user ID ${reward.userId}`);
+    }
+    
+    console.log(`REWARD CREATED: Login reward ID ${newReward.id} created for user ID ${newReward.userId}`);
     return newReward;
   }
   
   async getUserLoginRewards(userId: number, limit = 30): Promise<LoginReward[]> {
+    console.log(`Getting login rewards for user ID ${userId}, limit ${limit}`);
+    
+    // Make sure userId is valid
+    if (!userId || isNaN(userId)) {
+      console.error(`Invalid user ID provided for rewards lookup: ${userId}`);
+      throw new Error("Invalid user ID provided");
+    }
+    
+    // Get rewards with explicit user ID filtering to ensure account isolation
     const rewards = await db
       .select()
       .from(loginRewards)
       .where(eq(loginRewards.userId, userId))
       .orderBy(desc(loginRewards.createdAt))
       .limit(limit);
+    
+    console.log(`Found ${rewards.length} rewards for user ID ${userId}`);
+    
+    // Log the first few rewards for debugging
+    if (rewards.length > 0) {
+      console.log(`First reward: ID ${rewards[0].id}, day ${rewards[0].day}, amount ${rewards[0].amount}`);
+    }
     
     return rewards;
   }
