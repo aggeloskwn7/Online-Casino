@@ -173,6 +173,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUserBalance(userId: number, newBalance: number): Promise<User> {
+    console.log(`Updating balance for user ID ${userId} to ${newBalance}`);
+    
+    // First verify the user exists
+    const user = await this.getUser(userId);
+    if (!user) {
+      console.error(`Error updating balance: User ID ${userId} not found`);
+      throw new Error(`User ID ${userId} not found`);
+    }
+    
+    console.log(`Current balance for user ${user.username} (ID: ${userId}): ${user.balance}`);
+    
+    // Update with SQL query explicitly filtering on the user ID
     const [updatedUser] = await db
       .update(users)
       .set({ balance: String(newBalance) })
@@ -180,13 +192,27 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     if (!updatedUser) {
-      throw new Error("User not found");
+      console.error(`Error updating balance: No user returned after update for ID ${userId}`);
+      throw new Error(`Failed to update user ID ${userId}`);
     }
     
+    console.log(`Successfully updated balance for user ${updatedUser.username} (ID: ${userId}) from ${user.balance} to ${updatedUser.balance}`);
     return updatedUser;
   }
   
   async updateUserLastLogin(userId: number): Promise<User> {
+    console.log(`Updating last login timestamp for user ID ${userId}`);
+    
+    // First verify the user exists
+    const user = await this.getUser(userId);
+    if (!user) {
+      console.error(`Error updating last login: User ID ${userId} not found`);
+      throw new Error(`User ID ${userId} not found`);
+    }
+    
+    console.log(`Current last login for user ${user.username} (ID: ${userId}): ${user.lastLogin || 'never'}`);
+    
+    // Update with SQL query explicitly filtering on the user ID
     const [updatedUser] = await db
       .update(users)
       .set({ lastLogin: new Date() })
@@ -194,13 +220,25 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     if (!updatedUser) {
-      throw new Error("User not found");
+      console.error(`Error updating last login: No user returned after update for ID ${userId}`);
+      throw new Error(`Failed to update user ID ${userId}`);
     }
     
+    console.log(`Successfully updated last login for user ${updatedUser.username} (ID: ${userId}) to ${updatedUser.lastLogin}`);
     return updatedUser;
   }
   
   async updateLoginStreak(userId: number, streak: number): Promise<User> {
+    console.log(`Updating login streak for user ID ${userId} to ${streak}`);
+    
+    // First verify the user exists
+    const user = await this.getUser(userId);
+    if (!user) {
+      console.error(`Error updating streak: User ID ${userId} not found`);
+      throw new Error(`User ID ${userId} not found`);
+    }
+    
+    // Update with SQL query explicitly filtering on the user ID
     const [updatedUser] = await db
       .update(users)
       .set({ 
@@ -211,28 +249,42 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     if (!updatedUser) {
-      throw new Error("User not found");
+      console.error(`Error updating streak: No user returned after update for ID ${userId}`);
+      throw new Error(`Failed to update user ID ${userId}`);
     }
     
+    console.log(`Successfully updated login streak for user ${updatedUser.username} (ID: ${userId}) to day ${streak}`);
     return updatedUser;
   }
   
   async checkDailyRewardStatus(userId: number): Promise<boolean> {
+    console.log(`Checking daily reward eligibility for user ID ${userId}`);
+    
     const user = await this.getUser(userId);
     if (!user) {
-      throw new Error("User not found");
+      console.error(`Error checking reward status: User ID ${userId} not found`);
+      throw new Error(`User ID ${userId} not found`);
     }
+    
+    console.log(`User ${user.username} (ID: ${userId}) last reward date: ${user.lastRewardDate || 'never'}`);
     
     // If no lastRewardDate, they have never claimed a reward
     if (!user.lastRewardDate) {
+      console.log(`User ${user.username} has never claimed a reward before, they are eligible`);
       return true;
     }
     
     const lastReward = new Date(user.lastRewardDate);
     const now = new Date();
     
+    const lastRewardDay = lastReward.toDateString();
+    const todayDay = now.toDateString();
+    const isEligible = lastRewardDay !== todayDay;
+    
+    console.log(`User ${user.username} last reward on ${lastRewardDay}, today is ${todayDay}, eligible: ${isEligible}`);
+    
     // Check if the last reward was claimed on a different day
-    return lastReward.toDateString() !== now.toDateString();
+    return isEligible;
   }
 
   // === TRANSACTION OPERATIONS ===
@@ -257,22 +309,33 @@ export class DatabaseStorage implements IStorage {
   }
   
   async incrementPlayCount(userId: number): Promise<User> {
+    console.log(`Incrementing play count for user ID ${userId}`);
+    
     // Get current user to access playCount
     const user = await this.getUser(userId);
     if (!user) {
-      throw new Error("User not found");
+      console.error(`Error incrementing play count: User ID ${userId} not found`);
+      throw new Error(`User ID ${userId} not found`);
     }
+    
+    console.log(`Current play count for user ${user.username} (ID: ${userId}): ${user.playCount || 0}`);
     
     // Increment playCount by 1
     const newPlayCount = (user.playCount || 0) + 1;
     
-    // Update the user's playCount
+    // Update the user's playCount with explicit user ID filtering
     const [updatedUser] = await db
       .update(users)
       .set({ playCount: newPlayCount })
       .where(eq(users.id, userId))
       .returning();
     
+    if (!updatedUser) {
+      console.error(`Error incrementing play count: No user returned after update for ID ${userId}`);
+      throw new Error(`Failed to update user ID ${userId}`);
+    }
+    
+    console.log(`Successfully incremented play count for user ${updatedUser.username} (ID: ${userId}) from ${user.playCount || 0} to ${updatedUser.playCount || 0}`);
     return updatedUser;
   }
   

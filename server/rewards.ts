@@ -14,10 +14,16 @@ export async function checkDailyReward(req: Request, res: Response) {
     const userId = req.user.id;
     const isEligible = await storage.checkDailyRewardStatus(userId);
     
+    // Ensure currentLoginStreak is properly defaulted if it doesn't exist
+    const currentStreak = typeof req.user.currentLoginStreak === 'number' ? req.user.currentLoginStreak : 0;
+    const nextDay = currentStreak + 1;
+    
+    console.log(`User ${req.user.username} reward check: currentStreak=${currentStreak}, nextDay=${nextDay}, isEligible=${isEligible}`);
+    
     return res.status(200).json({ 
       isEligible,
-      streak: req.user.currentLoginStreak || 0,
-      nextRewardDay: (req.user.currentLoginStreak || 0) + 1,
+      streak: currentStreak,
+      nextRewardDay: nextDay,
     });
   } catch (error) {
     console.error("Error checking daily reward:", error);
@@ -43,12 +49,18 @@ export async function claimDailyReward(req: Request, res: Response) {
     }
     
     // Calculate the next login streak day
-    let newStreak = (req.user.currentLoginStreak || 0) + 1;
+    // If undefined/null, use 0 so the first claim is Day 1
+    // Check req.user.currentLoginStreak exists and has a numeric value
+    const currentStreak = typeof req.user.currentLoginStreak === 'number' ? req.user.currentLoginStreak : 0;
+    console.log(`User ${req.user.username} current streak: ${currentStreak}`);
+    let newStreak = currentStreak + 1;
     
     // Cap at 30 days
     if (newStreak > 30) {
       newStreak = 1; // Reset back to day 1 after completing the 30-day cycle
     }
+    
+    console.log(`User ${req.user.username} new streak will be: ${newStreak}`);
     
     // Calculate base reward amount for this day
     let baseRewardAmount = await storage.getRewardAmountForDay(newStreak);
@@ -105,20 +117,34 @@ export async function claimDailyReward(req: Request, res: Response) {
     const newBalance = currentBalance + rewardAmount;
     await storage.updateUserBalance(userId, newBalance);
     
-    // Create a record for this login reward
-    await storage.createLoginReward({
-      userId,
-      day: newStreak,
-      amount: rewardAmount.toString()
-    });
+    // Create a record for this login reward with detailed logging
+    console.log(`Creating login reward record for user ID ${userId} - day ${newStreak}, amount: ${rewardAmount}`);
+    try {
+      const loginReward = await storage.createLoginReward({
+        userId,
+        day: newStreak,
+        amount: rewardAmount.toString()
+      });
+      console.log(`Successfully created login reward record: ${loginReward.id}`);
+    } catch (error) {
+      console.error(`Error creating login reward record for user ID ${userId}:`, error);
+      throw error; // Re-throw to be handled by the outer try/catch
+    }
     
-    // Create a coin transaction record
-    await storage.createCoinTransaction({
-      userId,
-      amount: rewardAmount.toString(),
-      reason: `Daily Login Reward - Day ${newStreak}`,
-      adminId: 0 // System action
-    });
+    // Create a coin transaction record with detailed logging
+    console.log(`Creating coin transaction record for user ID ${userId} - amount: ${rewardAmount}`);
+    try {
+      const transaction = await storage.createCoinTransaction({
+        userId,
+        amount: rewardAmount.toString(),
+        reason: `Daily Login Reward - Day ${newStreak}`,
+        adminId: 0 // System action
+      });
+      console.log(`Successfully created coin transaction record: ${transaction.id}`);
+    } catch (error) {
+      console.error(`Error creating coin transaction for user ID ${userId}:`, error);
+      throw error; // Re-throw to be handled by the outer try/catch
+    }
     
     // Prepare a detailed message for VIP users
     let rewardMessage = `Congratulations! You've received ${rewardAmount} coins for your Day ${newStreak} login reward!`;
