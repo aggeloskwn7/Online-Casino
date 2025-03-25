@@ -1,83 +1,23 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import PlinkoGame from '@/components/games/plinko-game';
 import { PlinkoControls } from '@/components/games/plinko-controls';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import Sidebar from '@/components/ui/sidebar';
 import TransactionHistory from '@/components/transaction-history';
-import MobileNav from '@/components/ui/mobile-nav';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { useState } from 'react';
 import { PlinkoResult, RiskLevel } from '@/types/plinko-types';
 import { useAuth } from '@/hooks/use-auth';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-
-// Quick Login Form Component
-function QuickLoginForm() {
-  const { loginMutation } = useAuth();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    loginMutation.mutate({ username, password });
-  };
-
-  return (
-    <Card className="mb-4">
-      <CardHeader className="pb-2">
-        <CardTitle>Quick Login</CardTitle>
-        <CardDescription>You need to login to play Plinko</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="username" className="text-sm font-medium">Username</label>
-            <Input
-              id="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter your username"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium">Password</label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              required
-            />
-          </div>
-          <Button 
-            type="submit" 
-            className="w-full"
-            disabled={loginMutation.isPending}
-          >
-            {loginMutation.isPending ? 'Logging in...' : 'Login'}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
-  );
-}
+import MainLayout from '@/components/layouts/main-layout';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function PlinkoPage() {
-  const isMobile = useIsMobile();
   const { user } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [gameResult, setGameResult] = useState<PlinkoResult | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
   const [showHistory, setShowHistory] = useState(true); // Initially show history
   const [currentRisk, setCurrentRisk] = useState<RiskLevel>('medium'); // Add shared risk state
   
   // Hide history during animation and show it again after
-  React.useEffect(() => {
+  useEffect(() => {
     if (isAnimating) {
       // Hide history while animation is in progress
       setShowHistory(false);
@@ -92,82 +32,61 @@ export default function PlinkoPage() {
   }, [isAnimating, gameResult]);
 
   return (
-    <>
+    <MainLayout>
       <Helmet>
-        <title>Plinko Game | Casino</title>
+        <title>Plinko | Rage Bet Casino</title>
+        <meta name="description" content="Play Plinko and watch the ball bounce through pins for big multipliers!" />
       </Helmet>
 
-      <div className="flex min-h-screen bg-background">
-        {/* Sidebar for desktop */}
-        {!isMobile && <Sidebar />}
-
-        {/* Mobile sidebar - conditionally rendered */}
-        {isMobile && sidebarOpen && (
-          <div className="fixed inset-0 z-50 bg-background">
-            <Sidebar mobile onClose={() => setSidebarOpen(false)} />
-          </div>
-        )}
-
-        {/* Mobile top navigation */}
-        {isMobile && (
-          <MobileNav type="top" onMenuClick={() => setSidebarOpen(true)} />
-        )}
-
-        {/* Main content - FAR AWAY from sidebar */}
-        <div className="flex-1 flex flex-col">
-          <main className="flex-1 p-4 pt-16 md:p-6 md:pt-16 lg:pl-[260px] lg:pt-8">
-            <div className="max-w-7xl mx-auto space-y-6">
-              <h1 className="text-3xl font-bold tracking-tight mb-8">Plinko</h1>
-              
-              {/* Show login form if user is not authenticated */}
-              {!user ? (
-                <div className="max-w-md mx-auto">
-                  <QuickLoginForm />
-                  <div className="text-center text-muted-foreground mt-4">
-                    <p>Please login to play Plinko and other games.</p>
-                    <p className="mt-2">Username: <strong>aggeloskwn</strong>, Password: <strong>admin</strong></p>
-                  </div>
-                </div>
-              ) : (
-                /* Game board and controls side by side - only shown when logged in */
-                <div className="flex flex-col md:flex-row gap-6 mb-8">
-                  {/* Game board - full width on mobile */}
-                  <div className="w-full md:w-2/3 bg-card rounded-lg border shadow-sm overflow-hidden">
-                    <PlinkoGame 
-                      externalResult={gameResult}
-                      onAnimatingChange={setIsAnimating}
-                      risk={currentRisk}
-                      onRiskChange={setCurrentRisk}
-                    />
-                  </div>
-                  
-                  {/* Controls stacked below on mobile, beside on desktop */}
-                  <div className="w-full md:w-1/3 flex-shrink-0">
-                    <PlinkoControls 
-                      onBetPlaced={setGameResult}
-                      isAnimating={isAnimating}
-                      risk={currentRisk}
-                      onRiskChange={setCurrentRisk}
-                    />
-                  </div>
-                </div>
-              )}
-              
-              {/* Recent games BELOW everything - conditionally shown when logged in and not animating */}
-              {user && showHistory && (
-                <div className="w-full bg-card rounded-lg border shadow-sm">
-                  <div className="p-4">
-                    <h2 className="text-xl font-semibold mb-4">Recent Games</h2>
-                    <ScrollArea className="h-[300px] pr-4">
-                      <TransactionHistory gameType="plinko" maxItems={25} />
-                    </ScrollArea>
-                  </div>
-                </div>
-              )}
-            </div>
-          </main>
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-heading font-bold flex items-center">
+            <i className="ri-game-line mr-3 text-primary"></i>
+            Plinko
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Drop the ball and watch it bounce through pins for big multipliers!
+          </p>
         </div>
+
+        {/* Game layout with responsive design */}
+        <div className="flex flex-col lg:flex-row gap-6 mb-8">
+          {/* Game board - full width on mobile, 2/3 on desktop */}
+          <div className="w-full lg:w-2/3 bg-card rounded-lg shadow-sm overflow-hidden relative">
+            <div className="w-full h-full flex items-center justify-center">
+              <PlinkoGame 
+                externalResult={gameResult}
+                onAnimatingChange={setIsAnimating}
+                risk={currentRisk}
+                onRiskChange={setCurrentRisk}
+              />
+            </div>
+          </div>
+          
+          {/* Controls - full width on mobile, 1/3 on desktop */}
+          <div className="w-full lg:w-1/3 flex-shrink-0">
+            <PlinkoControls 
+              onBetPlaced={setGameResult}
+              isAnimating={isAnimating}
+              risk={currentRisk}
+              onRiskChange={setCurrentRisk}
+            />
+          </div>
+        </div>
+        
+        {/* Recent Games - conditionally shown when logged in */}
+        {user && showHistory && (
+          <Card className="mb-8">
+            <CardContent className="p-4 pt-6">
+              <h2 className="text-xl font-semibold mb-4">Recent Games</h2>
+              <ScrollArea className="h-[300px]">
+                <TransactionHistory gameType="plinko" maxItems={25} />
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        )}
       </div>
-    </>
+    </MainLayout>
   );
 }
