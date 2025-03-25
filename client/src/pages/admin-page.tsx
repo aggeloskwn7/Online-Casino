@@ -46,6 +46,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  Cell,
+} from 'recharts';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -69,7 +84,10 @@ import {
   Settings,
   LifeBuoy,
   Crown,
-  MessagesSquare
+  MessagesSquare,
+  BarChart3,
+  Activity,
+  Users
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/lib/game-utils';
@@ -2343,6 +2361,274 @@ function SubscriptionsTab() {
 }
 
 // Component for the ban appeals tab
+// Component for the analytics tab
+function AnalyticsTab() {
+  const { toast } = useToast();
+  const [timeframe, setTimeframe] = useState('today');
+  
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FF6B6B', '#747474'];
+  
+  const {
+    data: analyticsData,
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['/api/admin/analytics', timeframe],
+    queryFn: async () => {
+      const res = await apiRequest('GET', `/api/admin/analytics?timeframe=${timeframe}`);
+      return await res.json();
+    }
+  });
+  
+  if (error) {
+    return (
+      <div className="text-center p-8">
+        <p className="text-red-500">Error loading analytics: {(error as Error).message}</p>
+        <Button onClick={() => refetch()} className="mt-4">
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Retry
+        </Button>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Platform Analytics</h2>
+        
+        <Select value={timeframe} onValueChange={setTimeframe}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Select timeframe" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="today">Today</SelectItem>
+            <SelectItem value="yesterday">Yesterday</SelectItem>
+            <SelectItem value="week">Last 7 days</SelectItem>
+            <SelectItem value="month">Last 30 days</SelectItem>
+            <SelectItem value="year">Last year</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      
+      {isLoading ? (
+        <div className="flex justify-center p-12">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+      ) : (
+        <>
+          {/* Top KPI Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <UICard>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-muted-foreground">Active Users</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <Users className="h-5 w-5 text-blue-500 mr-2" />
+                  <div className="text-2xl font-bold">{analyticsData?.activeUsers || 0}</div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Out of {analyticsData?.totalUsers || 0} total users
+                </p>
+              </CardContent>
+            </UICard>
+            
+            <UICard>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-muted-foreground">Coins Spent</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <CoinsIcon className="h-5 w-5 text-amber-500 mr-2" />
+                  <div className="text-2xl font-bold">{formatCurrency(analyticsData?.coinsSpent || 0)}</div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  In {timeframe === 'today' ? 'the last 24 hours' : timeframe}
+                </p>
+              </CardContent>
+            </UICard>
+            
+            <UICard>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-muted-foreground">Coins Earned by Users</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <Coins className="h-5 w-5 text-green-500 mr-2" />
+                  <div className="text-2xl font-bold">{formatCurrency(analyticsData?.coinsEarned || 0)}</div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Payout ratio: {analyticsData?.coinsSpent && analyticsData?.coinsEarned ? 
+                    `${((analyticsData.coinsEarned / analyticsData.coinsSpent) * 100).toFixed(1)}%` : 'N/A'}
+                </p>
+              </CardContent>
+            </UICard>
+            
+            <UICard>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-muted-foreground">Most Popular Game</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center">
+                  <Activity className="h-5 w-5 text-purple-500 mr-2" />
+                  <div className="text-2xl font-bold capitalize">
+                    {analyticsData?.mostPlayedGame?.gameType || 'N/A'}
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {analyticsData?.mostPlayedGame?.count || 0} plays
+                </p>
+              </CardContent>
+            </UICard>
+          </div>
+          
+          {/* Charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Game Distribution Chart */}
+            <UICard className="col-span-1">
+              <CardHeader>
+                <CardTitle>Game Distribution</CardTitle>
+                <CardDescription>Popularity of different games</CardDescription>
+              </CardHeader>
+              <CardContent className="h-[300px]">
+                {analyticsData?.gameDistribution && analyticsData.gameDistribution.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={analyticsData.gameDistribution}
+                        dataKey="count"
+                        nameKey="gameType"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        fill="#8884d8"
+                        label={({ gameType, percent }) => `${gameType}: ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {analyticsData.gameDistribution.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value, name) => [value, name]} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <p className="text-muted-foreground">No game data available</p>
+                  </div>
+                )}
+              </CardContent>
+            </UICard>
+            
+            {/* Subscription Stats */}
+            <UICard className="col-span-1">
+              <CardHeader>
+                <CardTitle>Subscription Tiers</CardTitle>
+                <CardDescription>Distribution of subscription tiers</CardDescription>
+              </CardHeader>
+              <CardContent className="h-[300px]">
+                {analyticsData?.subscriptionStats && analyticsData.subscriptionStats.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={analyticsData.subscriptionStats}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="tier" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="count" name="Users" fill="#8884d8">
+                        {analyticsData.subscriptionStats.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <p className="text-muted-foreground">No subscription data available</p>
+                  </div>
+                )}
+              </CardContent>
+            </UICard>
+            
+            {/* Daily New Users */}
+            <UICard className="col-span-1 lg:col-span-2">
+              <CardHeader>
+                <CardTitle>New User Registrations</CardTitle>
+                <CardDescription>Daily new user counts for the past 30 days</CardDescription>
+              </CardHeader>
+              <CardContent className="h-[300px]">
+                {analyticsData?.dailyNewUsers && analyticsData.dailyNewUsers.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart
+                      data={analyticsData.dailyNewUsers}
+                      margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="date" 
+                        tickFormatter={(date) => new Date(date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                      />
+                      <YAxis />
+                      <Tooltip 
+                        labelFormatter={(date) => new Date(date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+                      />
+                      <Area type="monotone" dataKey="count" name="New Users" stroke="#8884d8" fill="#8884d8" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <p className="text-muted-foreground">No user registration data available</p>
+                  </div>
+                )}
+              </CardContent>
+            </UICard>
+            
+            {/* Daily Transactions */}
+            <UICard className="col-span-1 lg:col-span-2">
+              <CardHeader>
+                <CardTitle>Daily Betting Activity</CardTitle>
+                <CardDescription>Bets and wins for the past 30 days</CardDescription>
+              </CardHeader>
+              <CardContent className="h-[300px]">
+                {analyticsData?.dailyTransactions && analyticsData.dailyTransactions.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={analyticsData.dailyTransactions}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="date" 
+                        tickFormatter={(date) => new Date(date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                      />
+                      <YAxis />
+                      <Tooltip 
+                        labelFormatter={(date) => new Date(date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+                      />
+                      <Legend />
+                      <Bar dataKey="bets" name="Total Bets" fill="#0088FE" />
+                      <Bar dataKey="wins" name="Wins" fill="#00C49F" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <p className="text-muted-foreground">No transaction data available</p>
+                  </div>
+                )}
+              </CardContent>
+            </UICard>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function BanAppealsTab() {
   const { toast } = useToast();
   const [page, setPage] = useState(1);
