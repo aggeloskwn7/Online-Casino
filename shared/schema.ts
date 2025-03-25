@@ -5,6 +5,7 @@ import { z } from "zod";
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
+  email: text("email"),
   password: text("password").notNull(),
   balance: decimal("balance", { precision: 10, scale: 2 }).default("10000").notNull(),
   playCount: integer("play_count").default(0).notNull(),
@@ -493,3 +494,37 @@ export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
 export type SupportTicket = typeof supportTickets.$inferSelect;
 export type InsertTicketMessage = z.infer<typeof insertTicketMessageSchema>;
 export type TicketMessage = typeof ticketMessages.$inferSelect;
+
+// Password reset functionality
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  isUsed: boolean("is_used").default(false).notNull(),
+});
+
+export const insertPasswordResetTokenSchema = createInsertSchema(passwordResetTokens).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const passwordResetSchema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(6),
+  confirmPassword: z.string().min(6),
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
+
+export type InsertPasswordResetToken = z.infer<typeof insertPasswordResetTokenSchema>;
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type PasswordReset = z.infer<typeof passwordResetSchema>;
+
+export const forgotPasswordSchema = z.object({
+  username: z.string().min(1),
+});
+
+export type ForgotPassword = z.infer<typeof forgotPasswordSchema>;
