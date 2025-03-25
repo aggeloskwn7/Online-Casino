@@ -1568,7 +1568,7 @@ function SupportTab() {
   // Add reply mutation
   const addReply = useMutation({
     mutationFn: async ({ ticketId, message }: { ticketId: number, message: string }) => {
-      const res = await apiRequest("POST", `/api/support/tickets/${ticketId}/reply`, { message });
+      const res = await apiRequest("POST", `/api/admin/support/tickets/${ticketId}/reply`, { message, isAdmin: true });
       return await res.json();
     },
     onSuccess: () => {

@@ -237,6 +237,54 @@ export function setupSupportRoutes(app: Express) {
     }
   });
   
+  // Admin reply to ticket
+  app.post('/api/admin/support/tickets/:id/reply', adminMiddleware, async (req, res) => {
+    try {
+      const ticketId = parseInt(req.params.id);
+      
+      if (isNaN(ticketId)) {
+        return res.status(400).json({ message: "Invalid ticket ID" });
+      }
+      
+      const { message } = req.body;
+      
+      if (!message || typeof message !== 'string' || !message.trim()) {
+        return res.status(400).json({ message: "Message is required" });
+      }
+      
+      // Check if ticket exists
+      const ticket = await storage.getSupportTicket(ticketId);
+      
+      if (!ticket) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+      
+      // If the ticket is closed, don't allow reply
+      if (ticket.status === 'closed') {
+        return res.status(400).json({ message: "Cannot reply to a closed ticket" });
+      }
+      
+      // Add the reply
+      const reply = await storage.addSupportTicketReply(
+        ticketId,
+        req.user!.id,
+        message,
+        true // isAdmin flag set to true
+      );
+      
+      // If ticket is in 'open' status, update to 'in-progress'
+      if (ticket.status === 'open') {
+        await storage.updateSupportTicketStatus(ticketId, 'in-progress');
+      }
+      
+      res.json(reply);
+    } catch (error) {
+      console.error("Error adding reply to ticket:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Failed to add reply", error: errorMessage });
+    }
+  });
+  
   // Admin update ticket status
   app.patch('/api/admin/support/tickets/:id/status', adminMiddleware, async (req, res) => {
     try {
