@@ -28,6 +28,7 @@ const loginSchema = z.object({
 
 const registerSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
+  email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
   agreeTerms: z.boolean().refine(val => val === true, {
@@ -64,6 +65,7 @@ export default function AuthPage() {
     resolver: zodResolver(registerSchema),
     defaultValues: {
       username: "",
+      email: "",
       password: "",
       confirmPassword: "",
       agreeTerms: false,
@@ -80,6 +82,7 @@ export default function AuthPage() {
   const onRegister = (values: z.infer<typeof registerSchema>) => {
     registerMutation.mutate({
       username: values.username,
+      email: values.email,
       password: values.password,
     });
   };
@@ -193,6 +196,25 @@ export default function AuthPage() {
                           <FormControl>
                             <Input 
                               placeholder="Choose a username" 
+                              {...field} 
+                              className="bg-[#2A2A2A] border-[#333333]"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={registerForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="email" 
+                              placeholder="Enter your email" 
                               {...field} 
                               className="bg-[#2A2A2A] border-[#333333]"
                             />
