@@ -1,143 +1,170 @@
-import { Request, Response, Express, NextFunction } from "express";
-import { randomBytes } from "crypto";
-import { Resend } from "resend";
-import { storage } from "./storage";
-import { 
-  forgotPasswordSchema, 
-  passwordResetSchema 
-} from "@shared/schema";
-import { scrypt, timingSafeEqual } from "crypto";
-import { promisify } from "util";
+import { Request, Response, Express } from 'express';
+import { storage } from './storage';
+import { randomBytes, scrypt } from 'crypto';
+import { promisify } from 'util';
+import { z } from 'zod';
+import { passwordResetSchema, forgotPasswordSchema } from '@shared/schema';
+import { Resend } from 'resend';
 
-const scryptAsync = promisify(scrypt);
-
-// Initialize Resend
-if (!process.env.RESEND_API_KEY) {
-  console.warn("WARNING: RESEND_API_KEY environment variable is not set. Email functionality will not work.");
-}
-
+// Initialize Resend email service
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Password hashing functions
+// Convert callback-based scrypt to Promise-based
+const scryptAsync = promisify(scrypt);
+
+/**
+ * Hash a password for secure storage
+ */
 async function hashPassword(password: string): Promise<string> {
-  const salt = randomBytes(16).toString("hex");
+  const salt = randomBytes(16).toString('hex');
   const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
+  return `${buf.toString('hex')}.${salt}`;
 }
 
-// Forgot Password endpoint
+/**
+ * Forgot password handler - initiates password reset flow
+ */
 export async function forgotPassword(req: Request, res: Response) {
   try {
-    const result = forgotPasswordSchema.safeParse(req.body);
-    
-    if (!result.success) {
-      return res.status(400).json({ message: "Invalid request", errors: result.error.flatten() });
-    }
-
-    const { username } = result.data;
+    // Validate request
+    const { username } = forgotPasswordSchema.parse(req.body);
     
     // Find the user
     const user = await storage.getUserByUsername(username);
     
+    // If user doesn't exist, still return a success message to prevent username enumeration
     if (!user) {
-      // Don't reveal that the user doesn't exist for security reasons
-      return res.status(200).json({ message: "If a user with that username exists, a password reset link has been sent to their email." });
+      return res.status(200).json({ 
+        message: "If a user with that username exists, a password reset link has been sent to their email." 
+      });
     }
     
     // Check if the user has an email
     if (!user.email) {
-      return res.status(400).json({ message: "Your account doesn't have an email address. Please contact support." });
+      return res.status(400).json({ 
+        message: "This account doesn't have an email address. Please contact support." 
+      });
     }
     
-    // Generate a unique token
-    const token = randomBytes(32).toString("hex");
+    // Generate a random token
+    const token = randomBytes(32).toString('hex');
     
-    // Store the token with expiry (24 hours)
+    // Store the token in the database with expiry (24 hours)
     await storage.createPasswordResetToken(user.id, token, 24);
     
-    // Construct the reset URL
-    // In production this would be something like https://yourapp.com/reset-password?token=...
-    const resetUrl = `${process.env.DOMAIN || 'http://localhost:5000'}/reset-password?token=${token}`;
+    // Create reset link
+    const resetLink = `${req.protocol}://${req.get('host')}/reset-password?token=${token}`;
     
-    // Send the email using Resend
-    const data = await resend.emails.send({
-      from: "Rage Bet <noreply@ragebet.online>",
+    // Send email with reset link
+    const { data, error } = await resend.emails.send({
+      from: 'password-reset@ragebet.co',
       to: user.email,
-      subject: "Reset your Rage Bet password",
+      subject: 'Reset Your Rage Bet Password',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #5E35B1;">Reset Your Rage Bet Password</h2>
-          <p>Hi ${user.username},</p>
-          <p>We received a request to reset your Rage Bet password. Click the button below to set a new password:</p>
-          <a href="${resetUrl}" style="display: inline-block; background-color: #5E35B1; color: white; text-decoration: none; padding: 10px 20px; border-radius: 4px; margin: 15px 0;">Reset Password</a>
+          <h2 style="color: #5465FF;">Rage Bet Password Reset</h2>
+          <p>Hello ${user.username},</p>
+          <p>We received a request to reset your password. If you didn't make this request, you can ignore this email.</p>
+          <p>To reset your password, click the button below:</p>
+          <p style="text-align: center; margin: 20px 0;">
+            <a href="${resetLink}" style="background-color: #5465FF; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block;">Reset Password</a>
+          </p>
+          <p>Or copy and paste this link in your browser:</p>
+          <p style="background-color: #f0f0f0; padding: 10px; border-radius: 4px; word-break: break-all; font-size: 14px;">${resetLink}</p>
           <p>This link will expire in 24 hours.</p>
-          <p>If you didn't request a password reset, please ignore this email or contact our support team if you have concerns.</p>
-          <p>Thank you,<br>The Rage Bet Team</p>
+          <p>The Rage Bet Team</p>
         </div>
       `,
     });
-    
-    if (data.error) {
-      console.error("Error sending password reset email:", data.error);
-      return res.status(500).json({ message: "Failed to send password reset email. Please try again later." });
+
+    if (error) {
+      console.error('Error sending reset email:', error);
+      return res.status(500).json({ message: 'Failed to send reset email. Please try again later.' });
     }
     
-    // Return success without revealing if the user exists for security
-    return res.status(200).json({ message: "If a user with that username exists, a password reset link has been sent to their email." });
-    
+    res.status(200).json({ 
+      message: "If a user with that username exists, a password reset link has been sent to their email." 
+    });
   } catch (error) {
-    console.error("Forgot password error:", error);
-    return res.status(500).json({ message: "Internal server error" });
+    console.error('Error in forgot password:', error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Invalid input', errors: error.errors });
+    }
+    res.status(500).json({ message: 'An error occurred. Please try again later.' });
   }
 }
 
-// Verify token (used to check if token is valid before showing reset form)
+/**
+ * Verify a reset token
+ */
 export async function verifyResetToken(req: Request, res: Response) {
   try {
     const { token } = req.query;
     
-    if (!token || typeof token !== "string") {
-      return res.status(400).json({ message: "Invalid or missing token" });
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({ message: 'Invalid or missing token' });
     }
-    
-    const resetToken = await storage.getPasswordResetToken(token);
     
     // Check if token exists and is valid
-    if (!resetToken || resetToken.isUsed || new Date(resetToken.expiresAt) < new Date()) {
-      return res.status(400).json({ message: "Invalid or expired token" });
+    const resetToken = await storage.getPasswordResetToken(token);
+    
+    if (!resetToken) {
+      return res.status(404).json({ message: 'Token not found or already used' });
     }
     
-    return res.status(200).json({ message: "Token is valid" });
+    // Check if token is expired
+    const now = new Date();
+    const expiry = new Date(resetToken.expiresAt);
     
+    if (now > expiry) {
+      return res.status(400).json({ message: 'Token has expired. Please request a new password reset.' });
+    }
+    
+    // Check if token has been used
+    if (resetToken.used) {
+      return res.status(400).json({ message: 'This token has already been used. Please request a new password reset.' });
+    }
+    
+    // Token is valid
+    res.status(200).json({ message: 'Token is valid', userId: resetToken.userId });
   } catch (error) {
-    console.error("Verify token error:", error);
-    return res.status(500).json({ message: "Internal server error" });
+    console.error('Error verifying reset token:', error);
+    res.status(500).json({ message: 'An error occurred. Please try again later.' });
   }
 }
 
-// Reset Password endpoint
+/**
+ * Reset password handler - completes password reset flow
+ */
 export async function resetPassword(req: Request, res: Response) {
   try {
     const { token } = req.query;
     
-    if (!token || typeof token !== "string") {
-      return res.status(400).json({ message: "Invalid or missing token" });
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({ message: 'Invalid or missing token' });
     }
     
-    const result = passwordResetSchema.safeParse(req.body);
+    // Validate request body
+    const { password } = passwordResetSchema.parse(req.body);
     
-    if (!result.success) {
-      return res.status(400).json({ message: "Invalid request", errors: result.error.flatten() });
-    }
-    
-    const { password } = result.data;
-    
-    // Find the token in the database
+    // Get the token from database
     const resetToken = await storage.getPasswordResetToken(token);
     
-    // Check if token exists and is valid
-    if (!resetToken || resetToken.isUsed || new Date(resetToken.expiresAt) < new Date()) {
-      return res.status(400).json({ message: "Invalid or expired token" });
+    if (!resetToken) {
+      return res.status(404).json({ message: 'Token not found or already used' });
+    }
+    
+    // Check if token is expired
+    const now = new Date();
+    const expiry = new Date(resetToken.expiresAt);
+    
+    if (now > expiry) {
+      return res.status(400).json({ message: 'Token has expired. Please request a new password reset.' });
+    }
+    
+    // Check if token has been used
+    if (resetToken.used) {
+      return res.status(400).json({ message: 'This token has already been used. Please request a new password reset.' });
     }
     
     // Hash the new password
@@ -149,85 +176,47 @@ export async function resetPassword(req: Request, res: Response) {
     // Mark the token as used
     await storage.markPasswordResetTokenAsUsed(resetToken.id);
     
-    // Get the user to send a confirmation email
-    const user = await storage.getUser(resetToken.userId);
-    
-    if (user && user.email) {
-      // Send confirmation email
-      await resend.emails.send({
-        from: "Rage Bet <noreply@ragebet.online>",
-        to: user.email,
-        subject: "Your Rage Bet password has been reset",
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #5E35B1;">Password Reset Successful</h2>
-            <p>Hi ${user.username},</p>
-            <p>Your Rage Bet password has been successfully reset.</p>
-            <p>If you did not request this change, please contact our support team immediately.</p>
-            <p>Thank you,<br>The Rage Bet Team</p>
-          </div>
-        `,
-      });
-    }
-    
-    return res.status(200).json({ message: "Password has been reset successfully" });
-    
+    res.status(200).json({ message: 'Password has been reset successfully' });
   } catch (error) {
-    console.error("Reset password error:", error);
-    return res.status(500).json({ message: "Internal server error" });
+    console.error('Error resetting password:', error);
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Invalid input', errors: error.errors });
+    }
+    res.status(500).json({ message: 'An error occurred. Please try again later.' });
   }
 }
 
-// Update Email endpoint
+/**
+ * Update email for user
+ */
 export async function updateEmail(req: Request, res: Response) {
   try {
-    if (!req.user) {
-      return res.status(401).json({ message: "Unauthorized" });
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Unauthorized' });
     }
     
     const { email } = req.body;
     
-    if (!email || typeof email !== "string" || !email.includes('@')) {
-      return res.status(400).json({ message: "Invalid email address" });
-    }
-    
-    // Check if email is already in use
-    const existingUser = await storage.getUserByEmail(email);
-    if (existingUser && existingUser.id !== req.user.id) {
-      return res.status(400).json({ message: "Email is already in use by another account" });
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ message: 'Invalid email address' });
     }
     
     // Update the user's email
-    const updatedUser = await storage.updateUserEmail(req.user.id, email);
+    await storage.updateUserEmail(req.user!.id, email);
     
-    // Send confirmation email
-    await resend.emails.send({
-      from: "Rage Bet <noreply@ragebet.online>",
-      to: email,
-      subject: "Email address updated for your Rage Bet account",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #5E35B1;">Email Updated Successfully</h2>
-          <p>Hi ${updatedUser.username},</p>
-          <p>Your email address for Rage Bet has been successfully updated to ${email}.</p>
-          <p>If you did not request this change, please contact our support team immediately.</p>
-          <p>Thank you,<br>The Rage Bet Team</p>
-        </div>
-      `,
-    });
-    
-    return res.status(200).json({ message: "Email updated successfully", user: updatedUser });
-    
+    res.status(200).json({ message: 'Email updated successfully' });
   } catch (error) {
-    console.error("Update email error:", error);
-    return res.status(500).json({ message: "Internal server error" });
+    console.error('Error updating email:', error);
+    res.status(500).json({ message: 'An error occurred. Please try again later.' });
   }
 }
 
-// Setup Password Reset Routes
+/**
+ * Set up password reset routes
+ */
 export function setupPasswordResetRoutes(app: Express) {
-  app.post("/api/forgot-password", forgotPassword);
-  app.get("/api/verify-reset-token", verifyResetToken);
-  app.post("/api/reset-password", resetPassword);
-  app.post("/api/update-email", updateEmail);
+  app.post('/api/forgot-password', forgotPassword);
+  app.get('/api/verify-reset-token', verifyResetToken);
+  app.post('/api/reset-password', resetPassword);
+  app.post('/api/update-email', updateEmail);
 }

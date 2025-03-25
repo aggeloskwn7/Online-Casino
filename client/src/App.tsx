@@ -22,6 +22,8 @@ import SubscriptionPage from "@/pages/subscription-page";
 import SupportPage from "@/pages/support-page";
 import PrivacyPolicyPage from "@/pages/privacy-policy-page";
 import TermsOfServicePage from "@/pages/terms-of-service-page";
+import ForgotPasswordPage from "@/pages/forgot-password-page";
+import ResetPasswordPage from "@/pages/reset-password-page";
 import { ProtectedRoute } from "./lib/protected-route";
 
 function Router() {
@@ -41,6 +43,8 @@ function Router() {
       <ProtectedRoute path="/support" component={SupportPage} />
       <ProtectedRoute path="/admin" component={AdminPage} />
       <Route path="/auth" component={AuthPage} />
+      <Route path="/forgot-password" component={ForgotPasswordPage} />
+      <Route path="/reset-password" component={ResetPasswordPage} />
       <Route path="/privacy-policy" component={PrivacyPolicyPage} />
       <Route path="/terms-of-service" component={TermsOfServicePage} />
       <Route component={NotFound} />

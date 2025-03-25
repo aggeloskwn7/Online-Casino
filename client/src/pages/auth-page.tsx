@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useLocation } from 'wouter';
+import { useLocation, Link } from 'wouter';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -165,9 +165,9 @@ export default function AuthPage() {
                         )}
                       />
                       
-                      <a href="#" className="text-sm text-[#5465FF] hover:underline">
+                      <Link href="/forgot-password" className="text-sm text-[#5465FF] hover:underline">
                         Forgot Password?
-                      </a>
+                      </Link>
                     </div>
                     
                     <Button 
