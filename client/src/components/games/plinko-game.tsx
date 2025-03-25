@@ -38,50 +38,46 @@ import {
 const ROWS = 10; // Number of rows of pins
 const BUCKET_COUNT = 11; // Number of buckets (should match multipliers array length)
 const PIN_SIZE = 10;
-// Create responsive spacing based on viewport width
-const getSpacing = () => {
-  // Check if window is available (client-side)
-  if (typeof window !== 'undefined') {
-    const width = window.innerWidth;
-    
-    // Calculate spacing dynamically based on container width
-    // For very small screens (under 360px)
-    if (width < 360) {
-      return { x: 22, y: 22 };
-    }
-    // For mobile phones (under 480px)
-    else if (width < 480) {
-      return { x: 24, y: 24 };
-    }
-    // For small tablets and large phones (under 640px)
-    else if (width < 640) {
-      return { x: 28, y: 28 };
-    }
-    // For tablets (under 768px)
-    else if (width < 768) {
-      return { x: 32, y: 32 };
-    }
-    // For small desktops (under 1024px)
-    else if (width < 1024) {
-      return { x: 36, y: 36 };
-    }
-    // For larger screens
-    else {
-      return { x: 40, y: 40 };
-    }
-  }
-  // Default fallback for SSR
-  return { x: 40, y: 40 };
-};
-
-// Initial spacing values - will be updated in useEffect
-const PIN_SPACING_X = 40;
-const PIN_SPACING_Y = 40;
 const PIN_RADIUS = PIN_SIZE / 2;
 const BALL_SIZE = 14;
-// These values will be dynamically calculated based on screen size
-let BOARD_WIDTH = PIN_SPACING_X * (BUCKET_COUNT);
-let BOARD_HEIGHT = PIN_SPACING_Y * ROWS + 60; // Extra space for buckets
+
+// Container-responsive spacing calculations
+const calculateDimensions = (containerWidth: number) => {
+  let pinSpacingX = 40; // Default spacing
+  let pinSpacingY = 40;
+  
+  // Determine pin spacing based on container width
+  if (containerWidth < 300) {
+    pinSpacingX = 22;
+    pinSpacingY = 22;
+  } else if (containerWidth < 400) {
+    pinSpacingX = 24;
+    pinSpacingY = 24;
+  } else if (containerWidth < 500) {
+    pinSpacingX = 28;
+    pinSpacingY = 28;
+  } else if (containerWidth < 600) {
+    pinSpacingX = 32;
+    pinSpacingY = 32;
+  } else if (containerWidth < 800) {
+    pinSpacingX = 36;
+    pinSpacingY = 36;
+  } else {
+    pinSpacingX = 40;
+    pinSpacingY = 40;
+  }
+  
+  // Calculate board dimensions based on spacing
+  const boardWidth = pinSpacingX * (BUCKET_COUNT);
+  const boardHeight = pinSpacingY * ROWS + 60; // Extra space for buckets
+  
+  return {
+    pinSpacingX,
+    pinSpacingY,
+    boardWidth,
+    boardHeight
+  };
+};
 
 // Define multiplier buckets for different risk levels - buckets match the number of pins in the last row
 // These should match server-side values in games.ts
@@ -96,26 +92,31 @@ const MULTIPLIERS: Record<RiskLevel, number[]> = {
   high: [15.0, 7.0, 3.0, 1.0, 0.5, 0.1, 0.5, 1.0, 3.0, 7.0, 15.0]
 };
 
-// Calculate pin positions - ensure they line up with buckets
-const calculatePins = (): PinPosition[] => {
+// Main helper functions use the dimensions object
+// These are the default implementations that work with the dimensions state
+const calculatePinsWithSpacing = (
+  spacingX: number, 
+  spacingY: number,
+  boardWidth = spacingX * BUCKET_COUNT
+): PinPosition[] => {
   const pins: PinPosition[] = [];
   
   // Calculate the center point of the board
-  const centerX = BOARD_WIDTH / 2;
+  const centerX = boardWidth / 2;
   
   // Start from the top with a single pin
   for (let row = 0; row < ROWS; row++) {
     const pinsInRow = row + 1;
     // Total width of pins in this row
-    const rowWidth = (pinsInRow - 1) * PIN_SPACING_X;
+    const rowWidth = (pinsInRow - 1) * spacingX;
     // Calculate starting X to center pins on the board
     const startX = centerX - rowWidth / 2;
     
     for (let i = 0; i < pinsInRow; i++) {
       pins.push({
         row,
-        x: startX + i * PIN_SPACING_X,
-        y: row * PIN_SPACING_Y + 60, // Add top margin
+        x: startX + i * spacingX,
+        y: row * spacingY + 60, // Add top margin
         radius: PIN_RADIUS
       });
     }
@@ -125,15 +126,19 @@ const calculatePins = (): PinPosition[] => {
 };
 
 // Calculate bucket positions - centered precisely in the card
-const calculateBuckets = (riskLevel: RiskLevel): Bucket[] => {
+const calculateBucketsWithSpacing = (
+  riskLevel: RiskLevel, 
+  spacingX: number, 
+  boardWidth: number
+): Bucket[] => {
   const multipliers = MULTIPLIERS[riskLevel];
   
   // Get total width of all buckets combined
-  const bucketWidth = PIN_SPACING_X; // Each bucket has width equal to pin spacing
+  const bucketWidth = spacingX; // Each bucket has width equal to pin spacing
   const totalBucketsWidth = bucketWidth * multipliers.length;
   
   // Center the buckets in the card by starting from the center point
-  const centerX = BOARD_WIDTH / 2;
+  const centerX = boardWidth / 2;
   const startX = centerX - (totalBucketsWidth / 2);
   
   return multipliers.map((multiplier: number, index: number) => {
@@ -165,50 +170,83 @@ export default function PlinkoGame({
   const { play } = useSound();
   const { toast } = useToast();
   
+  // Container ref for responsive sizing
+  const containerRef = useRef<HTMLDivElement>(null);
+  
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
   const [currentPath, setCurrentPath] = useState<PathStep[] | null>(null);
   const [result, setResult] = useState<PlinkoResult | null>(null);
   // Use external risk if provided, otherwise default to medium
   const [risk, setRisk] = useState<RiskLevel>(externalRisk || 'medium');
-  const [pins, setPins] = useState<PinPosition[]>(calculatePins());
-  const [buckets, setBuckets] = useState<Bucket[]>(calculateBuckets('medium'));
-  const [ballPosition, setBallPosition] = useState<BallPosition>({ x: BOARD_WIDTH / 2, y: 0 });
+  const [pins, setPins] = useState<PinPosition[]>([]);
+  const [buckets, setBuckets] = useState<Bucket[]>([]);
+  const [ballPosition, setBallPosition] = useState<BallPosition>({ x: 0, y: 0 });
   const [landingBucket, setLandingBucket] = useState<number | null>(null);
-  // Add state for spacing
-  const [spacing, setSpacing] = useState({ x: PIN_SPACING_X, y: PIN_SPACING_Y });
-  const [boardDimensions, setBoardDimensions] = useState({ width: BOARD_WIDTH, height: BOARD_HEIGHT });
+  
+  // Add state for dimensions based on container
+  const [dimensions, setDimensions] = useState({
+    pinSpacingX: 40,
+    pinSpacingY: 40,
+    boardWidth: 400, 
+    boardHeight: 460
+  });
   
   const animationRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Add a resize handler to recalculate board dimensions based on screen size
+  // ResizeObserver to monitor container size changes
   useEffect(() => {
-    const handleResize = () => {
-      const newSpacing = getSpacing();
-      // Update spacing values
-      setSpacing(newSpacing);
+    // Function to update dimensions based on container width
+    const updateDimensions = () => {
+      if (!containerRef.current) return;
       
-      // Recalculate board dimensions
-      const newWidth = newSpacing.x * BUCKET_COUNT;
-      const newHeight = newSpacing.y * ROWS + 60;
+      // Get container width
+      const containerWidth = containerRef.current.clientWidth;
       
-      setBoardDimensions({ width: newWidth, height: newHeight });
+      // Calculate new dimensions based on container width
+      const newDimensions = calculateDimensions(containerWidth);
+      setDimensions(newDimensions);
       
       // Recalculate pins with new spacing
-      const pinPositions = calculatePinsWithSpacing(newSpacing.x, newSpacing.y);
+      const pinPositions = calculatePinsWithSpacing(
+        newDimensions.pinSpacingX, 
+        newDimensions.pinSpacingY,
+        newDimensions.boardWidth
+      );
       setPins(pinPositions);
       
       // Recalculate buckets with new spacing
-      setBuckets(calculateBucketsWithSpacing(risk, newSpacing.x, newWidth));
+      setBuckets(calculateBucketsWithSpacing(
+        risk, 
+        newDimensions.pinSpacingX, 
+        newDimensions.boardWidth
+      ));
+      
+      // Reset ball position
+      setBallPosition({ 
+        x: newDimensions.boardWidth / 2, 
+        y: 0 
+      });
     };
     
-    // Call once on mount
-    handleResize();
+    // Initialize dimensions
+    updateDimensions();
     
-    // Add resize listener
-    window.addEventListener('resize', handleResize);
+    // Set up resize observer
+    const resizeObserver = new ResizeObserver(() => {
+      updateDimensions();
+    });
     
-    // Cleanup
-    return () => window.removeEventListener('resize', handleResize);
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+    
+    // Clean up
+    return () => {
+      if (containerRef.current) {
+        resizeObserver.unobserve(containerRef.current);
+      }
+      resizeObserver.disconnect();
+    };
   }, [risk]);
   
   // Helper functions to calculate pins and buckets with dynamic spacing
@@ -325,7 +363,7 @@ export default function PlinkoGame({
     setIsAnimating(true);
     
     // Reset ball position to the top center
-    setBallPosition({ x: BOARD_WIDTH / 2, y: 0 });
+    setBallPosition({ x: dimensions.boardWidth / 2, y: 0 });
     
     // Store the path for visualization
     const fullPath = path || generateRandomPath();
