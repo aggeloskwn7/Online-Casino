@@ -194,8 +194,9 @@ export default function PlinkoGame({
     const updateDimensions = () => {
       if (!containerRef.current) return;
       
-      // Get container width
-      const containerWidth = containerRef.current.clientWidth;
+      // Get container width - force to minimum width if container is too small
+      const containerWidth = Math.max(containerRef.current.clientWidth, 300);
+      console.log('Container width:', containerWidth);
       
       // Calculate new dimensions based on container width
       const newDimensions = calculateDimensions(containerWidth);
@@ -210,6 +211,7 @@ export default function PlinkoGame({
         newDimensions.pinSpacingX, 
         newDimensions.pinSpacingY
       );
+      console.log('Pins calculated:', pinPositions.length, pinPositions[0]);
       setPins(pinPositions);
       
       // Recalculate buckets with new spacing
@@ -245,7 +247,7 @@ export default function PlinkoGame({
       }
       resizeObserver.disconnect();
     };
-  }, [risk]);
+  }, []);  // Empty dependency array to ensure it only runs once on mount
   
   // We're using the function defined above
   
@@ -550,8 +552,13 @@ export default function PlinkoGame({
     }
   };
   
+  // Debug log  
+  useEffect(() => {
+    console.log('Pins state at render:', pins.length, pins);
+  }, [pins]);
+  
   return (
-    <div className="p-4">
+    <div className="p-4" ref={containerRef}>
       <div className="text-center mb-4">
         <p className="text-muted-foreground">
           Watch the ball drop and win big with multipliers up to 100x!
@@ -581,7 +588,7 @@ export default function PlinkoGame({
               }}
             >
               {/* Pins */}
-              {pins.map((pin, index) => (
+              {pins && pins.length > 0 ? pins.map((pin, index) => (
                 <div
                   key={`pin-${index}`}
                   className="absolute rounded-full bg-primary/70"
@@ -592,7 +599,9 @@ export default function PlinkoGame({
                     top: pin.y - PIN_RADIUS,
                   }}
                 />
-              ))}
+              )) : (
+                <div className="text-muted-foreground text-sm">No pins to display</div>
+              )}
               
               {/* Bucket separators */}
               <div className="absolute" style={{ bottom: 0, left: 0, width: "100%", height: 45 }}>
