@@ -2360,7 +2360,6 @@ function SubscriptionsTab() {
   );
 }
 
-// Component for the ban appeals tab
 // Component for the analytics tab
 function AnalyticsTab() {
   const { toast } = useToast();
@@ -2506,7 +2505,7 @@ function AnalyticsTab() {
                         fill="#8884d8"
                         label={({ gameType, percent }) => `${gameType}: ${(percent * 100).toFixed(0)}%`}
                       >
-                        {analyticsData.gameDistribution.map((entry, index) => (
+                        {analyticsData.gameDistribution.map((entry: {gameType: string, count: number}, index: number) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
@@ -2972,8 +2971,12 @@ export default function AdminPage() {
           </p>
         </div>
         
-        <Tabs defaultValue="users" className="w-full">
+        <Tabs defaultValue="analytics" className="w-full">
           <TabsList className="mb-6 flex flex-wrap">
+            <TabsTrigger value="analytics" className="flex items-center">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Analytics
+            </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center">
               <UserCog className="h-4 w-4 mr-2" />
               Users
@@ -3011,6 +3014,10 @@ export default function AdminPage() {
               Ban Appeals
             </TabsTrigger>
           </TabsList>
+          
+          <TabsContent value="analytics">
+            <AnalyticsTab />
+          </TabsContent>
           
           <TabsContent value="users">
             <UsersTab />
