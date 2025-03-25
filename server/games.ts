@@ -1484,14 +1484,14 @@ export async function playPlinko(req: Request, res: Response) {
     // Define plinko multipliers for different risk levels - more distinctive and balanced
     // These are for 10-row plinko with 11 buckets
     const MULTIPLIERS_BY_RISK = {
-      // Low risk: More balanced, mostly small multipliers, no extreme values
-      low: [2.0, 1.5, 1.2, 0.9, 0.7, 0.6, 0.7, 0.9, 1.2, 1.5, 2.0],
+      // Low risk: More balanced, more values just above 1x, fewer losses
+      low: [2.0, 1.5, 1.2, 1.1, 0.9, 0.8, 0.9, 1.1, 1.2, 1.5, 2.0],
       
-      // Medium risk: More variation, higher highs and lower lows
+      // Medium risk: Balanced distribution, moderate wins and losses
       medium: [4.0, 2.5, 1.5, 1.0, 0.5, 0.2, 0.5, 1.0, 1.5, 2.5, 4.0],
       
-      // High risk: Extreme variation, very high highs and very low lows
-      high: [15.0, 7.0, 3.0, 1.0, 0.5, 0.1, 0.5, 1.0, 3.0, 7.0, 15.0]
+      // High risk: Extreme variation, bigger wins but more losses
+      high: [18.0, 8.0, 4.0, 1.5, 0.3, 0.1, 0.3, 1.5, 4.0, 8.0, 18.0]
     };
     
     // Get multipliers for the selected risk level
@@ -1522,19 +1522,19 @@ export async function playPlinko(req: Request, res: Response) {
     // High risk: Higher chance of losses but also higher chance of big wins
     const RISK_PROBABILITIES = {
       low: {
-        lossChance: 40,      // 40% chance to land on low multipliers
+        lossChance: 40,      // 40% chance to land on low multipliers (<1x)
         smallWinChance: 50,  // 50% chance for small wins (1x-2x)
-        mediumWinChance: 8,  // 8% chance for medium wins (2x-5x)
-        bigWinChance: 2      // 2% chance for big wins (5x+)
+        mediumWinChance: 9,  // 9% chance for medium wins (2x-5x)
+        bigWinChance: 1      // 1% chance for big wins (5x+)
       },
       medium: {
-        lossChance: 65,      // 65% chance to land on low multipliers
+        lossChance: 65,      // 65% chance to land on low multipliers (<1x)
         smallWinChance: 20,  // 20% chance for small wins (1x-2x)
         mediumWinChance: 10, // 10% chance for medium wins (2x-5x)
         bigWinChance: 5      // 5% chance for big wins (5x+)
       },
       high: {
-        lossChance: 80,      // 80% chance to land on low multipliers
+        lossChance: 80,      // 80% chance to land on low multipliers (<1x)
         smallWinChance: 5,   // 5% chance for small wins (1x-2x)
         mediumWinChance: 5,  // 5% chance for medium wins (2x-5x)
         bigWinChance: 10     // 10% chance for big wins (5x+)

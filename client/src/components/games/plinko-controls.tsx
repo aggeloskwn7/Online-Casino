@@ -151,8 +151,8 @@ export function PlinkoControls({
               <>
                 <span className="font-semibold text-green-500">Low Risk:</span>
                 <ul className="mt-1 space-y-0.5 xs:space-y-1 list-disc pl-3 xs:pl-4">
-                  <li>More consistent small wins (up to 2x)</li>
-                  <li>90% chance to win something</li>
+                  <li>More consistent small wins (1.1x-2x)</li>
+                  <li>60% chance to win something</li>
                   <li>Max payout: 2x your bet</li>
                 </ul>
               </>
@@ -173,7 +173,7 @@ export function PlinkoControls({
                 <ul className="mt-1 space-y-0.5 xs:space-y-1 list-disc pl-3 xs:pl-4">
                   <li>Mostly losses, but huge potential wins</li>
                   <li>20% chance to win something</li>
-                  <li>Max payout: 15x your bet</li>
+                  <li>Max payout: 18x your bet</li>
                 </ul>
               </>
             )}

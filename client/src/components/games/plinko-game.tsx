@@ -123,14 +123,14 @@ const calculatePinsWithSpacing = (spacingX: number, spacingY: number): PinPositi
 // Define multiplier buckets for different risk levels - buckets match the number of pins in the last row
 // These should match server-side values in games.ts
 const MULTIPLIERS: Record<RiskLevel, number[]> = {
-  // Low risk: More balanced, mostly small multipliers, no extreme values
-  low: [2.0, 1.5, 1.2, 0.9, 0.7, 0.6, 0.7, 0.9, 1.2, 1.5, 2.0],
+  // Low risk: More balanced, more values just above 1x, fewer losses
+  low: [2.0, 1.5, 1.2, 1.1, 0.9, 0.8, 0.9, 1.1, 1.2, 1.5, 2.0],
   
-  // Medium risk: More variation, higher highs and lower lows
+  // Medium risk: Balanced distribution, moderate wins and losses
   medium: [4.0, 2.5, 1.5, 1.0, 0.5, 0.2, 0.5, 1.0, 1.5, 2.5, 4.0],
   
-  // High risk: Extreme variation, very high highs and very low lows
-  high: [15.0, 7.0, 3.0, 1.0, 0.5, 0.1, 0.5, 1.0, 3.0, 7.0, 15.0]
+  // High risk: Extreme variation, bigger wins but more losses
+  high: [18.0, 8.0, 4.0, 1.5, 0.3, 0.1, 0.3, 1.5, 4.0, 8.0, 18.0]
 };
 
 // Main helper functions use the dimensions object
@@ -315,8 +315,15 @@ export default function PlinkoGame({
     if (externalRisk && externalRisk !== risk) {
       setRisk(externalRisk);
       console.log('Risk level updated from parent:', externalRisk);
+      
+      // Reset the result state and landing bucket when risk changes
+      setResult(null);
+      setLandingBucket(null);
+      
+      // Update buckets immediately to match the new risk level
+      setBuckets(calculateBucketsWithSpacing(externalRisk, dimensions.pinSpacingX, dimensions.boardWidth));
     }
-  }, [externalRisk, risk]);
+  }, [externalRisk, risk, dimensions]);
   
   // Notify parent component of animation state changes
   useEffect(() => {
