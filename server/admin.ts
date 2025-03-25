@@ -1,6 +1,6 @@
 import { Express, Request, Response } from "express";
 import { storage } from "./storage";
-import { authMiddleware, adminMiddleware, ownerMiddleware } from "./auth";
+import { authMiddleware, adminMiddleware, ownerMiddleware, hashPassword } from "./auth";
 import { 
   adminUserUpdateSchema, 
   adminCoinAdjustmentSchema,
@@ -736,6 +736,46 @@ export function setupAdminRoutes(app: Express) {
     }
   });
   
+  // === PASSWORD MANAGEMENT ENDPOINTS ===
+  
+  // Reset user password (owner only)
+  app.post("/api/admin/users/:userId/reset-password", authMiddleware, ownerMiddleware, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      // Make sure target user exists
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Validate request data
+      const { newPassword } = adminPasswordResetSchema.parse(req.body);
+      
+      // Hash the new password - reuse the function from auth.ts
+      const hashedPassword = await hashPassword(newPassword);
+      
+      // Update the user's password
+      const updatedUser = await storage.updateUserPassword(userId, hashedPassword);
+      
+      // Remove password from user object before sending
+      const { password, ...safeUser } = updatedUser;
+      
+      res.json({ 
+        user: safeUser,
+        message: "Password reset successful" 
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input data", errors: error.errors });
+      }
+      
+      console.error("Error resetting user password:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Failed to reset user password", error: errorMessage });
+    }
+  });
+
   // === BAN MANAGEMENT ENDPOINTS ===
   
   // Get all banned users (admin only)
