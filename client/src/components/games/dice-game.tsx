@@ -197,8 +197,10 @@ export default function DiceGame() {
   
   // Render dice with fancy styling and effects
   const renderDiceFace = () => {
-    const isLowNumber = diceValue !== null && diceValue <= target;
-    const fgColor = isLowNumber ? "#00E701" : "#ffffff";
+    // When we have a finalResult, use that to determine the color
+    // Otherwise, use the initial guess based on target value
+    const isWin = lastResult ? lastResult.isWin : diceValue !== null && diceValue <= target;
+    const fgColor = isWin ? "#00E701" : "#ffffff";
     const textSize = diceValue !== null && diceValue >= 100 ? "text-xl" : "text-2xl";
     
     if (diceValue === null) {
@@ -260,11 +262,12 @@ export default function DiceGame() {
           style={{ 
             transformStyle: 'preserve-3d',
             perspective: '1000px',
+            // Make sure boxShadow exactly matches the isWin property from the API result
             boxShadow: lastResult?.isWin 
-              ? '0 0 20px rgba(84, 101, 255, 0.7)' 
+              ? '0 0 20px rgba(84, 101, 255, 0.7)' // Blue glow for wins
               : lastResult && !lastResult.isWin 
-                ? '0 0 20px rgba(255, 58, 94, 0.7)' 
-                : '0 5px 15px rgba(0, 0, 0, 0.5)'
+                ? '0 0 20px rgba(255, 58, 94, 0.7)' // Red glow for losses
+                : '0 5px 15px rgba(0, 0, 0, 0.5)' // Default shadow
           }}
         >
           {renderDiceFace()}
@@ -472,7 +475,7 @@ export default function DiceGame() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.8, duration: 0.3 }}
               >
-                Result: <span className="text-[#00E701]">{lastResult.result}</span>
+                Result: <span className={lastResult.isWin ? "text-[#00E701]" : "text-[#FF3A5E]"}>{lastResult.result}</span>
               </motion.div>
               
               <motion.div 
@@ -497,7 +500,7 @@ export default function DiceGame() {
             transition={{ duration: 0.2 }}
           >
             <div className="text-gray-400 text-sm">
-              Try again! You rolled <span className="text-white font-mono">{lastResult.result}</span> but needed below <span className="text-white font-mono">{lastResult.target}</span>.
+              Try again! You rolled <span className="text-[#FF3A5E] font-mono">{lastResult.result}</span> but needed below <span className="text-white font-mono">{lastResult.target}</span>.
             </div>
           </motion.div>
         )}
