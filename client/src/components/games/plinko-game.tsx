@@ -39,7 +39,7 @@ const ROWS = 10; // Number of rows of pins
 const BUCKET_COUNT = 11; // Number of buckets (should match multipliers array length)
 const PIN_SIZE = 10;
 const PIN_RADIUS = PIN_SIZE / 2;
-const BALL_SIZE = 14;
+// Ball size will be dynamically calculated based on container width
 
 // Container-responsive spacing calculations
 const calculateDimensions = (containerWidth: number) => {
@@ -191,6 +191,9 @@ export default function PlinkoGame({
     boardHeight: 460
   });
   
+  // Add ball size as state for responsive scaling
+  const [ballSize, setBallSize] = useState(14);
+  
   const animationRef = useRef<NodeJS.Timeout | null>(null);
   
   // ResizeObserver to monitor container size changes
@@ -206,11 +209,14 @@ export default function PlinkoGame({
       const newDimensions = calculateDimensions(containerWidth);
       setDimensions(newDimensions);
       
+      // Update ball size based on container width
+      const newBallSize = containerWidth < 400 ? 12 : containerWidth < 600 ? 14 : 16;
+      setBallSize(newBallSize);
+      
       // Recalculate pins with new spacing
       const pinPositions = calculatePinsWithSpacing(
         newDimensions.pinSpacingX, 
-        newDimensions.pinSpacingY,
-        newDimensions.boardWidth
+        newDimensions.pinSpacingY
       );
       setPins(pinPositions);
       
