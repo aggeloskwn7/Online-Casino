@@ -42,13 +42,28 @@ const PIN_SIZE = 10;
 const getSpacing = () => {
   // Check if window is available (client-side)
   if (typeof window !== 'undefined') {
-    // For mobile screens, use smaller spacing
-    if (window.innerWidth < 480) {
+    const width = window.innerWidth;
+    
+    // Calculate spacing dynamically based on container width
+    // For very small screens (under 360px)
+    if (width < 360) {
+      return { x: 22, y: 22 };
+    }
+    // For mobile phones (under 480px)
+    else if (width < 480) {
       return { x: 24, y: 24 };
     }
-    // For small tablets
-    else if (window.innerWidth < 768) {
+    // For small tablets and large phones (under 640px)
+    else if (width < 640) {
+      return { x: 28, y: 28 };
+    }
+    // For tablets (under 768px)
+    else if (width < 768) {
       return { x: 32, y: 32 };
+    }
+    // For small desktops (under 1024px)
+    else if (width < 1024) {
+      return { x: 36, y: 36 };
     }
     // For larger screens
     else {
