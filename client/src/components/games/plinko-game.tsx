@@ -294,9 +294,9 @@ export default function PlinkoGame({
     // If we have external result with multipliers from the server, use those
     if (result?.multipliers) {
       // Calculate buckets using server's multipliers 
-      const bucketWidth = PIN_SPACING_X;
+      const bucketWidth = dimensions.pinSpacingX;
       const totalBucketsWidth = bucketWidth * result.multipliers.length;
-      const centerX = BOARD_WIDTH / 2;
+      const centerX = dimensions.boardWidth / 2;
       const startX = centerX - (totalBucketsWidth / 2);
       
       const serverBuckets = result.multipliers.map((multiplier: number, index: number) => {
@@ -310,9 +310,9 @@ export default function PlinkoGame({
       setBuckets(serverBuckets);
     } else {
       // Otherwise use client-side multipliers based on risk level
-      setBuckets(calculateBuckets(risk));
+      setBuckets(calculateBucketsWithSpacing(risk, dimensions.pinSpacingX, dimensions.boardWidth));
     }
-  }, [risk, result]);
+  }, [risk, result, dimensions]);
   
   // Update internal state when external result changes
   useEffect(() => {
@@ -401,18 +401,21 @@ export default function PlinkoGame({
         const safeBucketIndex = Math.min(Math.max(0, finalPosition), buckets.length - 1);
         setLandingBucket(safeBucketIndex);
         
-        // Calculate the final position using the exact same bucket centering math
-        const bucketWidth = PIN_SPACING_X;
+        // Calculate the final position using the dimensions for responsive sizing
+        const bucketWidth = dimensions.pinSpacingX;
         const totalBucketsWidth = bucketWidth * BUCKET_COUNT;
-        const centerX = BOARD_WIDTH / 2;
+        const centerX = dimensions.boardWidth / 2;
         const startX = centerX - (totalBucketsWidth / 2);
         const finalX = startX + safeBucketIndex * bucketWidth + bucketWidth / 2;
+        
+        // Position for the bounce animation based on dimensions
+        const bottomPosition = dimensions.boardHeight - 20;
         
         // Add a much more pronounced bounce effect in the bucket for a more satisfying landing
         // First position - higher in the bucket for dramatic effect
         setBallPosition({ 
           x: finalX,
-          y: BOARD_HEIGHT - 45 // Higher position for initial bounce
+          y: bottomPosition - 25 // Higher position for initial bounce
         });
         
         // Start a more pronounced bounce sequence - longer and more steps
@@ -420,35 +423,35 @@ export default function PlinkoGame({
           // First bounce - down very low in bucket
           setBallPosition({ 
             x: finalX,
-            y: BOARD_HEIGHT - 10 // Lower position (bounce down)
+            y: bottomPosition + 10 // Lower position (bounce down)
           });
           
           setTimeout(() => {
             // Second bounce - higher
             setBallPosition({ 
               x: finalX,
-              y: BOARD_HEIGHT - 28
+              y: bottomPosition - 8
             });
             
             setTimeout(() => {
               // Third bounce - down again
               setBallPosition({ 
                 x: finalX,
-                y: BOARD_HEIGHT - 15
+                y: bottomPosition + 5
               });
               
               setTimeout(() => {
                 // Fourth bounce - up slightly
                 setBallPosition({ 
                   x: finalX,
-                  y: BOARD_HEIGHT - 22
+                  y: bottomPosition - 2
                 });
                 
                 setTimeout(() => {
                   // Final resting position
                   setBallPosition({ 
                     x: finalX,
-                    y: BOARD_HEIGHT - 20 // Final position
+                    y: bottomPosition // Final position
                   });
                 }, 120);
               }, 120);
@@ -476,19 +479,19 @@ export default function PlinkoGame({
       if (pathStep.row < ROWS) {
         // For pins (rows 0 to ROWS-1), use the pin calculation
         const pinsInRow = pathStep.row + 1;
-        const centerX = BOARD_WIDTH / 2;
-        const rowWidth = (pinsInRow - 1) * PIN_SPACING_X;
+        const centerX = dimensions.boardWidth / 2;
+        const rowWidth = (pinsInRow - 1) * dimensions.pinSpacingX;
         const startX = centerX - rowWidth / 2;
-        newX = startX + pathStep.position * PIN_SPACING_X;
-        newY = pathStep.row * PIN_SPACING_Y + 60;
+        newX = startX + pathStep.position * dimensions.pinSpacingX;
+        newY = pathStep.row * dimensions.pinSpacingY + 60;
       } else {
         // For the final row (buckets), use the bucket calculation
-        const bucketWidth = PIN_SPACING_X;
+        const bucketWidth = dimensions.pinSpacingX;
         const totalBucketsWidth = bucketWidth * BUCKET_COUNT;
-        const centerX = BOARD_WIDTH / 2;
+        const centerX = dimensions.boardWidth / 2;
         const startX = centerX - (totalBucketsWidth / 2);
         newX = startX + pathStep.position * bucketWidth + bucketWidth / 2;
-        newY = BOARD_HEIGHT - 20;
+        newY = dimensions.boardHeight - 20;
       }
       
       // Add realistic physics with jitter and pin deflection effects
@@ -598,8 +601,8 @@ export default function PlinkoGame({
         <div 
           className="relative bg-gradient-to-b from-background/80 to-background border rounded-lg overflow-hidden"
           style={{ 
-            width: Math.min(boardDimensions.width + 60, 700),
-            height: Math.min(boardDimensions.height + 40, 600),
+            width: Math.min(dimensions.boardWidth + 60, 700),
+            height: Math.min(dimensions.boardHeight + 40, 600),
             maxWidth: "100%",
             transition: "width 0.3s, height 0.3s" // Smooth transition when dimensions change
           }}
@@ -610,8 +613,8 @@ export default function PlinkoGame({
             <div 
               className="relative scale-[0.9] sm:scale-100" 
               style={{ 
-                width: boardDimensions.width, 
-                height: boardDimensions.height,
+                width: dimensions.boardWidth, 
+                height: dimensions.boardHeight,
                 transition: "width 0.3s, height 0.3s" // Smooth transition when dimensions change
               }}
             >
@@ -678,19 +681,19 @@ export default function PlinkoGame({
                   <motion.div
                     className="absolute rounded-full z-10 overflow-hidden"
                     style={{
-                      width: BALL_SIZE,
-                      height: BALL_SIZE,
+                      width: ballSize,
+                      height: ballSize,
                       background: 'radial-gradient(circle at 35% 35%, #ffea00 5%, #ffbe00 60%, #ff9800 100%)',
                       boxShadow: '0 0 10px 2px rgba(255, 190, 0, 0.3), inset 0 0 6px 1px rgba(255, 255, 255, 0.5)'
                     }}
                     initial={{ 
-                      x: BOARD_WIDTH / 2 - BALL_SIZE / 2,
-                      y: -BALL_SIZE,
+                      x: dimensions.boardWidth / 2 - ballSize / 2,
+                      y: -ballSize,
                       rotate: 0
                     }}
                     animate={{ 
-                      x: ballPosition.x - BALL_SIZE / 2,
-                      y: ballPosition.y - BALL_SIZE / 2,
+                      x: ballPosition.x - ballSize / 2,
+                      y: ballPosition.y - ballSize / 2,
                       // Add rotation based on position for a rolling effect
                       rotate: ballPosition.x * 0.5
                     }}
