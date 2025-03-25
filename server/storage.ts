@@ -253,36 +253,48 @@ export class DatabaseStorage implements IStorage {
     const currentTimestamp = new Date();
     console.log(`Current timestamp for reward claim: ${currentTimestamp.toISOString()}`);
     
-    // First verify the user exists with direct SQL query
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, userId));
-      
-    if (!user) {
-      console.error(`Error updating streak: User ID ${userId} not found`);
-      throw new Error(`User ID ${userId} not found`);
+    try {
+      // Use database transaction with row locking to prevent race conditions or overlapping rewards
+      return await db.transaction(async (tx) => {
+        // CRITICAL: First lock this specific user's row to prevent concurrent updates
+        const [lockedUser] = await tx
+          .select()
+          .from(users)
+          .where(eq(users.id, userId))
+          .for('update'); // SQL FOR UPDATE lock
+          
+        if (!lockedUser) {
+          console.error(`[TRANSACTION] Error updating streak: User ID ${userId} not found during row lock`);
+          throw new Error(`User ID ${userId} not found during transaction lock`);
+        }
+        
+        console.log(`[TRANSACTION] Locked user ${lockedUser.username} (ID: ${userId}) with current streak: ${lockedUser.currentLoginStreak || 0}`);
+        console.log(`[TRANSACTION] User creation date: ${lockedUser.createdAt}, last reward: ${lockedUser.lastRewardDate || 'never'}`);
+        
+        // Now perform the update on the locked row
+        const [updatedUser] = await tx
+          .update(users)
+          .set({ 
+            currentLoginStreak: streak,
+            lastRewardDate: currentTimestamp  // Use the precise timestamp
+          })
+          .where(eq(users.id, userId)) // CRITICAL: Ensure we only update the specific user
+          .returning();
+        
+        if (!updatedUser) {
+          console.error(`[TRANSACTION] Error updating streak: No user returned after update for ID ${userId}`);
+          throw new Error(`Failed to update user ID ${userId} in transaction`);
+        }
+        
+        console.log(`[TRANSACTION] Successfully updated login streak for user ${updatedUser.username} (ID: ${userId}) to day ${streak}`);
+        console.log(`[TRANSACTION] New lastRewardDate: ${updatedUser.lastRewardDate}`);
+        
+        return updatedUser;
+      });
+    } catch (error) {
+      console.error(`Failed to update login streak for user ID ${userId}:`, error);
+      throw error; // Re-throw for proper error handling upstream
     }
-    
-    console.log(`Found user ${user.username} (ID: ${userId}) with current streak: ${user.currentLoginStreak || 0}`);
-    
-    // Update with SQL query explicitly filtering on the user ID
-    const [updatedUser] = await db
-      .update(users)
-      .set({ 
-        currentLoginStreak: streak,
-        lastRewardDate: currentTimestamp  // Use the precise timestamp
-      })
-      .where(eq(users.id, userId))
-      .returning();
-    
-    if (!updatedUser) {
-      console.error(`Error updating streak: No user returned after update for ID ${userId}`);
-      throw new Error(`Failed to update user ID ${userId}`);
-    }
-    
-    console.log(`Successfully updated login streak for user ${updatedUser.username} (ID: ${userId}) to day ${streak}, timestamp: ${updatedUser.lastRewardDate}`);
-    return updatedUser;
   }
   
   async checkDailyRewardStatus(userId: number): Promise<boolean> {
@@ -546,26 +558,41 @@ export class DatabaseStorage implements IStorage {
       throw new Error("userId is required for login rewards");
     }
     
-    // Log the reward being created
-    console.log(`REWARD CREATE: Creating login reward for user ID ${reward.userId}, day ${reward.day}, amount ${reward.amount}`);
-    
-    // Create the reward with explicit userId filtering
-    const [newReward] = await db
-      .insert(loginRewards)
-      .values({
-        ...reward,
-        // Ensure we're using the passed userId and not accidentally sharing rewards
-        userId: reward.userId 
-      })
-      .returning();
-    
-    if (!newReward) {
-      console.error(`ERROR: Failed to create login reward for user ID ${reward.userId}`);
-      throw new Error(`Failed to create login reward for user ID ${reward.userId}`);
+    // Additional validation: ensure the userId exists before creating reward
+    const user = await this.getUser(reward.userId);
+    if (!user) {
+      console.error(`ERROR: Attempted to create login reward for non-existent user ID ${reward.userId}`);
+      throw new Error(`User ID ${reward.userId} not found when creating reward`);
     }
     
-    console.log(`REWARD CREATED: Login reward ID ${newReward.id} created for user ID ${newReward.userId}`);
-    return newReward;
+    // Log the reward being created
+    console.log(`REWARD CREATE: Creating login reward for user ${user.username} (ID: ${reward.userId}), day ${reward.day}, amount ${reward.amount}`);
+    
+    try {
+      // Use a transaction for atomicity
+      return await db.transaction(async (tx) => {
+        // Create the reward with explicit userId filtering
+        const [newReward] = await tx
+          .insert(loginRewards)
+          .values({
+            ...reward,
+            // Ensure we're using the passed userId and not accidentally sharing rewards
+            userId: reward.userId 
+          })
+          .returning();
+        
+        if (!newReward) {
+          console.error(`ERROR: Failed to create login reward for user ID ${reward.userId}`);
+          throw new Error(`Failed to create login reward for user ID ${reward.userId}`);
+        }
+        
+        console.log(`REWARD CREATED: Login reward ID ${newReward.id} created for user ${user.username} (ID: ${newReward.userId})`);
+        return newReward;
+      });
+    } catch (error) {
+      console.error(`Error creating login reward for user ${user.username} (ID: ${reward.userId}):`, error);
+      throw error; // Re-throw for proper error handling upstream
+    }
   }
   
   async getUserLoginRewards(userId: number, limit = 30): Promise<LoginReward[]> {
