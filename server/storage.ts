@@ -35,7 +35,7 @@ import {
   SubscriptionPlan
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, sql, like } from "drizzle-orm";
+import { eq, desc, asc, sql, like, and, or, isNull } from "drizzle-orm";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -577,7 +577,7 @@ export class DatabaseStorage implements IStorage {
   // Now using database tables
   
   async getSupportTickets(status?: string, page = 1, limit = 20): Promise<any[]> {
-    let query = db.select({
+    let queryBase = db.select({
       ticket: supportTickets,
       user: {
         username: users.username
@@ -587,12 +587,19 @@ export class DatabaseStorage implements IStorage {
     .leftJoin(users, eq(supportTickets.userId, users.id))
     .orderBy(desc(supportTickets.updatedAt));
     
-    if (status) {
-      query = query.where(eq(supportTickets.status, status));
-    }
-    
     const offset = (page - 1) * limit;
-    const results = await query.limit(limit).offset(offset);
+    
+    let results;
+    if (status) {
+      results = await queryBase
+        .where(eq(supportTickets.status, status))
+        .limit(limit)
+        .offset(offset);
+    } else {
+      results = await queryBase
+        .limit(limit)
+        .offset(offset);
+    }
     
     // For each ticket, fetch its messages
     const ticketsWithMessages = await Promise.all(
@@ -601,7 +608,7 @@ export class DatabaseStorage implements IStorage {
         
         return {
           ...result.ticket,
-          username: result.user.username,
+          username: result.user?.username || 'Unknown',
           messages
         };
       })
@@ -620,11 +627,11 @@ export class DatabaseStorage implements IStorage {
     .from(ticketMessages)
     .leftJoin(users, eq(ticketMessages.userId, users.id))
     .where(eq(ticketMessages.ticketId, ticketId))
-    .orderBy(asc(ticketMessages.createdAt));
+    .orderBy(desc(ticketMessages.createdAt)); // Using desc instead of asc
     
     return messageResults.map(result => ({
       ...result.message,
-      username: result.user.username
+      username: result.user?.username || 'Unknown'
     }));
   }
   
@@ -645,7 +652,7 @@ export class DatabaseStorage implements IStorage {
     
     return {
       ...result.ticket,
-      username: result.user.username,
+      username: result.user?.username || 'Unknown',
       messages
     };
   }
@@ -656,76 +663,112 @@ export class DatabaseStorage implements IStorage {
       throw new Error("User not found");
     }
     
-    const newTicket = {
-      id: this.ticketIdCounter++,
-      userId,
+    // First create the ticket
+    const [newTicket] = await db
+      .insert(supportTickets)
+      .values({
+        userId,
+        subject,
+        status: 'open',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    
+    if (!newTicket) {
+      throw new Error("Failed to create support ticket");
+    }
+    
+    // Then add the first message
+    const [firstMessage] = await db
+      .insert(ticketMessages)
+      .values({
+        ticketId: newTicket.id,
+        userId,
+        message,
+        isAdmin: false,
+        createdAt: new Date()
+      })
+      .returning();
+    
+    // Return the ticket with the message included
+    return {
+      ...newTicket,
       username: user.username,
-      subject,
-      status: 'open',
-      createdAt: new Date(),
-      updatedAt: new Date(),
       messages: [
         {
-          id: 1,
-          userId,
-          username: user.username,
-          message,
-          isAdmin: false,
-          timestamp: new Date()
+          ...firstMessage,
+          username: user.username
         }
       ]
     };
-    
-    this.supportTickets.push(newTicket);
-    return newTicket;
   }
   
   async addSupportTicketReply(ticketId: number, userId: number, message: string, isAdmin: boolean): Promise<any> {
-    const ticketIndex = this.supportTickets.findIndex(ticket => ticket.id === ticketId);
-    
-    if (ticketIndex === -1) {
+    // First check if ticket exists
+    const ticket = await this.getSupportTicket(ticketId);
+    if (!ticket) {
       throw new Error("Support ticket not found");
     }
     
+    // Verify user exists
     const user = await this.getUser(userId);
     if (!user) {
       throw new Error("User not found");
     }
     
-    const ticket = this.supportTickets[ticketIndex];
-    
-    // Add new message
-    const newMessage = {
-      id: ticket.messages.length + 1,
-      userId,
-      username: user.username,
-      message,
-      isAdmin,
-      timestamp: new Date()
-    };
-    
-    ticket.messages.push(newMessage);
-    ticket.updatedAt = new Date();
+    // Add the new message
+    const [newMessage] = await db
+      .insert(ticketMessages)
+      .values({
+        ticketId,
+        userId,
+        message,
+        isAdmin,
+        createdAt: new Date()
+      })
+      .returning();
     
     // If admin is replying to an 'open' ticket, change status to 'in-progress'
     if (isAdmin && ticket.status === 'open') {
-      ticket.status = 'in-progress';
+      await this.updateSupportTicketStatus(ticketId, 'in-progress');
     }
     
-    return ticket;
+    // Update the ticket's updatedAt timestamp
+    await db
+      .update(supportTickets)
+      .set({ updatedAt: new Date() })
+      .where(eq(supportTickets.id, ticketId));
+    
+    // Get the updated ticket with all messages
+    const updatedTicket = await this.getSupportTicket(ticketId);
+    
+    return updatedTicket;
   }
   
   async updateSupportTicketStatus(ticketId: number, status: string): Promise<any | undefined> {
-    const ticketIndex = this.supportTickets.findIndex(ticket => ticket.id === ticketId);
-    
-    if (ticketIndex === -1) {
+    // Check if ticket exists
+    const ticket = await this.getSupportTicket(ticketId);
+    if (!ticket) {
       return undefined;
     }
     
-    this.supportTickets[ticketIndex].status = status;
-    this.supportTickets[ticketIndex].updatedAt = new Date();
+    // Update the ticket status
+    const [updatedTicket] = await db
+      .update(supportTickets)
+      .set({
+        status,
+        updatedAt: new Date()
+      })
+      .where(eq(supportTickets.id, ticketId))
+      .returning();
     
-    return this.supportTickets[ticketIndex];
+    if (!updatedTicket) {
+      return undefined;
+    }
+    
+    // Get the full ticket with messages
+    return this.getSupportTicket(ticketId);
   }
   
   // === SUBSCRIPTION OPERATIONS ===
