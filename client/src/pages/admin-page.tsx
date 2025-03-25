@@ -3251,62 +3251,64 @@ export default function AdminPage() {
         </div>
         
         <Tabs defaultValue="analytics" className="w-full">
-          <TabsList className="mb-6 flex flex-wrap">
-            <TabsTrigger value="analytics" className="flex items-center">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Analytics
-            </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center">
-              <UserCog className="h-4 w-4 mr-2" />
-              Users
-            </TabsTrigger>
-            {isOwner && (
-              <TabsTrigger value="coins" className="flex items-center">
-                <CoinsIcon className="h-4 w-4 mr-2" />
-                Coins
+          <div className="mb-6 overflow-x-auto pb-2">
+            <TabsList className="w-auto inline-flex flex-nowrap">
+              <TabsTrigger value="analytics" className="flex items-center whitespace-nowrap">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Analytics
               </TabsTrigger>
-            )}
-            <TabsTrigger value="transactions" className="flex items-center">
-              <History className="h-4 w-4 mr-2" />
-              Transactions
-            </TabsTrigger>
-            {isOwner && (
-              <TabsTrigger value="bonuses" className="flex items-center">
-                <Gift className="h-4 w-4 mr-2" />
-                Bonuses
+              <TabsTrigger value="users" className="flex items-center whitespace-nowrap">
+                <UserCog className="h-4 w-4 mr-2" />
+                Users
               </TabsTrigger>
-            )}
-            <TabsTrigger value="announcements" className="flex items-center">
-              <Megaphone className="h-4 w-4 mr-2" />
-              Announcements
-            </TabsTrigger>
-            {isOwner && (
-              <TabsTrigger value="gameconfig" className="flex items-center">
-                <Settings className="h-4 w-4 mr-2" />
-                Game Config
+              {isOwner && (
+                <TabsTrigger value="coins" className="flex items-center whitespace-nowrap">
+                  <CoinsIcon className="h-4 w-4 mr-2" />
+                  Coins
+                </TabsTrigger>
+              )}
+              <TabsTrigger value="transactions" className="flex items-center whitespace-nowrap">
+                <History className="h-4 w-4 mr-2" />
+                Transactions
               </TabsTrigger>
-            )}
-            <TabsTrigger value="support" className="flex items-center">
-              <LifeBuoy className="h-4 w-4 mr-2" />
-              Support
-            </TabsTrigger>
-            {isOwner && (
-              <TabsTrigger value="subscriptions" className="flex items-center">
-                <Crown className="h-4 w-4 mr-2" />
-                Subscriptions
+              {isOwner && (
+                <TabsTrigger value="bonuses" className="flex items-center whitespace-nowrap">
+                  <Gift className="h-4 w-4 mr-2" />
+                  Bonuses
+                </TabsTrigger>
+              )}
+              <TabsTrigger value="announcements" className="flex items-center whitespace-nowrap">
+                <Megaphone className="h-4 w-4 mr-2" />
+                Announcements
               </TabsTrigger>
-            )}
-            <TabsTrigger value="ban-appeals" className="flex items-center">
-              <MessagesSquare className="h-4 w-4 mr-2" />
-              Ban Appeals
-            </TabsTrigger>
-            {isOwner && (
-              <TabsTrigger value="passwords" className="flex items-center">
-                <Lock className="h-4 w-4 mr-2" />
-                Passwords
+              {isOwner && (
+                <TabsTrigger value="gameconfig" className="flex items-center whitespace-nowrap">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Game Config
+                </TabsTrigger>
+              )}
+              <TabsTrigger value="support" className="flex items-center whitespace-nowrap">
+                <LifeBuoy className="h-4 w-4 mr-2" />
+                Support
               </TabsTrigger>
-            )}
-          </TabsList>
+              {isOwner && (
+                <TabsTrigger value="subscriptions" className="flex items-center whitespace-nowrap">
+                  <Crown className="h-4 w-4 mr-2" />
+                  Subscriptions
+                </TabsTrigger>
+              )}
+              <TabsTrigger value="ban-appeals" className="flex items-center whitespace-nowrap">
+                <MessagesSquare className="h-4 w-4 mr-2" />
+                Ban Appeals
+              </TabsTrigger>
+              {isOwner && (
+                <TabsTrigger value="passwords" className="flex items-center whitespace-nowrap">
+                  <Lock className="h-4 w-4 mr-2" />
+                  Passwords
+                </TabsTrigger>
+              )}
+            </TabsList>
+          </div>
           
           <TabsContent value="analytics">
             <AnalyticsTab />
