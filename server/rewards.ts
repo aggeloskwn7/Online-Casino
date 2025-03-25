@@ -51,27 +51,30 @@ export async function claimDailyReward(req: Request, res: Response) {
     }
     
     // Calculate base reward amount for this day
-    let rewardAmount = await storage.getRewardAmountForDay(newStreak);
+    let baseRewardAmount = await storage.getRewardAmountForDay(newStreak);
+    let rewardAmount = baseRewardAmount;
+    let vipBonusAmount = 0;
+    let multiplierApplied = 1;
     
-    // Apply VIP subscription multipliers if applicable
+    // Apply VIP subscription benefits if applicable
     if (req.user.subscriptionTier) {
-      // Get subscription plans to retrieve multipliers
+      // Get subscription plans to retrieve multipliers and bonuses
       const subscriptionPlans = await storage.getSubscriptionPlans();
       const userPlan = subscriptionPlans.find(plan => plan.tier === req.user!.subscriptionTier);
       
       if (userPlan) {
-        // First, apply multiplier if available (Silver and Gold tiers)
+        // 1. Apply multiplier to the base reward amount if available (Silver and Gold tiers)
         if (userPlan.multiplier) {
-          rewardAmount = Math.round(rewardAmount * userPlan.multiplier);
-          console.log(`Applied ${userPlan.tier} multiplier (${userPlan.multiplier}x) to daily reward: ${rewardAmount}`);
+          multiplierApplied = userPlan.multiplier;
+          rewardAmount = Math.round(baseRewardAmount * userPlan.multiplier);
+          console.log(`Applied ${userPlan.tier} multiplier (${userPlan.multiplier}x) to daily reward: ${baseRewardAmount} -> ${rewardAmount}`);
         }
         
-        // Then, check if the minimum reward from subscription is higher than the calculated amount
+        // 2. Add the fixed VIP bonus on top of the multiplied base reward
         if (userPlan.coinReward > 0) {
-          if (rewardAmount < userPlan.coinReward) {
-            rewardAmount = userPlan.coinReward;
-            console.log(`Applied ${userPlan.tier} minimum fixed reward: ${rewardAmount}`);
-          }
+          vipBonusAmount = userPlan.coinReward;
+          rewardAmount += vipBonusAmount;
+          console.log(`Added ${userPlan.tier} fixed bonus (${vipBonusAmount} coins) to daily reward: Total = ${rewardAmount}`);
         }
       }
     }
@@ -99,13 +102,28 @@ export async function claimDailyReward(req: Request, res: Response) {
       adminId: 0 // System action
     });
     
+    // Prepare a detailed message for VIP users
+    let rewardMessage = `Congratulations! You've received ${rewardAmount} coins for your Day ${newStreak} login reward!`;
+    
+    // For VIP users, provide a breakdown of the reward calculation
+    if (req.user.subscriptionTier && vipBonusAmount > 0) {
+      rewardMessage = `Congratulations! You've received ${rewardAmount} coins for your Day ${newStreak} login reward!\n` +
+                      `Base reward: ${baseRewardAmount} coins\n` +
+                      `${req.user.subscriptionTier.toUpperCase()} multiplier (${multiplierApplied}x): ${Math.round(baseRewardAmount * multiplierApplied) - baseRewardAmount} additional coins\n` +
+                      `${req.user.subscriptionTier.toUpperCase()} VIP bonus: ${vipBonusAmount} coins`;
+    }
+    
     return res.status(200).json({
       success: true,
-      message: `Congratulations! You've received ${rewardAmount} coins for your Day ${newStreak} login reward!`,
+      message: rewardMessage,
       rewardAmount,
+      baseRewardAmount,
+      vipBonusAmount: vipBonusAmount || 0,
+      multiplier: multiplierApplied,
       day: newStreak,
       newBalance,
-      streak: newStreak
+      streak: newStreak,
+      subscriptionTier: req.user.subscriptionTier || null
     });
   } catch (error) {
     console.error("Error claiming daily reward:", error);
@@ -162,39 +180,57 @@ export async function getRewardSchedule(req: Request, res: Response) {
         // Apply the VIP multiplier if exists
         if (userPlan.multiplier) {
           multiplier = userPlan.multiplier;
-          console.log(`Applied ${userPlan.tier} multiplier: ${multiplier}x`);
+          console.log(`Applied ${userPlan.tier} multiplier: ${multiplier}x - Standard rewards will be multiplied by this value`);
         }
         
-        // Set minimum reward from subscription
+        // Set VIP daily bonus reward
         if (userPlan.coinReward) {
           minimumReward = userPlan.coinReward;
-          console.log(`Applied ${userPlan.tier} minimum reward: ${minimumReward} coins`);
+          console.log(`Applied ${userPlan.tier} VIP bonus: ${minimumReward} coins - This will be added on top of the multiplied base rewards`);
         }
       }
     }
     
     for (let day = 1; day <= 30; day++) {
       // Get base reward amount for this day
-      let amount = await storage.getRewardAmountForDay(day);
+      let baseAmount = await storage.getRewardAmountForDay(day);
+      let amount = baseAmount;
       
-      // Apply multiplier and minimum rewards if user has subscription
+      // Apply VIP subscription benefits if user has one
       if (multiplier !== 1 || minimumReward > 0) {
-        // Apply multiplier
+        // 1. First apply multiplier to base reward
         if (multiplier !== 1) {
-          amount = Math.round(amount * multiplier);
+          amount = Math.round(baseAmount * multiplier);
         }
         
-        // Apply minimum reward if subscription reward is higher
+        // 2. Then add VIP fixed bonus
         if (minimumReward > 0) {
-          amount = Math.max(amount, minimumReward);
+          amount += minimumReward;
         }
       }
       
-      rewardSchedule.push({
+      // Create a reward object with detailed breakdown for VIP users
+      const rewardObject = {
         day,
         amount,
+        baseAmount,
         isMilestone: (day % 7 === 0 || day % 5 === 0 || day === 30)
-      });
+      };
+      
+      // For VIP users, include the breakdown of the calculation
+      if (multiplier !== 1 || minimumReward > 0) {
+        Object.assign(rewardObject, {
+          multiplier,
+          vipBonus: minimumReward,
+          calculationBreakdown: {
+            baseReward: baseAmount,
+            afterMultiplier: Math.round(baseAmount * multiplier),
+            bonusAdded: minimumReward
+          }
+        });
+      }
+      
+      rewardSchedule.push(rewardObject);
     }
     
     return res.status(200).json(rewardSchedule);
