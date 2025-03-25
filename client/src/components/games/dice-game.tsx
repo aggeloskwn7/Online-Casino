@@ -174,10 +174,10 @@ export default function DiceGame() {
   
   const handleRoll = () => {
     // Validate bet amount and target
-    if (!user || betAmount <= 0 || betAmount > Number(user.balance)) {
+    if (!user || betAmount <= 0) {
       toast({
         title: 'Invalid bet',
-        description: 'Please enter a valid bet amount',
+        description: 'Bet amount must be greater than 0',
         variant: 'destructive',
       });
       return;
@@ -357,7 +357,7 @@ export default function DiceGame() {
               : 'bg-gradient-to-r from-[#5465FF] to-[#6677FF] hover:from-[#6677FF] hover:to-[#7788FF] text-white'
           } font-bold py-4 px-4 rounded-lg shadow-lg transition duration-200`}
           onClick={handleRoll}
-          disabled={isRolling || !user || betAmount > Number(user.balance)}
+          disabled={isRolling || !user || betAmount <= 0}
         >
           <div className="flex items-center justify-center">
             {isRolling ? (

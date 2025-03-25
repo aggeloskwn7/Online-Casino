@@ -478,11 +478,9 @@ export default function CrashGame() {
         <div className="space-y-2">
           <div className="flex justify-between">
             <span className="text-sm text-gray-400">Bet Amount</span>
-            {user && (
-              <span className="text-xs text-indigo-400">
-                Max: {formatCurrency(user?.balance || 0)}
-              </span>
-            )}
+            <span className="text-xs text-indigo-400">
+              No max limit
+            </span>
           </div>
           <div className="relative">
             <Input
@@ -540,11 +538,11 @@ export default function CrashGame() {
             className={`bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700
               text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-indigo-900/20
               flex items-center justify-center space-x-2 transition-all
-              ${(!user || betAmount <= 0 || betAmount > Number(user.balance)) ? 'opacity-50 cursor-not-allowed' : ''}`}
+              ${(!user || betAmount <= 0) ? 'opacity-50 cursor-not-allowed' : ''}`}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleStartGame}
-            disabled={!user || betAmount <= 0 || betAmount > Number(user.balance)}
+            disabled={!user || betAmount <= 0}
           >
             <Rocket className="h-5 w-5" />
             <span>LAUNCH ROCKET</span>
