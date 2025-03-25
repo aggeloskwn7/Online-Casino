@@ -2961,6 +2961,9 @@ export default function AdminPage() {
     return <Redirect to="/" />;
   }
   
+  // Check if user is an owner (used to restrict certain tabs)
+  const isOwner = user.isOwner;
+  
   return (
     <MainLayout>
       <div className="container mx-auto py-8 px-4">
@@ -2969,6 +2972,11 @@ export default function AdminPage() {
           <p className="text-muted-foreground">
             Manage users, adjust balances, and monitor system activity
           </p>
+          {!isOwner && (
+            <p className="text-xs text-amber-500 mt-2">
+              Some tabs are only accessible to owners
+            </p>
+          )}
         </div>
         
         <Tabs defaultValue="analytics" className="w-full">
@@ -2981,34 +2989,42 @@ export default function AdminPage() {
               <UserCog className="h-4 w-4 mr-2" />
               Users
             </TabsTrigger>
-            <TabsTrigger value="coins" className="flex items-center">
-              <CoinsIcon className="h-4 w-4 mr-2" />
-              Coins
-            </TabsTrigger>
+            {isOwner && (
+              <TabsTrigger value="coins" className="flex items-center">
+                <CoinsIcon className="h-4 w-4 mr-2" />
+                Coins
+              </TabsTrigger>
+            )}
             <TabsTrigger value="transactions" className="flex items-center">
               <History className="h-4 w-4 mr-2" />
               Transactions
             </TabsTrigger>
-            <TabsTrigger value="bonuses" className="flex items-center">
-              <Gift className="h-4 w-4 mr-2" />
-              Bonuses
-            </TabsTrigger>
+            {isOwner && (
+              <TabsTrigger value="bonuses" className="flex items-center">
+                <Gift className="h-4 w-4 mr-2" />
+                Bonuses
+              </TabsTrigger>
+            )}
             <TabsTrigger value="announcements" className="flex items-center">
               <Megaphone className="h-4 w-4 mr-2" />
               Announcements
             </TabsTrigger>
-            <TabsTrigger value="gameconfig" className="flex items-center">
-              <Settings className="h-4 w-4 mr-2" />
-              Game Config
-            </TabsTrigger>
+            {isOwner && (
+              <TabsTrigger value="gameconfig" className="flex items-center">
+                <Settings className="h-4 w-4 mr-2" />
+                Game Config
+              </TabsTrigger>
+            )}
             <TabsTrigger value="support" className="flex items-center">
               <LifeBuoy className="h-4 w-4 mr-2" />
               Support
             </TabsTrigger>
-            <TabsTrigger value="subscriptions" className="flex items-center">
-              <Crown className="h-4 w-4 mr-2" />
-              Subscriptions
-            </TabsTrigger>
+            {isOwner && (
+              <TabsTrigger value="subscriptions" className="flex items-center">
+                <Crown className="h-4 w-4 mr-2" />
+                Subscriptions
+              </TabsTrigger>
+            )}
             <TabsTrigger value="ban-appeals" className="flex items-center">
               <MessagesSquare className="h-4 w-4 mr-2" />
               Ban Appeals
@@ -3023,9 +3039,11 @@ export default function AdminPage() {
             <UsersTab />
           </TabsContent>
           
-          <TabsContent value="coins">
-            <CoinsTab />
-          </TabsContent>
+          {isOwner && (
+            <TabsContent value="coins">
+              <CoinsTab />
+            </TabsContent>
+          )}
           
           <TabsContent value="transactions">
             <div className="text-center p-12 text-muted-foreground">
@@ -3034,25 +3052,31 @@ export default function AdminPage() {
             </div>
           </TabsContent>
           
-          <TabsContent value="bonuses">
-            <BonusesTab />
-          </TabsContent>
+          {isOwner && (
+            <TabsContent value="bonuses">
+              <BonusesTab />
+            </TabsContent>
+          )}
           
           <TabsContent value="announcements">
             <AnnouncementsTab />
           </TabsContent>
           
-          <TabsContent value="gameconfig">
-            <GameConfigTab />
-          </TabsContent>
+          {isOwner && (
+            <TabsContent value="gameconfig">
+              <GameConfigTab />
+            </TabsContent>
+          )}
           
           <TabsContent value="support">
             <SupportTab />
           </TabsContent>
           
-          <TabsContent value="subscriptions">
-            <SubscriptionsTab />
-          </TabsContent>
+          {isOwner && (
+            <TabsContent value="subscriptions">
+              <SubscriptionsTab />
+            </TabsContent>
+          )}
           
           <TabsContent value="ban-appeals">
             <BanAppealsTab />

@@ -247,7 +247,7 @@ export function setupAdminRoutes(app: Express) {
   // === COIN MANAGEMENT ENDPOINTS ===
   
   // Adjust user balance (admin only)
-  app.post("/api/admin/users/:userId/adjust-balance", authMiddleware, adminMiddleware, async (req, res) => {
+  app.post("/api/admin/users/:userId/adjust-balance", authMiddleware, ownerMiddleware, async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
       
@@ -324,7 +324,7 @@ export function setupAdminRoutes(app: Express) {
   // === MASS BONUS ENDPOINTS ===
   
   // Send bonus to all users (admin only)
-  app.post("/api/admin/mass-bonus", authMiddleware, adminMiddleware, async (req, res) => {
+  app.post("/api/admin/mass-bonus", authMiddleware, ownerMiddleware, async (req, res) => {
     try {
       // Validate request body
       const bonusData = adminMassBonusSchema.parse(req.body);
@@ -476,7 +476,7 @@ export function setupAdminRoutes(app: Express) {
   // === GAME CONFIG ENDPOINTS ===
   
   // Get current game configuration (admin only)
-  app.get("/api/admin/game-config/:gameType", authMiddleware, adminMiddleware, async (req, res) => {
+  app.get("/api/admin/game-config/:gameType", authMiddleware, ownerMiddleware, async (req, res) => {
     try {
       const gameType = req.params.gameType;
       
@@ -496,7 +496,7 @@ export function setupAdminRoutes(app: Express) {
   });
   
   // Update game configuration (admin only)
-  app.patch("/api/admin/game-config", authMiddleware, adminMiddleware, async (req, res) => {
+  app.patch("/api/admin/game-config", authMiddleware, ownerMiddleware, async (req, res) => {
     try {
       // Validate request body
       const configData = adminGameConfigSchema.parse(req.body);
@@ -652,7 +652,7 @@ export function setupAdminRoutes(app: Express) {
   });
   
   // Get user's current subscription (admin only)
-  app.get("/api/admin/users/:userId/subscription", authMiddleware, adminMiddleware, async (req, res) => {
+  app.get("/api/admin/users/:userId/subscription", authMiddleware, ownerMiddleware, async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
       
