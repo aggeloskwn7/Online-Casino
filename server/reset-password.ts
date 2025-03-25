@@ -57,7 +57,7 @@ export async function forgotPassword(req: Request, res: Response) {
     
     // Send email with reset link
     const { data, error } = await resend.emails.send({
-      from: 'password-reset@ragebet.co',
+      from: 'onboarding@resend.dev',
       to: user.email,
       subject: 'Reset Your Rage Bet Password',
       html: `
