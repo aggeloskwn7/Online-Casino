@@ -300,42 +300,48 @@ export class DatabaseStorage implements IStorage {
   async checkDailyRewardStatus(userId: number): Promise<boolean> {
     console.log(`Checking daily reward eligibility for user ID ${userId}`);
     
-    // Get the user directly with explicit ID filtering to ensure account isolation
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, userId));
-    
-    if (!user) {
-      console.error(`Error checking reward status: User ID ${userId} not found`);
-      throw new Error(`User ID ${userId} not found`);
+    try {
+      // Get the user directly with explicit ID filtering to ensure account isolation
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId));
+      
+      if (!user) {
+        console.error(`Error checking reward status: User ID ${userId} not found`);
+        throw new Error(`User ID ${userId} not found`);
+      }
+      
+      // Get the user's specific information for rewards tracking
+      const userCreationDate = user.createdAt ? new Date(user.createdAt) : new Date();
+      console.log(`User ${user.username} (ID: ${userId}) creation date: ${userCreationDate.toISOString()}`);
+      console.log(`User ${user.username} (ID: ${userId}) last reward date: ${user.lastRewardDate || 'never'}`);
+      
+      // Check if they've claimed rewards today by getting their own recent rewards
+      // First check from user record
+      if (!user.lastRewardDate) {
+        console.log(`User ${user.username} has never claimed a reward before, they are eligible`);
+        return true;
+      }
+      
+      const lastReward = new Date(user.lastRewardDate);
+      const now = new Date();
+      
+      // Use UTC date strings to avoid timezone issues
+      const lastRewardDay = lastReward.toISOString().split('T')[0];
+      const todayDay = now.toISOString().split('T')[0];
+      
+      // CRITICAL: Check if the last reward was claimed on a different day
+      // This ensures each user has their own eligibility tracking
+      const isEligible = lastRewardDay !== todayDay;
+      
+      console.log(`User ${user.username} (ID: ${userId}) last reward on ${lastRewardDay}, today is ${todayDay}, eligible: ${isEligible}`);
+      
+      return isEligible;
+    } catch (error) {
+      console.error(`Error checking daily reward eligibility for user ID ${userId}:`, error);
+      throw error;
     }
-    
-    // Get the user's specific information for rewards tracking
-    const userCreationDate = user.createdAt ? new Date(user.createdAt) : new Date();
-    console.log(`User ${user.username} (ID: ${userId}) creation date: ${userCreationDate.toISOString()}`);
-    console.log(`User ${user.username} (ID: ${userId}) last reward date: ${user.lastRewardDate || 'never'}`);
-    
-    // If no lastRewardDate, they have never claimed a reward
-    if (!user.lastRewardDate) {
-      console.log(`User ${user.username} has never claimed a reward before, they are eligible`);
-      return true;
-    }
-    
-    const lastReward = new Date(user.lastRewardDate);
-    const now = new Date();
-    
-    // Use UTC date strings to avoid timezone issues
-    const lastRewardDay = lastReward.toISOString().split('T')[0];
-    const todayDay = now.toISOString().split('T')[0];
-    
-    // Check if the last reward was claimed on a different day
-    // This ensures each user has their own eligibility tracking
-    const isEligible = lastRewardDay !== todayDay;
-    
-    console.log(`User ${user.username} (ID: ${userId}) last reward on ${lastRewardDay}, today is ${todayDay}, eligible: ${isEligible}`);
-    
-    return isEligible;
   }
 
   // === TRANSACTION OPERATIONS ===

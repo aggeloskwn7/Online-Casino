@@ -14,19 +14,26 @@ export async function checkDailyReward(req: Request, res: Response) {
     const userId = req.user.id;
     console.log(`Checking eligibility for daily reward for User ID ${userId}, username: ${req.user.username}`);
     
-    // Get the user's specific information to ensure each user's rewards are tracked separately
+    // IMPORTANT: Always get the user directly from the database, not from req.user
+    // to ensure we have the most current data and properly handle account isolation
     const user = await storage.getUser(userId);
     if (!user) {
       console.error(`Error checking reward eligibility: User ID ${userId} not found at check time`);
       return res.status(404).json({ message: "User not found" });
     }
     
-    // Check if this specific user is eligible for a reward
+    // Check if this specific user is eligible for a reward today
     const isEligible = await storage.checkDailyRewardStatus(userId);
     
     // Ensure currentLoginStreak is properly defaulted if it doesn't exist
     const currentStreak = typeof user.currentLoginStreak === 'number' ? user.currentLoginStreak : 0;
-    const nextDay = currentStreak + 1;
+    
+    // Calculate the next day in the streak for this specific user
+    // If they've completed the 30-day cycle, show Day 1 as the next day
+    let nextDay = currentStreak + 1;
+    if (nextDay > 30) {
+      nextDay = 1;
+    }
     
     console.log(`User ${user.username} (ID: ${userId}) reward check: currentStreak=${currentStreak}, nextDay=${nextDay}, isEligible=${isEligible}`);
     
