@@ -777,6 +777,11 @@ export async function startBlackjack(req: Request, res: Response) {
       return res.status(404).json({ message: "User not found" });
     }
     
+    // Enforce maximum bet limit of 10,000 coins
+    if (amount > 10000) {
+      return res.status(400).json({ message: "Maximum bet amount is 10,000 coins" });
+    }
+
     // Check if user has enough balance
     if (Number(user.balance) < amount) {
       return res.status(400).json({ message: "Insufficient balance" });
