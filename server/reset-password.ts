@@ -55,6 +55,10 @@ export async function forgotPassword(req: Request, res: Response) {
     // Create reset link
     const resetLink = `${req.protocol}://${req.get('host')}/reset-password?token=${token}`;
     
+    // Log email details for debugging
+    console.log(`[PASSWORD RESET] Attempting to send email to: ${user.email}`);
+    console.log(`[PASSWORD RESET] Reset link: ${resetLink}`);
+    
     // Send email with reset link
     const { data, error } = await resend.emails.send({
       from: 'onboarding@resend.dev',
@@ -79,8 +83,11 @@ export async function forgotPassword(req: Request, res: Response) {
 
     if (error) {
       console.error('Error sending reset email:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
       return res.status(500).json({ message: 'Failed to send reset email. Please try again later.' });
     }
+    
+    console.log('[PASSWORD RESET] Email sent successfully, data:', JSON.stringify(data, null, 2));
     
     res.status(200).json({ 
       message: "If a user with that username exists, a password reset link has been sent to their email." 
