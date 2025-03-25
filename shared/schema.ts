@@ -96,6 +96,7 @@ export const banAppeals = pgTable("ban_appeals", {
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
+  email: true,
 });
 
 export const insertTransactionSchema = createInsertSchema(transactions).omit({

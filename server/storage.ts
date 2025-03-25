@@ -8,6 +8,7 @@ import {
   banAppeals,
   supportTickets,
   ticketMessages,
+  passwordResetTokens,
   User, 
   InsertUser, 
   Transaction, 
@@ -32,7 +33,9 @@ import {
   InsertLoginReward,
   Subscription,
   InsertSubscription,
-  SubscriptionPlan
+  SubscriptionPlan,
+  PasswordResetToken,
+  InsertPasswordResetToken
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, asc, sql, like, and, or, isNull } from "drizzle-orm";
@@ -123,6 +126,14 @@ export interface IStorage {
   getBanAppeals(status?: string, limit?: number, offset?: number): Promise<BanAppealType[]>;
   getUserBanAppeal(userId: number): Promise<BanAppealType | undefined>;
   respondToBanAppeal(appealId: number, adminId: number, status: string, response: string): Promise<BanAppealType>;
+  
+  // Password reset operations
+  createPasswordResetToken(userId: number, token: string, expiryHours: number): Promise<PasswordResetToken>;
+  getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined>;
+  markPasswordResetTokenAsUsed(id: number): Promise<PasswordResetToken>;
+  updateUserPassword(userId: number, newPassword: string): Promise<User>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  updateUserEmail(userId: number, email: string): Promise<User>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1329,6 +1340,85 @@ export class DatabaseStorage implements IStorage {
     }
     
     return updatedAppeal;
+  }
+
+  // === PASSWORD RESET OPERATIONS ===
+  async createPasswordResetToken(userId: number, token: string, expiryHours: number): Promise<PasswordResetToken> {
+    // Calculate expiry date
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + expiryHours);
+
+    const [resetToken] = await db
+      .insert(passwordResetTokens)
+      .values({
+        userId,
+        token,
+        expiresAt,
+        isUsed: false
+      })
+      .returning();
+    
+    return resetToken;
+  }
+
+  async getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined> {
+    const [resetToken] = await db
+      .select()
+      .from(passwordResetTokens)
+      .where(eq(passwordResetTokens.token, token));
+    
+    return resetToken;
+  }
+
+  async markPasswordResetTokenAsUsed(id: number): Promise<PasswordResetToken> {
+    const [updatedToken] = await db
+      .update(passwordResetTokens)
+      .set({ isUsed: true })
+      .where(eq(passwordResetTokens.id, id))
+      .returning();
+    
+    if (!updatedToken) {
+      throw new Error("Token not found");
+    }
+    
+    return updatedToken;
+  }
+
+  async updateUserPassword(userId: number, newPassword: string): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({ password: newPassword })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    if (!updatedUser) {
+      throw new Error("User not found");
+    }
+    
+    return updatedUser;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email));
+    
+    return user;
+  }
+
+  async updateUserEmail(userId: number, email: string): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({ email })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    if (!updatedUser) {
+      throw new Error("User not found");
+    }
+    
+    return updatedUser;
   }
 }
 
