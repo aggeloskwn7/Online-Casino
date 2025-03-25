@@ -2540,7 +2540,7 @@ function AnalyticsTab() {
                       <Tooltip />
                       <Legend />
                       <Bar dataKey="count" name="Users" fill="#8884d8">
-                        {analyticsData.subscriptionStats.map((entry, index) => (
+                        {analyticsData.subscriptionStats.map((entry: {tier: string, count: number}, index: number) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Bar>

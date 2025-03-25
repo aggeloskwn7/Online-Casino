@@ -477,9 +477,9 @@ export class DatabaseStorage implements IStorage {
       .select({ count: sql<number>`count(*)` })
       .from(users)
       .where(and(
-        sql`"lastLogin" IS NOT NULL`,
-        sql`"lastLogin" >= ${startDate}`,
-        sql`"lastLogin" <= ${endDate}`
+        sql`"last_login" IS NOT NULL`,
+        sql`"last_login" >= ${startDate}`,
+        sql`"last_login" <= ${endDate}`
       ));
     
     return result[0].count;
