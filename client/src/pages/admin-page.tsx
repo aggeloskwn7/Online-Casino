@@ -2950,6 +2950,275 @@ function BanAppealsTab() {
   );
 }
 
+// Component for the passwords tab
+function PasswordsTab() {
+  const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  
+  // Search users
+  const {
+    data: searchResults,
+    isLoading: isSearching,
+    refetch: refetchSearch
+  } = useQuery({
+    queryKey: ['/api/admin/users/search', searchTerm],
+    queryFn: async () => {
+      if (!searchTerm || searchTerm.length < 2) return { users: [] };
+      const res = await apiRequest('GET', `/api/admin/users/search?q=${encodeURIComponent(searchTerm)}`);
+      return await res.json();
+    },
+    enabled: searchTerm.length >= 2
+  });
+  
+  // Reset password mutation
+  const resetPassword = useMutation({
+    mutationFn: async ({ userId, newPassword }: { userId: number, newPassword: string }) => {
+      const res = await apiRequest('POST', `/api/admin/users/${userId}/reset-password`, { newPassword });
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Password has been reset successfully',
+      });
+      setIsResetDialogOpen(false);
+      setNewPassword('');
+      setConfirmPassword('');
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: `Failed to reset password: ${error.message}`,
+        variant: 'destructive',
+      });
+    }
+  });
+  
+  // Handle search submission
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchTerm.length >= 2) {
+      refetchSearch();
+    }
+  };
+  
+  // Handle reset password dialog
+  const handleResetPassword = (user: any) => {
+    setSelectedUser(user);
+    setIsResetDialogOpen(true);
+  };
+  
+  // Handle password reset form submission
+  const handleSubmitPasswordReset = () => {
+    if (!selectedUser) return;
+    
+    // Validate password
+    if (!newPassword || newPassword.length < 6) {
+      toast({
+        title: 'Error',
+        description: 'Password must be at least 6 characters long',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // Validate password confirmation
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: 'Error',
+        description: 'Passwords do not match',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    resetPassword.mutate({
+      userId: selectedUser.id,
+      newPassword
+    });
+  };
+  
+  return (
+    <div>
+      <div className="mb-6">
+        <form onSubmit={handleSearch} className="flex gap-2">
+          <Input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search users by username..."
+            className="flex-1"
+          />
+          <Button type="submit" disabled={isSearching || searchTerm.length < 2}>
+            {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+          </Button>
+        </form>
+      </div>
+      
+      {isSearching ? (
+        <div className="flex justify-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Username</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(!searchResults?.users || searchResults.users.length === 0) ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-8">
+                    {searchTerm.length >= 2 ? "No users found" : "Search for a user to reset their password"}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                searchResults.users.map((user: any) => (
+                  <TableRow key={user.id}>
+                    <TableCell>{user.id}</TableCell>
+                    <TableCell>
+                      {user.username}
+                      {user.isOwner && (
+                        <Badge className="ml-2 bg-purple-600">Owner</Badge>
+                      )}
+                      {user.isAdmin && !user.isOwner && (
+                        <Badge className="ml-2 bg-blue-600">Admin</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {user.isBanned ? (
+                        <Badge variant="destructive">Banned</Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
+                          Active
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleResetPassword(user)}
+                      >
+                        <Key className="h-4 w-4 mr-2" />
+                        Reset Password
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </>
+      )}
+      
+      {/* Reset Password Dialog */}
+      <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset User Password</DialogTitle>
+            <DialogDescription>
+              Enter a new password for {selectedUser?.username}.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedUser && (
+            <div className="space-y-4">
+              <div>
+                <Label>Username</Label>
+                <div className="font-semibold">{selectedUser.username}</div>
+              </div>
+              
+              <div>
+                <Label htmlFor="newPassword" className="text-sm font-medium">
+                  New Password <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="mt-1"
+                  placeholder="Enter new password"
+                />
+                {newPassword && newPassword.length < 6 && (
+                  <p className="text-sm text-red-500 mt-1">
+                    Password must be at least 6 characters long
+                  </p>
+                )}
+              </div>
+              
+              <div>
+                <Label htmlFor="confirmPassword" className="text-sm font-medium">
+                  Confirm Password <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="mt-1"
+                  placeholder="Confirm new password"
+                />
+                {confirmPassword && newPassword !== confirmPassword && (
+                  <p className="text-sm text-red-500 mt-1">
+                    Passwords do not match
+                  </p>
+                )}
+              </div>
+              
+              <div className="flex justify-end gap-2 pt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsResetDialogOpen(false);
+                    setNewPassword('');
+                    setConfirmPassword('');
+                  }}
+                  disabled={resetPassword.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="default"
+                  onClick={handleSubmitPasswordReset}
+                  disabled={
+                    resetPassword.isPending || 
+                    !newPassword || 
+                    newPassword.length < 6 || 
+                    newPassword !== confirmPassword
+                  }
+                >
+                  {resetPassword.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Key className="mr-2 h-4 w-4" />
+                      Reset Password
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
@@ -3031,6 +3300,12 @@ export default function AdminPage() {
               <MessagesSquare className="h-4 w-4 mr-2" />
               Ban Appeals
             </TabsTrigger>
+            {isOwner && (
+              <TabsTrigger value="passwords" className="flex items-center">
+                <Lock className="h-4 w-4 mr-2" />
+                Passwords
+              </TabsTrigger>
+            )}
           </TabsList>
           
           <TabsContent value="analytics">
@@ -3083,6 +3358,12 @@ export default function AdminPage() {
           <TabsContent value="ban-appeals">
             <BanAppealsTab />
           </TabsContent>
+          
+          {isOwner && (
+            <TabsContent value="passwords">
+              <PasswordsTab />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </MainLayout>

@@ -53,6 +53,7 @@ export interface IStorage {
   updateUserLastLogin(userId: number): Promise<User>;
   updateLoginStreak(userId: number, streak: number): Promise<User>;
   checkDailyRewardStatus(userId: number): Promise<boolean>;
+  updateUserPassword(userId: number, newPassword: string): Promise<User>;
   
   // Analytics operations
   getActiveUsersCount(startDate: Date, endDate: Date): Promise<number>;

@@ -15,6 +15,13 @@ import {
 import { z } from "zod";
 
 /**
+ * Password reset schema for admin
+ */
+const adminPasswordResetSchema = z.object({
+  newPassword: z.string().min(6).max(50)
+});
+
+/**
  * Set up admin-related API routes
  */
 export function setupAdminRoutes(app: Express) {
