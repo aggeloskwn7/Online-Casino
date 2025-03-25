@@ -1233,6 +1233,11 @@ export async function playRoulette(req: Request, res: Response) {
     // Calculate total bet amount
     const totalAmount = bets.reduce((sum, bet) => sum + bet.amount, 0);
     
+    // Enforce total maximum bet limit of 10,000 coins
+    if (totalAmount > 10000) {
+      return res.status(400).json({ message: "Total bet amount cannot exceed 10,000 coins" });
+    }
+    
     // Check if user has enough balance
     if (Number(user.balance) < totalAmount) {
       return res.status(400).json({ message: "Insufficient balance" });
