@@ -37,7 +37,7 @@ import {
 // Define the pin grid dimensions
 const ROWS = 10; // Number of rows of pins
 const BUCKET_COUNT = 11; // Number of buckets (should match multipliers array length)
-const PIN_SIZE = 16; // Increased pin size even more
+const PIN_SIZE = 14; // Slightly reduced from previous size
 const PIN_RADIUS = PIN_SIZE / 2;
 // Ball size will be dynamically calculated based on container width
 
