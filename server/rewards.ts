@@ -12,13 +12,23 @@ export async function checkDailyReward(req: Request, res: Response) {
     }
     
     const userId = req.user.id;
+    console.log(`Checking eligibility for daily reward for User ID ${userId}, username: ${req.user.username}`);
+    
+    // Get the user's specific information to ensure each user's rewards are tracked separately
+    const user = await storage.getUser(userId);
+    if (!user) {
+      console.error(`Error checking reward eligibility: User ID ${userId} not found at check time`);
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    // Check if this specific user is eligible for a reward
     const isEligible = await storage.checkDailyRewardStatus(userId);
     
     // Ensure currentLoginStreak is properly defaulted if it doesn't exist
-    const currentStreak = typeof req.user.currentLoginStreak === 'number' ? req.user.currentLoginStreak : 0;
+    const currentStreak = typeof user.currentLoginStreak === 'number' ? user.currentLoginStreak : 0;
     const nextDay = currentStreak + 1;
     
-    console.log(`User ${req.user.username} reward check: currentStreak=${currentStreak}, nextDay=${nextDay}, isEligible=${isEligible}`);
+    console.log(`User ${user.username} (ID: ${userId}) reward check: currentStreak=${currentStreak}, nextDay=${nextDay}, isEligible=${isEligible}`);
     
     return res.status(200).json({ 
       isEligible,
@@ -61,9 +71,9 @@ export async function claimDailyReward(req: Request, res: Response) {
     
     // Calculate the next login streak day
     // If undefined/null, use 0 so the first claim is Day 1
-    // Check req.user.currentLoginStreak exists and has a numeric value
-    const currentStreak = typeof req.user.currentLoginStreak === 'number' ? req.user.currentLoginStreak : 0;
-    console.log(`User ${req.user.username} current streak: ${currentStreak}`);
+    // Always use the user from getUser call as it's the most updated version
+    const currentStreak = typeof user.currentLoginStreak === 'number' ? user.currentLoginStreak : 0;
+    console.log(`User ${user.username} current streak: ${currentStreak}`);
     let newStreak = currentStreak + 1;
     
     // Cap at 30 days
@@ -71,7 +81,7 @@ export async function claimDailyReward(req: Request, res: Response) {
       newStreak = 1; // Reset back to day 1 after completing the 30-day cycle
     }
     
-    console.log(`User ${req.user.username} new streak will be: ${newStreak}`);
+    console.log(`User ${user.username} new streak will be: ${newStreak}`);
     
     // Calculate base reward amount for this day
     let baseRewardAmount = await storage.getRewardAmountForDay(newStreak);
@@ -80,17 +90,17 @@ export async function claimDailyReward(req: Request, res: Response) {
     let multiplierApplied = 1;
     
     // Apply VIP subscription benefits if applicable
-    if (req.user.subscriptionTier) {
+    if (user.subscriptionTier) {
       // Log the subscription tier for debugging
-      console.log(`User subscription tier for reward calculation: ${req.user.subscriptionTier}`);
+      console.log(`User subscription tier for reward calculation: ${user.subscriptionTier}`);
       
       // Get subscription plans to retrieve multipliers and bonuses
       const subscriptionPlans = await storage.getSubscriptionPlans();
       console.log(`Available subscription plans for reward calculation: ${subscriptionPlans.map(p => p.tier).join(', ')}`);
       
       // Find the exact matching plan using strict equality
-      const userPlan = subscriptionPlans.find(plan => plan.tier === req.user!.subscriptionTier);
-      console.log(`Found matching plan for ${req.user.subscriptionTier}: ${userPlan ? 'Yes' : 'No'}`);
+      const userPlan = subscriptionPlans.find(plan => plan.tier === user.subscriptionTier);
+      console.log(`Found matching plan for ${user.subscriptionTier}: ${userPlan ? 'Yes' : 'No'}`);
       
       if (userPlan) {
         // Log the plan details
@@ -114,7 +124,7 @@ export async function claimDailyReward(req: Request, res: Response) {
           console.log(`No coin reward found for tier ${userPlan.tier}`);
         }
       } else {
-        console.log(`Warning: User has subscription tier ${req.user.subscriptionTier} but no matching plan configuration was found`);
+        console.log(`Warning: User has subscription tier ${user.subscriptionTier} but no matching plan configuration was found`);
       }
     } else {
       console.log("User has no subscription tier - using standard reward calculations");
@@ -124,7 +134,7 @@ export async function claimDailyReward(req: Request, res: Response) {
     await storage.updateLoginStreak(userId, newStreak);
     
     // Add the reward amount to user's balance
-    const currentBalance = parseFloat(req.user.balance.toString());
+    const currentBalance = parseFloat(user.balance.toString());
     const newBalance = currentBalance + rewardAmount;
     await storage.updateUserBalance(userId, newBalance);
     
@@ -161,11 +171,11 @@ export async function claimDailyReward(req: Request, res: Response) {
     let rewardMessage = `Congratulations! You've received ${rewardAmount} coins for your Day ${newStreak} login reward!`;
     
     // For VIP users, provide a breakdown of the reward calculation
-    if (req.user.subscriptionTier && vipBonusAmount > 0) {
+    if (user.subscriptionTier && vipBonusAmount > 0) {
       rewardMessage = `Congratulations! You've received ${rewardAmount} coins for your Day ${newStreak} login reward!\n` +
                       `Base reward: ${baseRewardAmount} coins\n` +
-                      `${req.user.subscriptionTier.toUpperCase()} multiplier (${multiplierApplied}x): ${Math.round(baseRewardAmount * multiplierApplied) - baseRewardAmount} additional coins\n` +
-                      `${req.user.subscriptionTier.toUpperCase()} VIP bonus: ${vipBonusAmount} coins`;
+                      `${user.subscriptionTier.toUpperCase()} multiplier (${multiplierApplied}x): ${Math.round(baseRewardAmount * multiplierApplied) - baseRewardAmount} additional coins\n` +
+                      `${user.subscriptionTier.toUpperCase()} VIP bonus: ${vipBonusAmount} coins`;
     }
     
     return res.status(200).json({
@@ -178,7 +188,7 @@ export async function claimDailyReward(req: Request, res: Response) {
       day: newStreak,
       newBalance,
       streak: newStreak,
-      subscriptionTier: req.user.subscriptionTier || null
+      subscriptionTier: user.subscriptionTier || null
     });
   } catch (error) {
     console.error("Error claiming daily reward:", error);
@@ -196,7 +206,17 @@ export async function getRewardHistory(req: Request, res: Response) {
     }
     
     const userId = req.user.id;
+    console.log(`Getting login rewards for user ID ${userId}, username: ${req.user.username}`);
+    
+    // Get the user's specific information to ensure we're working with the most up-to-date data
+    const user = await storage.getUser(userId);
+    if (!user) {
+      console.error(`Error getting reward history: User ID ${userId} not found`);
+      return res.status(404).json({ message: "User not found" });
+    }
+    
     const rewardHistory = await storage.getUserLoginRewards(userId);
+    console.log(`Found ${rewardHistory.length} rewards for user ID ${userId}`);
     
     return res.status(200).json(rewardHistory);
   } catch (error) {
@@ -232,21 +252,28 @@ export async function getRewardSchedule(req: Request, res: Response) {
       return res.status(200).json(rewardSchedule);
     }
     
+    // Get the user's specific information to ensure each user's rewards are tracked separately
+    const user = await storage.getUser(req.user.id);
+    if (!user) {
+      console.error(`Error getting reward schedule: User ID ${req.user.id} not found`);
+      return res.status(404).json({ message: "User not found" });
+    }
+    
     console.log("Reward Schedule - User data:", {
-      id: req.user.id,
-      username: req.user.username,
-      subscriptionTier: req.user.subscriptionTier || "none"
+      id: user.id,
+      username: user.username,
+      subscriptionTier: user.subscriptionTier || "none"
     });
     
     // If user has a subscription, apply their specific tier bonuses
-    if (req.user.subscriptionTier) {
-      console.log(`User has subscription tier: ${req.user.subscriptionTier}`);
+    if (user.subscriptionTier) {
+      console.log(`User has subscription tier: ${user.subscriptionTier}`);
       
       // Get the subscription plans to find user's plan details
       const subscriptionPlans = await storage.getSubscriptionPlans();
       console.log("Available subscription plans found:", subscriptionPlans.length);
       
-      const userPlan = subscriptionPlans.find(plan => plan.tier === req.user!.subscriptionTier);
+      const userPlan = subscriptionPlans.find(plan => plan.tier === user.subscriptionTier);
       console.log("User's plan:", userPlan ? `${userPlan.tier} tier found` : "No matching tier found");
       
       if (userPlan) {
@@ -262,7 +289,7 @@ export async function getRewardSchedule(req: Request, res: Response) {
           console.log(`Applying ${userPlan.tier} VIP bonus: ${minimumReward} coins - This will be added on top of the multiplied base rewards`);
         }
       } else {
-        console.log(`Warning: User has tier ${req.user.subscriptionTier} but no matching plan was found`);
+        console.log(`Warning: User has tier ${user.subscriptionTier} but no matching plan was found`);
       }
     } else {
       console.log("User has no subscription tier - using default reward values");
