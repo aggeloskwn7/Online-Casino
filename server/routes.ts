@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, authMiddleware, banStatusMiddleware } from "./auth";
 import { setupAdminRoutes } from "./admin";
 import { setupRewardRoutes } from "./rewards";
+import { setupSupportRoutes } from "./support";
 import { 
   playSlots, 
   playDice, 
@@ -233,6 +234,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Set up daily login rewards routes
   setupRewardRoutes(app);
+  
+  // Set up support ticket routes
+  setupSupportRoutes(app);
   
   // Ban appeal endpoints
   app.get("/api/user/ban-status", banStatusMiddleware, async (req: Request, res: Response) => {
