@@ -166,6 +166,7 @@ export class DatabaseStorage implements IStorage {
         balance: "10000", // Default starting balance
         isAdmin,
         isOwner,
+        currentLoginStreak: 0, // Explicitly set to 0 for new users
       })
       .returning();
     return user;
