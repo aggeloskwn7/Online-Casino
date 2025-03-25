@@ -85,16 +85,27 @@ const calculatePinsWithSpacing = (spacingX: number, spacingY: number): PinPositi
   const boardWidth = spacingX * BUCKET_COUNT;
   const centerX = boardWidth / 2;
   
-  for (let row = 0; row < ROWS; row++) {
+  // Adjust the starting position and spacing to properly align pins
+  // We'll offset pins vertically to ensure they sit above the buckets
+  const verticalOffset = 20; // Space from bottom to first row of pins
+  const pinRows = ROWS - 2; // Adjust to leave more space between pins and buckets
+  
+  for (let row = 0; row < pinRows; row++) {
+    // Each row has one more pin than the previous
     const pinsInRow = row + 1;
     const rowWidth = (pinsInRow - 1) * spacingX;
+    // Center the row horizontally
     const startX = centerX - rowWidth / 2;
+    
+    // Calculate Y position from the top (not bottom)
+    // Ensures pins stay above buckets
+    const yPos = row * spacingY + 40; // Start higher up
     
     for (let i = 0; i < pinsInRow; i++) {
       pins.push({
         row,
         x: startX + i * spacingX,
-        y: row * spacingY + 60,
+        y: yPos,
         radius: PIN_RADIUS
       });
     }
@@ -373,13 +384,14 @@ export default function PlinkoGame({
         const finalX = startX + safeBucketIndex * bucketWidth + bucketWidth / 2;
         
         // Position for the bounce animation based on dimensions
-        const bottomPosition = dimensions.boardHeight - 20;
+        // Bucket area is at the very bottom of the board
+        const bucketPosition = dimensions.boardHeight - 30;
         
         // Add a much more pronounced bounce effect in the bucket for a more satisfying landing
         // First position - higher in the bucket for dramatic effect
         setBallPosition({ 
           x: finalX,
-          y: bottomPosition - 25 // Higher position for initial bounce
+          y: bucketPosition - 20 // Higher position for initial bounce
         });
         
         // Start a more pronounced bounce sequence - longer and more steps
@@ -387,35 +399,35 @@ export default function PlinkoGame({
           // First bounce - down very low in bucket
           setBallPosition({ 
             x: finalX,
-            y: bottomPosition + 10 // Lower position (bounce down)
+            y: bucketPosition + 5 // Lower position (bounce down)
           });
           
           setTimeout(() => {
             // Second bounce - higher
             setBallPosition({ 
               x: finalX,
-              y: bottomPosition - 8
+              y: bucketPosition - 6
             });
             
             setTimeout(() => {
               // Third bounce - down again
               setBallPosition({ 
                 x: finalX,
-                y: bottomPosition + 5
+                y: bucketPosition + 3
               });
               
               setTimeout(() => {
                 // Fourth bounce - up slightly
                 setBallPosition({ 
                   x: finalX,
-                  y: bottomPosition - 2
+                  y: bucketPosition - 1
                 });
                 
                 setTimeout(() => {
                   // Final resting position
                   setBallPosition({ 
                     x: finalX,
-                    y: bottomPosition // Final position
+                    y: bucketPosition // Final position
                   });
                 }, 120);
               }, 120);
@@ -440,14 +452,15 @@ export default function PlinkoGame({
       let newX = 0;
       let newY = 0;
       
-      if (pathStep.row < ROWS) {
-        // For pins (rows 0 to ROWS-1), use the pin calculation
+      if (pathStep.row < ROWS - 1) {
+        // For pins (rows 0 to ROWS-2), use the pin calculation
+        // This matches our updated pin layout which has fewer rows
         const pinsInRow = pathStep.row + 1;
         const centerX = dimensions.boardWidth / 2;
         const rowWidth = (pinsInRow - 1) * dimensions.pinSpacingX;
         const startX = centerX - rowWidth / 2;
         newX = startX + pathStep.position * dimensions.pinSpacingX;
-        newY = pathStep.row * dimensions.pinSpacingY + 60;
+        newY = pathStep.row * dimensions.pinSpacingY + 40; // Updated Y position to match pins
       } else {
         // For the final row (buckets), use the bucket calculation
         const bucketWidth = dimensions.pinSpacingX;
@@ -455,7 +468,8 @@ export default function PlinkoGame({
         const centerX = dimensions.boardWidth / 2;
         const startX = centerX - (totalBucketsWidth / 2);
         newX = startX + pathStep.position * bucketWidth + bucketWidth / 2;
-        newY = dimensions.boardHeight - 20;
+        // Position ball above the bucket tops
+        newY = dimensions.boardHeight - 60; 
       }
       
       // Add realistic physics with jitter and pin deflection effects
